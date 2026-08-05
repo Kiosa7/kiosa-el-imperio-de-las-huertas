@@ -43,9 +43,9 @@ Todos los números viven en un bloque `CONFIG` para ajuste fácil.
 ### Mejoras (círculos con drenado de dinero y anillo de progreso)
 - El dinero se drena de forma continua al pararse encima (~precio completo en 1.5 s con fondos suficientes).
 - Si el jugador se sale a medio pago, **el progreso se conserva** (el anillo queda donde iba).
-- **"+1 ÁRBOL":** $50 inicial, +35% por compra; agrega un árbol a la huerta desbloqueada más reciente.
+- **"+1 ÁRBOL":** $50 inicial, +35% por compra; agrega una planta a la huerta desbloqueada más reciente (árbol o planta rastrera según el tipo de esa huerta).
 - **"MOCHILA +5":** $80 inicial, +60% por compra; tope de capacidad: 40.
-- **"AYUDANTE":** $250; máximo 2. NPC que camina al 70% de la velocidad del jugador, carga 6 frutas, va a la huerta desbloqueada con frutas disponibles más cercana → vende → repite. Camisas de colores distintos para distinguirlos.
+- **"AYUDANTE":** primero $250, segundo $500; máximo 2. NPC que camina al 70% de la velocidad del jugador, carga 6 frutas, va a la huerta desbloqueada con frutas disponibles más cercana → vende → repite. Camisas de colores distintos para distinguirlos.
 
 ## Retos y desbloqueo de frutas
 
