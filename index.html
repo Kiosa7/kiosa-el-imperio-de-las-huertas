@@ -171,7 +171,8 @@ const CONFIG = {
   CLIENTE_COMPRA: 0.35,
   CLIENTE_VEL: 150,
   CLIENTE_PIDE_MIN: 1,
-  CLIENTE_PIDE_MAX: 3,
+  CLIENTE_PIDE_MAX: 3,          // techo del pedido con reputación 0
+  CLIENTE_PIDE_EXTRA: 4,        // techo extra a reputación 100: piden hasta 3+4=7
 
   // Reputación: sube al servir completo, baja con cada cliente enojado.
   // Manda en cuánto pagan y en cada cuánto llegan.
@@ -321,7 +322,7 @@ const I18N = {
     r6t: 'Cuidado en el camino', r6d: 'Los baches te tiran la fruta y los animales se la llevan; corre al puesto, ahí no entran',
     r1t: 'Cosecha', r1d: 'Acércate a los árboles y se llena tu mochila sola',
     r2t: 'Surte el puesto', r2d: 'Párate en VENDER: cada fruta va a su propia bandeja',
-    r3t: 'Atiende a los clientes', r3d: 'Compran del estante; si lo hallan vacío se van enojados',
+    r3t: 'Atiende a los clientes', r3d: 'Vacío se enojan; con buena reputación piden más',
     r4t: 'Espanta las plagas', r4d: 'Corre hacia los pájaros antes de que sequen la planta',
     r5t: 'Mejora tu huerta', r5d: 'Párate en los círculos de abajo para comprar mejoras',
     rango0: 'Carretilla', rango1: 'Tienda', rango2: 'Mercado', rango3: 'Emporio',
@@ -340,9 +341,9 @@ const I18N = {
     cap1: 'Primeros brotes', cap2: 'La huerta crece', cap3: 'Defiende la cosecha',
     cap4: 'Imperio en marcha', cap5: 'El imperio',
     r_c01: 'Vende {n} mangos', r_c02: 'Espanta {n} plagas', r_c03: 'Gana ${n} en total',
-    r_c04: 'Compra tu primera mejora', r_c05: 'Contrata un ayudante',
+    r_c04: 'Vende {n} frutas en total', r_c05: 'Contrata un ayudante',
     r_c06: 'Vende {n} frutas en total', r_c07: 'Ten {n} plantas a la vez',
-    r_c08: 'Gana ${n} en total', r_c09: 'Espanta {n} plagas',
+    r_c08: 'Gana ${n} en total', r_c09: 'Vende {n} frutas en total',
     r_c10: 'Compra un espantapájaros', r_c11: '3 min sin plantas marchitas',
     r_c12: 'Sirve {n} clientes completos', r_c13: 'Contrata el segundo ayudante',
     r_c14: 'Alcanza {n} de reputación', r_c15: 'Gana ${n} en total',
@@ -385,7 +386,7 @@ const I18N = {
     r6t: 'Watch the road', r6d: 'Potholes drop your fruit and animals take it; run to the stall, they will not enter',
     r1t: 'Harvest', r1d: 'Walk up to the trees and your backpack fills by itself',
     r2t: 'Restock the stall', r2d: 'Stand on SELL: each fruit goes into its own tray',
-    r3t: 'Serve the customers', r3d: 'They buy from the shelf; find it empty and they leave angry',
+    r3t: 'Serve the customers', r3d: 'Empty makes them angry; good reputation makes them order more',
     r4t: 'Scare the pests', r4d: 'Run at the birds before they dry out the plant',
     r5t: 'Upgrade the orchard', r5d: 'Stand on the circles below to buy upgrades',
     rango0: 'Cart', rango1: 'Shop', rango2: 'Market', rango3: 'Emporium',
@@ -404,9 +405,9 @@ const I18N = {
     cap1: 'First sprouts', cap2: 'The orchard grows', cap3: 'Defend the harvest',
     cap4: 'Empire rising', cap5: 'The empire',
     r_c01: 'Sell {n} mangoes', r_c02: 'Scare off {n} pests', r_c03: 'Earn ${n} in total',
-    r_c04: 'Buy your first upgrade', r_c05: 'Hire a helper',
+    r_c04: 'Sell {n} fruit in total', r_c05: 'Hire a helper',
     r_c06: 'Sell {n} fruit in total', r_c07: 'Have {n} plants at once',
-    r_c08: 'Earn ${n} in total', r_c09: 'Scare off {n} pests',
+    r_c08: 'Earn ${n} in total', r_c09: 'Sell {n} fruit in total',
     r_c10: 'Buy a scarecrow', r_c11: 'Go 3 min with no wilting',
     r_c12: 'Serve {n} customers fully', r_c13: 'Hire the second helper',
     r_c14: 'Reach {n} reputation', r_c15: 'Earn ${n} in total',
@@ -449,7 +450,7 @@ const I18N = {
     r6t: 'Cuidado no caminho', r6d: 'Os buracos derrubam a fruta e os animais levam; corra ao posto, ali eles não entram',
     r1t: 'Colha', r1d: 'Chegue perto das árvores e a mochila enche sozinha',
     r2t: 'Abasteça o posto', r2d: 'Fique em VENDER: cada fruta vai para sua própria bandeja',
-    r3t: 'Atenda os clientes', r3d: 'Compram da prateleira; se estiver vazia vão embora bravos',
+    r3t: 'Atenda os clientes', r3d: 'Vazia eles se irritam; com boa reputação pedem mais',
     r4t: 'Espante as pragas', r4d: 'Corra até os pássaros antes que sequem a planta',
     r5t: 'Melhore a horta', r5d: 'Fique nos círculos de baixo para comprar melhorias',
     rango0: 'Carrinho', rango1: 'Loja', rango2: 'Mercado', rango3: 'Empório',
@@ -468,9 +469,9 @@ const I18N = {
     cap1: 'Primeiros brotos', cap2: 'A horta cresce', cap3: 'Defenda a colheita',
     cap4: 'Império a caminho', cap5: 'O império',
     r_c01: 'Venda {n} mangas', r_c02: 'Espante {n} pragas', r_c03: 'Ganhe ${n} no total',
-    r_c04: 'Compre sua primeira melhoria', r_c05: 'Contrate um ajudante',
+    r_c04: 'Venda {n} frutas no total', r_c05: 'Contrate um ajudante',
     r_c06: 'Venda {n} frutas no total', r_c07: 'Tenha {n} plantas de uma vez',
-    r_c08: 'Ganhe ${n} no total', r_c09: 'Espante {n} pragas',
+    r_c08: 'Ganhe ${n} no total', r_c09: 'Venda {n} frutas no total',
     r_c10: 'Compre um espantalho', r_c11: 'Aguente 3 min sem murchar',
     r_c12: 'Atenda {n} clientes por completo', r_c13: 'Contrate o segundo ajudante',
     r_c14: 'Alcance {n} de reputação', r_c15: 'Ganhe ${n} no total',
@@ -561,12 +562,12 @@ const CAMPANA = [
   { id:'c01', cap:0, k:'r_c01', meta:25,   prog:s => s.ventasPorFruta.mango || 0,   premio:100,  desbloquea:'naranja' },
   { id:'c02', cap:0, k:'r_c02', meta:5,    prog:s => s.plagasEspantadas,            premio:100 },
   { id:'c03', cap:0, k:'r_c03', meta:500,  prog:s => Math.floor(s.dineroTotal),     premio:100,  desbloquea:'sandia' },
-  { id:'c04', cap:0, k:'r_c04', meta:1,    prog:s => totalCompras(),                premio:100 },
+  { id:'c04', cap:0, k:'r_c04', meta:100,  prog:s => s.ventasTotales,               premio:100 },
   { id:'c05', cap:1, k:'r_c05', meta:1,    prog:s => s.ayudantes,                   premio:300 },
-  { id:'c06', cap:1, k:'r_c06', meta:150,  prog:s => s.ventasTotales,               premio:300 },
+  { id:'c06', cap:1, k:'r_c06', meta:200,  prog:s => s.ventasTotales,               premio:300 },
   { id:'c07', cap:1, k:'r_c07', meta:12,   prog:s => plants.length,                 premio:300 },
   { id:'c08', cap:1, k:'r_c08', meta:2000, prog:s => Math.floor(s.dineroTotal),     premio:300,  desbloquea:'papaya' },
-  { id:'c09', cap:2, k:'r_c09', meta:25,   prog:s => s.plagasEspantadas,            premio:700 },
+  { id:'c09', cap:2, k:'r_c09', meta:350,  prog:s => s.ventasTotales,               premio:700 },
   { id:'c10', cap:2, k:'r_c10', meta:1,    prog:s => s.compras.espanta,             premio:700 },
   { id:'c11', cap:2, k:'r_c11', meta:180,  prog:s => Math.floor(s.sinMarchita),     premio:700 },
   { id:'c12', cap:2, k:'r_c12', meta:30,   prog:s => s.servidos,                    premio:700 },
@@ -577,7 +578,7 @@ const CAMPANA = [
   { id:'c17', cap:4, k:'r_c17', meta:20,   prog:s => plants.length,                 premio:3000 },
   { id:'c18', cap:4, k:'r_c18', meta:40,   prog:s => s.ventasPorFruta.papaya || 0,  premio:3000 },
   { id:'c19', cap:4, k:'r_c19', meta:60,   prog:s => s.plagasEspantadas,            premio:3000 },
-  { id:'c20', cap:4, k:'r_c20', meta:1000, prog:s => s.ventasTotales,               premio:3000, final:true }
+  { id:'c20', cap:4, k:'r_c20', meta:500,  prog:s => s.ventasTotales,               premio:3000, final:true }
 ];
 
 const OPCIONALES = [
@@ -1378,7 +1379,7 @@ class Cliente {
     this.slot = slot;
     this.x = izq ? -30 : WORLD_W + 30;
     this.y = SLOTS_CLIENTE[slot][1];
-    const r = CONFIG.CLIENTE_PIDE_MAX - CONFIG.CLIENTE_PIDE_MIN + 1;
+    const r = pedidoMaxPorRep() - CONFIG.CLIENTE_PIDE_MIN + 1;
     this.quiere = CONFIG.CLIENTE_PIDE_MIN + ((Math.random() * r) | 0);
     this.compradas = 0;
     // Cada cliente pide UNA fruta concreta de las desbloqueadas
@@ -1716,6 +1717,11 @@ function rangoRep() {
 function repFactorPrecio() {
   return CONFIG.REP_PRECIO_MIN + CONFIG.REP_PRECIO_RANGO * (state.reputacion / CONFIG.REP_MAX);
 }
+// Con buena reputación los clientes se animan a pedir más: el techo del
+// pedido sube de 3 a 7 conforme la reputación va de 0 a 100.
+function pedidoMaxPorRep() {
+  return CONFIG.CLIENTE_PIDE_MAX + Math.floor(CONFIG.CLIENTE_PIDE_EXTRA * (state.reputacion / CONFIG.REP_MAX));
+}
 // Buena fama = más clientes. El éxito trae más presión, y eso se equilibra solo.
 function intervaloCliente() {
   const base = Math.max(CONFIG.CLIENTE_INTERVALO_MIN,
@@ -1955,11 +1961,6 @@ const circles = [
     }
   }
 ];
-
-function totalCompras() {
-  return state.compras.arbol + state.compras.mochila + state.ayudantes +
-         state.compras.riego + state.compras.espanta + state.compras.puesto;
-}
 
 function actualizarCirculos(dt) {
   for (const c of circles) {
