@@ -89,6 +89,8 @@ const CONFIG = {
   // Recolección
   HARVEST_RADIUS: 60,
   HARVEST_INTERVAL: 0.15,
+  PILA_VISIBLE: 8,             // frutas dibujadas en la espalda; el resto va en el HUD
+  PILA_PASO: 9.5,
   PLANT_MAX_FRUIT: 3,
   REGEN_NIVELES: [2.0, 1.7, 1.45, 1.23, 1.05],
 
@@ -460,6 +462,9 @@ const toasts = [];
 let bigMsg = null;
 let saveTimer = 0;
 let plagaTimer = 0;
+// Una vez pulsado ↺ no se vuelve a guardar: si no, el `pagehide` del reload
+// reescribe el estado que sigue en memoria y deshace el borrado.
+let reiniciando = false;
 let rachaEspanto = [];
 
 function num(v, def) { return (typeof v === 'number' && isFinite(v)) ? v : def; }
@@ -481,7 +486,7 @@ const Save = {
   })(),
 
   guardar() {
-    if (!this.disponible) return;
+    if (!this.disponible || reiniciando) return;
     try {
       window.localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify({
         v: CONFIG.SAVE_VERSION,
@@ -1308,7 +1313,8 @@ function plumas(x, y) {
   }
 }
 
-function toast(txt, sub) { toasts.push({ txt: txt, sub: sub || '', t: 0 }); if (toasts.length > 3) toasts.shift(); }
+// Máximo 2 a la vez: con 3 se apilaban sobre el cartel y el globo del tutorial
+function toast(txt, sub) { toasts.push({ txt: txt, sub: sub || '', t: 0 }); if (toasts.length > 2) toasts.shift(); }
 
 function actualizarParticulas(dt) {
   for (let i = confetti.length - 1; i >= 0; i--) {
@@ -1600,7 +1606,11 @@ canvas.addEventListener('pointerdown', e => {
   if (puntoEnRect(HUD.btn.idioma, p.x, p.y)) { ciclarIdioma(); e.preventDefault(); return; }
   if (puntoEnRect(HUD.btn.share, p.x, p.y)) { compartir(); e.preventDefault(); return; }
   if (puntoEnRect(HUD.btn.reset, p.x, p.y)) {
-    if (window.confirm(t('reiniciar'))) { Save.borrar(); window.location.reload(); }
+    if (window.confirm(t('reiniciar'))) {
+      reiniciando = true;
+      Save.borrar();
+      window.location.reload();
+    }
     e.preventDefault(); return;
   }
   if (puntoEnRect(HUD.lista, p.x, p.y)) {
@@ -2110,15 +2120,18 @@ function dibujarPersonaje(e, opts) {
     ctx.restore();
     ctx.restore();
   }
-  const n = e.carga.length;
+  // La pila se corta a PILA_VISIBLE: antes crecía sin tope y a mochila llena
+  // atravesaba el HUD y se salía de la pantalla. El total sigue en la píldora 🎒.
+  const n = Math.min(e.carga.length, CONFIG.PILA_VISIBLE);
   if (n > 0) {
+    const desde = e.carga.length - n;
     const bx = -e.facing * 7;
     for (let i = 0; i < n; i++) {
-      const f = FRUIT_BY_ID[e.carga[i]];
+      const f = FRUIT_BY_ID[e.carga[desde + i]];
       if (!f) continue;
       const alturaRel = (i + 1) / Math.max(4, n);
       const sway = Math.sin(e.swayT - i * 0.32) * 3.2 * alturaRel * (e.moving ? 1 : 0.35);
-      const y = -44 - i * 9.5;
+      const y = -44 - i * CONFIG.PILA_PASO;
       const r = f.tipoPlanta === 'rastrera' ? 7.5 : 7;
       ctx.fillStyle = f.colores.frutaSombra;
       circulo(bx + sway, y + 1.6, r); ctx.fill();
@@ -2131,10 +2144,14 @@ function dibujarPersonaje(e, opts) {
   ctx.restore();
 }
 
+function alturaPila(n) { return Math.min(n, CONFIG.PILA_VISIBLE) * CONFIG.PILA_PASO; }
+
 function dibujarJugador() {
   dibujarPersonaje(player, { camisa: '#3fb0e8', gorra: '#e63946', logo: true, playera: true });
   if (player.carga.length >= state.capacidad) {
-    const yy = player.y - 66 - Math.min(player.carga.length, 12) * 9.5;
+    let yy = player.y - 66 - alturaPila(player.carga.length);
+    // si quedaría bajo el HUD, se pone a los pies en vez de encimarse
+    if ((yy - 15 - cam.y) * view.scale < HUD.lista.y + HUD.lista.h + 12) yy = player.y + 46;
     const bob = Math.sin(tiempo * 6) * 2;
     const txt = t('lleno');
     const w = anchoTexto(txt, 17, true) + 30;
@@ -2175,6 +2192,7 @@ function dibujarParticulas() {
 const SIGNOS = [];   // rectángulos de letreros del mundo, para no encimar globos
 
 function dibujarHint() {
+  if (bigMsg) return;              // en la celebración el globo estorba
   const h = hintActivo();
   if (!h) return;
   const obj = h.objetivo();
@@ -2200,7 +2218,7 @@ function dibujarHint() {
   }
   const txt = t(h.k);
   const w = anchoTexto(txt, 17, true) + 30;
-  let y = player.y - 92 - Math.min(player.carga.length, 12) * 9.5;
+  let y = player.y - 92 - alturaPila(player.carga.length);
   const x0 = player.x - w / 2;
   // 1) no encimar letreros del mundo
   for (let i = 0; i < 4; i++) {
@@ -2345,7 +2363,7 @@ function dibujarHUD() {
     const s = tt < 0.35 ? 0.6 + (tt / 0.35) * 0.45 : 1 + Math.sin(Math.min(tt, 1.4) * 6) * 0.015;
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.translate(cw / 2, ch * 0.42);
+    ctx.translate(cw / 2, ch * 0.58);   // bajo los toasts, no encima de ellos
     ctx.scale(s, s);
     const w = Math.min(cw - 20, anchoTexto(bigMsg.txt, 32, true) + 56);
     ctx.fillStyle = 'rgba(16,26,18,0.82)';
@@ -2656,7 +2674,7 @@ const game = {
   calidad(c) { if (['auto', 'bajo', 'alto'].indexOf(c) >= 0) { state.calidad = c; resize(); Save.guardar(); } return state.calidad; },
   fps() { return Math.round(1000 / Math.max(1, perf.ms)); },
   guardar() { Save.guardar(); },
-  reiniciar() { Save.borrar(); window.location.reload(); }
+  reiniciar() { reiniciando = true; Save.borrar(); window.location.reload(); }
 };
 window.game = game;
 
