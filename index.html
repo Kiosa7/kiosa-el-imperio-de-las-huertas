@@ -94,8 +94,30 @@ const CONFIG = {
   PLANT_MAX_FRUIT: 3,
   REGEN_NIVELES: [2.0, 1.7, 1.45, 1.23, 1.05],
 
-  // Venta
-  SELL_INTERVAL: 0.12,
+  // Puesto: ya no vendes al pisar, SURTES el estante. El dinero entra
+  // cuando un cliente compra de ahí.
+  SELL_INTERVAL: 0.10,                     // ritmo al descargar en el estante
+  PUESTO_CAP: 14,
+
+  // Compradores
+  CLIENTE_INTERVALO_BASE: 9,
+  CLIENTE_INTERVALO_MIN: 3.5,
+  CLIENTE_POR_CAP: 1.0,                    // llegan más seguido cada capítulo
+  CLIENTE_MAX: 3,
+  CLIENTE_PACIENCIA: 9,
+  CLIENTE_COMPRA: 0.35,
+  CLIENTE_VEL: 150,
+  CLIENTE_PIDE_MIN: 1,
+  CLIENTE_PIDE_MAX: 3,
+
+  // Reputación: sube al servir completo, baja con cada cliente enojado.
+  // Manda en cuánto pagan y en cada cuánto llegan.
+  REP_INICIAL: 70,
+  REP_MAX: 100,
+  REP_SERVIDO: 1,
+  REP_ENOJO: 6,
+  REP_PRECIO_MIN: 0.7,
+  REP_PRECIO_RANGO: 0.6,
 
   // Mejoras
   PAY_TIME: 1.5,
@@ -126,8 +148,10 @@ const CONFIG = {
   ESPANTA_AUTO: 6,
 
   // Racha de venta: vender sin parar sube el multiplicador
-  COMBO_GRACIA: 3.0,                       // s sin vender antes de perderla
-  COMBO_ESCALONES: [[35, 3], [22, 2.5], [12, 2], [5, 1.5]],
+  // Ahora cuenta clientes servidos completos seguidos: se rompe cuando uno
+  // se va enojado, no por dejar de vender un momento.
+  COMBO_GRACIA: 20,
+  COMBO_ESCALONES: [[12, 3], [8, 2.5], [5, 2], [2, 1.5]],
 
   // Contagio de la marchitez y cura por proximidad
   CONTAGIO_DESDE_CAP: 1,                   // a partir del capítulo 2
@@ -191,6 +215,14 @@ const I18N = {
     retos: 'Retos', campana: 'Campaña', opcionales: 'Opcionales', diarios: 'Diarios',
     sinDiarios: 'Vuelve mañana por retos nuevos.',
     hechoPor: 'Hecho por PC Electronics',
+    finalTxt: 'Levantaste el imperio de las huertas. Kiosa está orgulloso de ti.',
+    btnSeguir: 'Seguir jugando', sDinero: 'Dinero ganado', sFrutas: 'Frutas vendidas',
+    sClientes: 'Clientes servidos', sPlagas: 'Plagas espantadas', sRep: 'Reputación final',
+    introSub: 'Cosecha, surte tu puesto y haz crecer el imperio',
+    btnJugar: 'JUGAR', introTip: 'Arrastra el dedo para mover a Kiosa',
+    rango0: 'Puesto', rango1: 'Tienda', rango2: 'Mercado', rango3: 'Emporio',
+    reputacion: 'Reputación', enojado: '¡Se fue enojado!', gracias: '¡Gracias!',
+    puestoVacio: 'Surte el puesto', hSurtir: 'Surte el puesto con tu pila',
     oleada: '¡OLEADA!', oleadaSuperada: '¡Oleada superada!', oleadaFallida: 'Oleada fallida',
     oleadaFin: 'La huerta aguantó', oleadaHUD: '¡OLEADA! {s}s', perdidas: 'Perdidas {a}/{b}',
     intento: 'Intento {a}/{b}', sinPagar: 'Sin sueldo', sueldoAlto: 'No alcanza para los sueldos',
@@ -208,8 +240,8 @@ const I18N = {
     r_c06: 'Vende {n} frutas en total', r_c07: 'Ten {n} plantas a la vez',
     r_c08: 'Gana ${n} en total', r_c09: 'Espanta {n} plagas',
     r_c10: 'Compra un espantapájaros', r_c11: 'Aguanta 3 min sin marchitas',
-    r_c12: 'Vende {n} naranjas', r_c13: 'Contrata el segundo ayudante',
-    r_c14: 'Sube la mochila a {n}', r_c15: 'Gana ${n} en total',
+    r_c12: 'Sirve {n} clientes completos', r_c13: 'Contrata el segundo ayudante',
+    r_c14: 'Alcanza {n} de reputación', r_c15: 'Gana ${n} en total',
     r_c16: 'Vende {n} sandías', r_c17: 'Ten {n} plantas a la vez',
     r_c18: 'Vende {n} papayas', r_c19: 'Espanta {n} plagas',
     r_c20: 'Vende {n} frutas en total',
@@ -237,6 +269,14 @@ const I18N = {
     retos: 'Goals', campana: 'Campaign', opcionales: 'Optional', diarios: 'Daily',
     sinDiarios: 'Come back tomorrow for new goals.',
     hechoPor: 'Made by PC Electronics',
+    finalTxt: 'You built the orchard empire. Kiosa is proud of you.',
+    btnSeguir: 'Keep playing', sDinero: 'Money earned', sFrutas: 'Fruit sold',
+    sClientes: 'Customers served', sPlagas: 'Pests scared off', sRep: 'Final reputation',
+    introSub: 'Harvest, restock your stall and grow the empire',
+    btnJugar: 'PLAY', introTip: 'Drag your finger to move Kiosa',
+    rango0: 'Stand', rango1: 'Shop', rango2: 'Market', rango3: 'Emporium',
+    reputacion: 'Reputation', enojado: 'Left angry!', gracias: 'Thanks!',
+    puestoVacio: 'Restock the stall', hSurtir: 'Restock the stall with your stack',
     oleada: 'SWARM!', oleadaSuperada: 'Swarm survived!', oleadaFallida: 'Swarm failed',
     oleadaFin: 'The orchard held on', oleadaHUD: 'SWARM! {s}s', perdidas: 'Lost {a}/{b}',
     intento: 'Try {a}/{b}', sinPagar: 'Unpaid', sueldoAlto: 'Not enough for wages',
@@ -254,8 +294,8 @@ const I18N = {
     r_c06: 'Sell {n} fruit in total', r_c07: 'Have {n} plants at once',
     r_c08: 'Earn ${n} in total', r_c09: 'Scare off {n} pests',
     r_c10: 'Buy a scarecrow', r_c11: 'Go 3 min with no wilting',
-    r_c12: 'Sell {n} oranges', r_c13: 'Hire the second helper',
-    r_c14: 'Raise backpack to {n}', r_c15: 'Earn ${n} in total',
+    r_c12: 'Serve {n} customers fully', r_c13: 'Hire the second helper',
+    r_c14: 'Reach {n} reputation', r_c15: 'Earn ${n} in total',
     r_c16: 'Sell {n} watermelons', r_c17: 'Have {n} plants at once',
     r_c18: 'Sell {n} papayas', r_c19: 'Scare off {n} pests',
     r_c20: 'Sell {n} fruit in total',
@@ -283,6 +323,14 @@ const I18N = {
     retos: 'Desafios', campana: 'Campanha', opcionales: 'Opcionais', diarios: 'Diários',
     sinDiarios: 'Volte amanhã para novos desafios.',
     hechoPor: 'Feito por PC Electronics',
+    finalTxt: 'Você ergueu o império das hortas. Kiosa está orgulhoso de você.',
+    btnSeguir: 'Continuar jogando', sDinero: 'Dinheiro ganho', sFrutas: 'Frutas vendidas',
+    sClientes: 'Clientes atendidos', sPlagas: 'Pragas espantadas', sRep: 'Reputação final',
+    introSub: 'Colha, abasteça seu posto e faça o império crescer',
+    btnJugar: 'JOGAR', introTip: 'Arraste o dedo para mover o Kiosa',
+    rango0: 'Barraca', rango1: 'Loja', rango2: 'Mercado', rango3: 'Empório',
+    reputacion: 'Reputação', enojado: 'Foi embora bravo!', gracias: 'Obrigado!',
+    puestoVacio: 'Abastece o posto', hSurtir: 'Abastece o posto com sua pilha',
     oleada: 'REVOADA!', oleadaSuperada: 'Revoada superada!', oleadaFallida: 'Revoada falhou',
     oleadaFin: 'A horta aguentou', oleadaHUD: 'REVOADA! {s}s', perdidas: 'Perdidas {a}/{b}',
     intento: 'Tentativa {a}/{b}', sinPagar: 'Sem salário', sueldoAlto: 'Não dá para os salários',
@@ -300,8 +348,8 @@ const I18N = {
     r_c06: 'Venda {n} frutas no total', r_c07: 'Tenha {n} plantas de uma vez',
     r_c08: 'Ganhe ${n} no total', r_c09: 'Espante {n} pragas',
     r_c10: 'Compre um espantalho', r_c11: 'Aguente 3 min sem murchar',
-    r_c12: 'Venda {n} laranjas', r_c13: 'Contrate o segundo ajudante',
-    r_c14: 'Suba a mochila para {n}', r_c15: 'Ganhe ${n} no total',
+    r_c12: 'Atenda {n} clientes por completo', r_c13: 'Contrate o segundo ajudante',
+    r_c14: 'Alcance {n} de reputação', r_c15: 'Ganhe ${n} no total',
     r_c16: 'Venda {n} melancias', r_c17: 'Tenha {n} plantas de uma vez',
     r_c18: 'Venda {n} mamões', r_c19: 'Espante {n} pragas',
     r_c20: 'Venda {n} frutas no total',
@@ -397,9 +445,9 @@ const CAMPANA = [
   { id:'c09', cap:2, k:'r_c09', meta:25,   prog:s => s.plagasEspantadas,            premio:700 },
   { id:'c10', cap:2, k:'r_c10', meta:1,    prog:s => s.compras.espanta,             premio:700 },
   { id:'c11', cap:2, k:'r_c11', meta:180,  prog:s => Math.floor(s.sinMarchita),     premio:700 },
-  { id:'c12', cap:2, k:'r_c12', meta:100,  prog:s => s.ventasPorFruta.naranja || 0, premio:700 },
+  { id:'c12', cap:2, k:'r_c12', meta:30,   prog:s => s.servidos,                    premio:700 },
   { id:'c13', cap:3, k:'r_c13', meta:2,    prog:s => s.ayudantes,                   premio:1500 },
-  { id:'c14', cap:3, k:'r_c14', meta:25,   prog:s => s.capacidad,                   premio:1500 },
+  { id:'c14', cap:3, k:'r_c14', meta:85,   prog:s => Math.floor(s.reputacion),      premio:1500 },
   { id:'c15', cap:3, k:'r_c15', meta:8000, prog:s => Math.floor(s.dineroTotal),     premio:1500, desbloquea:'pina' },
   { id:'c16', cap:3, k:'r_c16', meta:60,   prog:s => s.ventasPorFruta.sandia || 0,  premio:1500 },
   { id:'c17', cap:4, k:'r_c17', meta:20,   prog:s => plants.length,                 premio:3000 },
@@ -477,6 +525,10 @@ function estadoNuevo() {
     recolectadas: 0,
     plagasEspantadas: 0,
     curadas: 0,
+    estante: [],
+    reputacion: CONFIG.REP_INICIAL,
+    servidos: 0,
+    enojados: 0,
     capacidad: CONFIG.CAP_START,
     compras: { arbol: 0, mochila: 0, riego: 0, espanta: 0 },
     extras: {},
@@ -488,6 +540,7 @@ function estadoNuevo() {
     diarios: { fecha: fechaHoy(), ids: diariosDeHoy(fechaHoy()), cobrados: [] },
     hoy: estadoHoyNuevo(),
     sinMarchita: 0,
+    terminado: false,
     op: { mochilaFull: 0, racha3: 0, saldoMax: 0 },
     pagos: { arbol: 0, mochila: 0, ayudante: 0, riego: 0, espanta: 0 },
     hints: { caminar: false, vender: false, mejorar: false, plaga: false },
@@ -503,6 +556,7 @@ LANG = state.idioma;
 const plants = [];
 const helpers = [];
 const plagas = [];
+const clientes = [];
 const espantas = [];
 const confetti = [];
 const floats = [];
@@ -518,6 +572,11 @@ const combo = { n: 0, t: 0 };
 let oleada = null;
 let helpersImpagos = false;
 let avisoSueldo = 0;
+let clienteTimer = 0;
+
+// Tres huecos delante del mostrador, al norte, para no estorbar la zona
+// donde se para el jugador a surtir.
+const SLOTS_CLIENTE = [[266, 1066], [360, 1054], [454, 1066]];
 
 function comboMult() {
   for (const e of CONFIG.COMBO_ESCALONES) if (combo.n >= e[0]) return e[1];
@@ -556,6 +615,8 @@ const Save = {
         espantaZonas: state.espantaZonas, ayudantes: state.ayudantes,
         retoIdx: state.retoIdx, cumplidos: state.cumplidos,
         oleadasHechas: state.oleadasHechas, curadas: state.curadas,
+        estante: state.estante, reputacion: state.reputacion,
+        servidos: state.servidos, enojados: state.enojados, terminado: state.terminado,
         diarios: state.diarios, hoy: state.hoy, sinMarchita: state.sinMarchita,
         op: state.op, pagos: state.pagos, hints: state.hints,
         mute: state.mute, idioma: state.idioma, calidad: state.calidad,
@@ -609,6 +670,13 @@ const Save = {
           .filter(n => n >= 0 && n < CAP_NOMBRES.length);
       }
       s.curadas = Math.max(0, num(d.curadas, 0) | 0);
+      s.servidos = Math.max(0, num(d.servidos, 0) | 0);
+      s.enojados = Math.max(0, num(d.enojados, 0) | 0);
+      s.terminado = !!d.terminado;
+      s.reputacion = clamp(num(d.reputacion, CONFIG.REP_INICIAL), 0, CONFIG.REP_MAX);
+      if (Array.isArray(d.estante)) {
+        s.estante = d.estante.filter(id => !!FRUIT_BY_ID[id]).slice(0, CONFIG.PUESTO_CAP);
+      }
       if (d.pagos && typeof d.pagos === 'object') {
         for (const k in s.pagos) s.pagos[k] = Math.max(0, num(d.pagos[k], 0));
       }
@@ -860,12 +928,13 @@ class Player {
     if (lleno && !this.eraLleno) { state.hoy.llenadas++; this.fullRun = true; }
     this.eraLleno = lleno;
 
-    // ---- Venta por proximidad ----
-    if (enVenta(this.x, this.y) && this.carga.length > 0) {
+    // ---- Surtir el puesto por proximidad (ya no vendes tú) ----
+    if (enVenta(this.x, this.y) && this.carga.length > 0 && !estanteLleno()) {
       this.sellT += dt;
-      while (this.sellT >= CONFIG.SELL_INTERVAL && this.carga.length > 0) {
+      while (this.sellT >= CONFIG.SELL_INTERVAL && this.carga.length > 0 && !estanteLleno()) {
         this.sellT -= CONFIG.SELL_INTERVAL;
-        venderUna(this.carga.pop(), this.x, this.y - 10, true);
+        depositar(this.carga.pop());
+        SFX.pop();
         if (this.carga.length === 0 && this.fullRun) { state.op.mochilaFull = 1; this.fullRun = false; }
       }
     } else this.sellT = 0;
@@ -930,8 +999,10 @@ class Helper {
         this.t += dt;
         if (this.t >= CONFIG.HELPER_SELL_INTERVAL) {
           this.t = 0;
-          const id = this.carga.pop();
-          if (id) venderUna(id, this.x, this.y - 10);
+          if (!estanteLleno()) {                  // los ayudantes ahora reponen
+            const id = this.carga.pop();
+            if (id) depositar(id);
+          }
           if (this.carga.length === 0) { this.modo = 'cosechar'; this.target = null; }
         }
       }
@@ -1033,6 +1104,89 @@ class Plaga {
   }
 }
 
+/* ------------------------------ Compradores ------------------------------ */
+const COLORES_CLIENTE = ['#d95f5f', '#5f8fd9', '#c07de0', '#4fb39a', '#e0a63d', '#7f9bd9'];
+
+class Cliente {
+  constructor(slot) {
+    const izq = Math.random() < 0.5;
+    this.slot = slot;
+    this.x = izq ? -30 : WORLD_W + 30;
+    this.y = SLOTS_CLIENTE[slot][1];
+    const r = CONFIG.CLIENTE_PIDE_MAX - CONFIG.CLIENTE_PIDE_MIN + 1;
+    this.quiere = CONFIG.CLIENTE_PIDE_MIN + ((Math.random() * r) | 0);
+    this.compradas = 0;
+    this.paciencia = CONFIG.CLIENTE_PACIENCIA;
+    this.estado = 'llegando';
+    this.t = 0;
+    this.phase = Math.random() * 6.28;
+    this.swayT = 0;
+    this.facing = izq ? 1 : -1;
+    this.moving = true;
+    this.carga = [];
+    this.color = COLORES_CLIENTE[(Math.random() * COLORES_CLIENTE.length) | 0];
+    this.fuera = false;
+    this.emo = null;
+    this.emoT = 0;
+  }
+  irHacia(tx, ty, dt) {
+    const dx = tx - this.x, dy = ty - this.y;
+    const d = Math.hypot(dx, dy);
+    if (d > 3) {
+      const f = Math.min(1, CONFIG.CLIENTE_VEL * dt / d);
+      this.x += dx * f; this.y += dy * f;
+      if (Math.abs(dx) > 0.6) this.facing = dx > 0 ? 1 : -1;
+      this.phase += dt * 8;
+      this.moving = true;
+    } else this.moving = false;
+    return d;
+  }
+  salir(completo) {
+    if (this.estado === 'yendo') return;
+    this.estado = 'yendo';
+    this.moving = true;
+    this.emoT = 2;
+    if (completo) {
+      state.servidos++;
+      ajustarRep(CONFIG.REP_SERVIDO);
+      combo.n++; combo.t = 0;                     // la racha son clientes servidos
+      this.emo = '😄';
+      floats.push({ x: this.x, y: this.y - 52, t: 0, txt: t('gracias'), color: '#7dffa0' });
+    } else if (this.compradas === 0) {
+      state.enojados++;
+      ajustarRep(-CONFIG.REP_ENOJO);
+      romperCombo();
+      this.emo = '😠';
+      floats.push({ x: this.x, y: this.y - 52, t: 0, txt: t('enojado'), color: '#ff8a8a' });
+      cam.shake = Math.max(cam.shake, 0.28);
+      SFX.alerta();
+    } else {
+      this.emo = '😐';                            // se llevó algo: ni premio ni castigo
+    }
+  }
+  update(dt) {
+    this.swayT += dt * (this.moving ? 6 : 2);
+    if (this.emoT > 0) this.emoT -= dt;
+    if (this.estado === 'llegando') {
+      const d = this.irHacia(SLOTS_CLIENTE[this.slot][0], SLOTS_CLIENTE[this.slot][1], dt);
+      if (d < 4) { this.estado = 'esperando'; this.t = 0; this.moving = false; }
+    } else if (this.estado === 'esperando') {
+      this.paciencia -= dt;
+      this.t += dt;
+      if (this.t >= CONFIG.CLIENTE_COMPRA && state.estante.length > 0) {
+        this.t = 0;
+        const id = comprarDelEstante(this.x, this.y);
+        if (id) { this.compradas++; this.carga.push(id); }
+        if (this.compradas >= this.quiere) { this.salir(true); return; }
+      }
+      if (this.paciencia <= 0) this.salir(false);
+    } else {
+      this.irHacia(this.x < WORLD_W / 2 ? -60 : WORLD_W + 60, this.y, dt);
+      if (this.x < -50 || this.x > WORLD_W + 50) this.fuera = true;
+    }
+  }
+}
+
 class Espantapajaros {
   constructor(fruitId) {
     const z = FRUIT_BY_ID[fruitId].zona;
@@ -1063,6 +1217,7 @@ function reconstruirMundo() {
   }
   helpers.length = 0;
   for (let i = 0; i < state.ayudantes; i++) helpers.push(new Helper(i));
+  clientes.length = 0;
   espantas.length = 0;
   for (const id of state.espantaZonas) if (FRUIT_BY_ID[id]) espantas.push(new Espantapajaros(id));
   plagas.length = 0;
@@ -1097,8 +1252,8 @@ function elegirObjetivoPlaga() {
   return lista[(Math.random() * lista.length) | 0];
 }
 
-// porPlaga: solo el daño directo de una plaga rompe la racha de venta.
-// El contagio ya castiga bastante quitándote plantas.
+// La racha ya no se rompe aquí: el daño llega solo, porque menos fruta
+// acaba en estante vacío y en un cliente enojado.
 function marchitar(p, porPlaga) {
   if (p.marchita > 0) return;
   p.marchita = CONFIG.PLAGA_MARCHITA;
@@ -1106,7 +1261,6 @@ function marchitar(p, porPlaga) {
   state.sinMarchita = 0;
   state.hoy.sinMarchita = 0;
   cam.shake = Math.max(cam.shake, 0.22);
-  if (porPlaga) romperCombo();
 }
 
 function contagioActivo() { return capituloActual() >= CONFIG.CONTAGIO_DESDE_CAP; }
@@ -1137,14 +1291,41 @@ function enVenta(x, y) {
   return x > SELL.x && x < SELL.x + SELL.w && y > SELL.y && y < SELL.y + SELL.h;
 }
 
-// `porJugador` distingue tus ventas de las de los ayudantes: solo las tuyas
-// suben la racha, para que la automatización no la regale.
-function venderUna(id, x, y, porJugador) {
+/* --------------------- Puesto, clientes y reputación --------------------- */
+function puestoCap() { return CONFIG.PUESTO_CAP; }
+function estanteLleno() { return state.estante.length >= puestoCap(); }
+
+// Surtir: la fruta pasa de tu espalda al estante. Aquí NO entra dinero.
+function depositar(id) {
+  if (!FRUIT_BY_ID[id] || estanteLleno()) return false;
+  state.estante.push(id);
+  state.hints.vender = true;
+  return true;
+}
+
+function rangoRep() {
+  const r = state.reputacion;
+  return r >= 90 ? 3 : (r >= 70 ? 2 : (r >= 40 ? 1 : 0));
+}
+function repFactorPrecio() {
+  return CONFIG.REP_PRECIO_MIN + CONFIG.REP_PRECIO_RANGO * (state.reputacion / CONFIG.REP_MAX);
+}
+// Buena fama = más clientes. El éxito trae más presión, y eso se equilibra solo.
+function intervaloCliente() {
+  const base = Math.max(CONFIG.CLIENTE_INTERVALO_MIN,
+    CONFIG.CLIENTE_INTERVALO_BASE - CONFIG.CLIENTE_POR_CAP * capituloActual());
+  return base * (1.35 - 0.5 * (state.reputacion / CONFIG.REP_MAX));
+}
+function ajustarRep(d) { state.reputacion = clamp(state.reputacion + d, 0, CONFIG.REP_MAX); }
+
+// El dinero entra AQUÍ: cuando un cliente se lleva una fruta del estante.
+function comprarDelEstante(x, y) {
+  if (!state.estante.length) return null;
+  const id = state.estante.shift();
   const f = FRUIT_BY_ID[id];
-  if (!f) return;
-  let mult = 1;
-  if (porJugador) { combo.n++; combo.t = 0; mult = comboMult(); }
-  const ganado = Math.round(f.precio * mult);
+  if (!f) return null;
+  const mult = comboMult();
+  const ganado = Math.max(1, Math.round(f.precio * repFactorPrecio() * mult));
   state.dinero += ganado;
   state.dineroTotal += ganado;
   state.hoy.dinero += ganado;
@@ -1152,13 +1333,36 @@ function venderUna(id, x, y, porJugador) {
   state.hoy.ventas++;
   state.ventasPorFruta[id] = (state.ventasPorFruta[id] || 0) + 1;
   state.hoy.porFruta[id] = (state.hoy.porFruta[id] || 0) + 1;
-  state.hints.vender = true;
   floats.push({
     x: x + rand(-14, 14), y: y - 20, t: 0,
     txt: '+$' + ganado + (mult > 1 ? ' ×' + mult : ''),
     color: mult > 1 ? '#ffd166' : '#2ecc55'
   });
   SFX.chaching();
+  return id;
+}
+
+// Los clientes solo empiezan a llegar cuando ya surtiste una vez: así el
+// primero nunca se encuentra el puesto vacío durante el tutorial.
+function clientesActivos() { return !!state.hints.vender; }
+
+function actualizarClientes(dt) {
+  for (let i = clientes.length - 1; i >= 0; i--) {
+    clientes[i].update(dt);
+    if (clientes[i].fuera) clientes.splice(i, 1);
+  }
+  if (!clientesActivos()) { clienteTimer = 0; return; }
+  clienteTimer += dt;
+  if (clienteTimer < intervaloCliente()) return;
+  clienteTimer = 0;
+  if (clientes.length >= CONFIG.CLIENTE_MAX) return;
+  const libres = [];
+  for (let s = 0; s < SLOTS_CLIENTE.length; s++) {
+    let ocupado = false;
+    for (const c of clientes) if (c.slot === s && c.estado !== 'yendo') { ocupado = true; break; }
+    if (!ocupado) libres.push(s);
+  }
+  if (libres.length) clientes.push(new Cliente(libres[(Math.random() * libres.length) | 0]));
 }
 
 // Huerta donde plantar: la desbloqueada con cupos libres que tenga menos plantas.
@@ -1400,7 +1604,7 @@ function festejarReto(r, premio) {
   cam.shake = 0.45;
   toast(textoReto(r), '+$' + (premio === undefined ? r.premio : premio));
   if (r.final) {
-    bigMsg = { txt: t('imperioCompleto'), t: 0 };
+    abrirFinal();
     for (let i = 0; i < 160; i++) lanzarConfeti(rand(40, WORLD_W - 40), rand(cam.y + 60, cam.y + view.h - 120), 1);
   } else {
     bigMsg = { txt: t('retoCompletado'), t: 0 };
@@ -1678,6 +1882,7 @@ function resize() {
   anchosCache = Object.create(null);
   layoutHUD();
   layoutPanel();
+  layoutIntro();
   if (modal.abierto) layoutModal();
 }
 window.addEventListener('resize', resize);
@@ -1717,9 +1922,11 @@ let anchosCache = Object.create(null);
    abrirModal({ tit, txt, si, no, peligro, onSi }). */
 const modal = {
   abierto: false, t: 0, tit: '', txt: '', si: '', no: '',
-  peligro: false, onSi: null, lineas: [], hover: null,
+  peligro: false, festejo: false, stats: null, onSi: null, lineas: [], hover: null,
   x: 0, y: 0, w: 0, h: 0, btnSi: null, btnNo: null
 };
+const intro = { activo: true, t: 0, btn: null };
+let festejoFinal = 0;
 
 function envolver(txt, max, size, bold) {
   const palabras = String(txt).split(' ');
@@ -1738,14 +1945,20 @@ function layoutModal() {
   const w = Math.min(cw - 40, 330);
   modal.w = w;
   modal.lineas = envolver(modal.txt, w - 44, 14, false);
-  const h = 66 + modal.lineas.length * 21 + 22 + 48 + 18;
+  const filas = modal.stats ? modal.stats.length : 0;
+  const h = 66 + modal.lineas.length * 21 + 16 + filas * 26 + (filas ? 28 : 6) + 48 + 18;
   modal.h = h;
   modal.x = (cw - w) / 2;
-  modal.y = Math.max(20, (ch - h) / 2);
-  const bw = (w - 40) / 2, bh = 48;
-  const by = modal.y + h - 18 - bh;
-  modal.btnNo = { x: modal.x + 16, y: by, w: bw, h: bh };
-  modal.btnSi = { x: modal.x + w - 16 - bw, y: by, w: bw, h: bh };
+  modal.y = Math.max(16, (ch - h) / 2);
+  const bh = 48, by = modal.y + h - 18 - bh;
+  if (modal.no) {
+    const bw = (w - 40) / 2;
+    modal.btnNo = { x: modal.x + 16, y: by, w: bw, h: bh };
+    modal.btnSi = { x: modal.x + w - 16 - bw, y: by, w: bw, h: bh };
+  } else {
+    modal.btnNo = { x: 0, y: 0, w: 0, h: 0 };
+    modal.btnSi = { x: modal.x + 16, y: by, w: w - 32, h: bh };
+  }
 }
 
 function abrirModal(cfg) {
@@ -1756,10 +1969,45 @@ function abrirModal(cfg) {
   modal.si = cfg.si || 'OK';
   modal.no = cfg.no || '';
   modal.peligro = !!cfg.peligro;
+  modal.festejo = !!cfg.festejo;
+  modal.stats = cfg.stats || null;
   modal.onSi = cfg.onSi || null;
   modal.hover = null;
   layoutModal();
   SFX.resume();
+}
+
+/* Pantalla final: resumen de la partida y festejo largo */
+function abrirFinal() {
+  state.terminado = true;
+  festejoFinal = 7;
+  cam.shake = 0.9;
+  SFX.fanfarria();
+  abrirModal({
+    tit: t('imperioCompleto'),
+    txt: t('finalTxt'),
+    si: t('btnSeguir'),
+    festejo: true,
+    stats: [
+      [t('sDinero'), '$' + Math.floor(state.dineroTotal)],
+      [t('sFrutas'), String(state.ventasTotales)],
+      [t('sClientes'), String(state.servidos)],
+      [t('sPlagas'), String(state.plagasEspantadas)],
+      [t('sRep'), Math.floor(state.reputacion) + ' · ' + t('rango' + rangoRep())]
+    ]
+  });
+  Save.guardar();
+}
+
+function layoutIntro() {
+  const w = Math.min(cw - 72, 250), h = 62;
+  intro.btn = { x: (cw - w) / 2, y: ch * 0.70, w: w, h: h };
+}
+
+function comenzarJuego() {
+  intro.activo = false;
+  SFX.resume();
+  SFX.fanfarria();
 }
 
 function cerrarModal() { modal.abierto = false; modal.onSi = null; modal.hover = null; }
@@ -1861,6 +2109,11 @@ canvas.addEventListener('pointerdown', e => {
   SFX.resume();
   const p = posCanvas(e);
 
+  if (intro.activo) {
+    if (intro.t > 0.3 && puntoEnRect(intro.btn, p.x, p.y)) comenzarJuego();
+    e.preventDefault();
+    return;
+  }
   if (modal.abierto) {
     if (puntoEnRect(modal.btnSi, p.x, p.y)) { SFX.pop(); confirmarModal(); }
     else if (modal.no && puntoEnRect(modal.btnNo, p.x, p.y)) { SFX.pop(); cerrarModal(); }
@@ -1949,6 +2202,11 @@ window.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   keys[k] = true;
   SFX.resume();
+  if (intro.activo) {
+    if ((k === 'enter' || k === ' ') && intro.t > 0.3) comenzarJuego();
+    e.preventDefault();
+    return;
+  }
   if (modal.abierto) {
     if (k === 'escape') cerrarModal();
     if (k === 'enter') confirmarModal();
@@ -1963,7 +2221,7 @@ window.addEventListener('keyup', e => { if (e.key) keys[e.key.toLowerCase()] = f
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; soltarJoystick(null); });
 
 function inputVector() {
-  if (panel.abierto || modal.abierto) return { x: 0, y: 0 };
+  if (panel.abierto || modal.abierto || intro.activo) return { x: 0, y: 0 };
   let ix = 0, iy = 0;
   if (keys['a'] || keys['arrowleft']) ix -= 1;
   if (keys['d'] || keys['arrowright']) ix += 1;
@@ -2227,8 +2485,11 @@ function dibujarVenta() {
   ctx.strokeStyle = activo ? '#ffd54a' : 'rgba(255,255,255,0.75)';
   rr(SELL.x, SELL.y, SELL.w, SELL.h, 22); ctx.stroke();
   ctx.setLineDash([]);
-  ctx.globalAlpha = 0.85;
-  texto('$', SELL.cx, SELL.cy + 10, 40, activo ? '#3aa14a' : 'rgba(255,255,255,0.9)', 'center', true);
+  // La etiqueta va en el suelo, donde te paras: el espacio de encima del
+  // mostrador queda libre para que se formen los clientes.
+  ctx.globalAlpha = 0.92;
+  texto(t('vender'), SELL.cx, SELL.cy + 8, 30, activo ? '#2f7d3a' : 'rgba(255,255,255,0.92)',
+        'center', true, 5, 'rgba(0,0,0,0.2)');
   ctx.globalAlpha = 1;
   ctx.fillStyle = 'rgba(0,0,0,0.18)';
   rr(COUNTER.x + 6, COUNTER.y + COUNTER.h - 6, COUNTER.w, 16, 8); ctx.fill();
@@ -2243,17 +2504,33 @@ function dibujarVenta() {
     ctx.lineTo(COUNTER.x + i * (COUNTER.w / 5), COUNTER.y + COUNTER.h - 14);
     ctx.stroke();
   }
-  const sx = COUNTER.x + COUNTER.w / 2, sy = COUNTER.y - 46;
-  ctx.fillStyle = '#8a5a2b';
-  ctx.fillRect(sx - 5, sy + 8, 10, 42);
-  const etq = t('vender');
-  const w = Math.max(156, anchoTexto(etq, 26, true) + 40);
-  ctx.fillStyle = '#ffd166';
-  rr(sx - w / 2, sy - 26, w, 44, 10); ctx.fill();
-  ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 4;
-  rr(sx - w / 2, sy - 26, w, 44, 10); ctx.stroke();
-  texto(etq, sx, sy - 3, 26, '#7a4a10', 'center', true);
-  SIGNOS.push({ x: sx - w / 2, y: sy - 26, w: w, h: 44 });
+  // Existencias del estante sobre el mostrador
+  const n = state.estante.length;
+  for (let i = 0; i < n && i < CONFIG.PUESTO_CAP; i++) {
+    const f = FRUIT_BY_ID[state.estante[i]];
+    if (!f) continue;
+    const fila = i < 7 ? 0 : 1, col = i % 7;
+    const fx = COUNTER.x + 17 + col * 28, fy = COUNTER.y + 20 + fila * 24;
+    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    elipse(fx, fy + 8, 8, 3); ctx.fill();
+    ctx.fillStyle = f.colores.frutaSombra; circulo(fx, fy + 1.5, 8); ctx.fill();
+    ctx.fillStyle = f.colores.fruta; circulo(fx, fy, 7.2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.45)'; circulo(fx - 2.2, fy - 2.2, 2.2); ctx.fill();
+  }
+  // Aviso de puesto vacío: es la señal de que vas a perder clientes
+  if (n === 0 && clientesActivos()) {
+    const txt = t('puestoVacio');
+    const w = anchoTexto(txt, 15, true) + 30;
+    const yy = COUNTER.y + COUNTER.h + 20;
+    ctx.save();
+    ctx.globalAlpha = 0.72 + 0.28 * pulso;
+    ctx.fillStyle = 'rgba(190,40,40,0.9)';
+    rr(SELL.cx - w / 2, yy - 14, w, 28, 13); ctx.fill();
+    texto(txt, SELL.cx, yy, 15, '#ffffff', 'center', true);
+    ctx.restore();
+    SIGNOS.push({ x: SELL.cx - w / 2, y: yy - 14, w: w, h: 28 });
+  }
+
   if (activo) {
     ctx.globalAlpha = 0.25 + 0.25 * pulso;
     ctx.fillStyle = '#fff7c2';
@@ -2317,6 +2594,31 @@ function dibujarEspantapajaros(e) {
   ctx.closePath(); ctx.fill();
   ctx.fillRect(-16, -58, 32, 4);
   ctx.restore();
+}
+
+/* ------------------------------ Compradores ------------------------------ */
+function dibujarCliente(c) {
+  dibujarPersonaje(c, { camisa: c.color, gorra: '#6b5236', logo: false });
+  if (c.estado === 'esperando') {
+    const pr = clamp(c.paciencia / CONFIG.CLIENTE_PACIENCIA, 0, 1);
+    const by = c.y - 78;
+    ctx.save();
+    ctx.fillStyle = 'rgba(20,28,20,0.8)';
+    circulo(c.x, by, 19); ctx.fill();
+    ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.beginPath(); ctx.arc(c.x, by, 19, 0, 6.2832); ctx.stroke();
+    ctx.strokeStyle = pr > 0.4 ? '#5ee06a' : (pr > 0.18 ? '#ffd166' : '#ff6b6b');
+    ctx.beginPath(); ctx.arc(c.x, by, 19, -Math.PI / 2, -Math.PI / 2 + pr * 6.2832); ctx.stroke();
+    texto(String(c.quiere - c.compradas), c.x, by + 1, 16, '#ffffff', 'center', true);
+    ctx.restore();
+  }
+  if (c.emo && c.emoT > 0) {
+    ctx.save();
+    ctx.globalAlpha = clamp(c.emoT / 0.7, 0, 1);
+    emoji(c.emo, c.x, c.y - 80, 26);
+    ctx.restore();
+  }
 }
 
 /* -------------------------------- Plagas --------------------------------- */
@@ -2607,6 +2909,18 @@ function dibujarHUD() {
     rr(-wc / 2 + 5, (H - 8 * k) / 2 - 7 * k, (wc - 10) * g, 3.5 * k, 2); ctx.fill();
     ctx.restore();
   }
+
+  // Reputación, en el hueco entre las dos píldoras
+  const rep = Math.floor(state.reputacion);
+  const rango = rangoRep();
+  const colRep = ['#ff8a8a', '#ffc86b', '#a8e6a0', '#8fe3ff'][rango];
+  const txtRep = String(rep);
+  const wR = anchoTexto(txtRep, 17 * k, true) + 44 * k;
+  pill((cw - wR) / 2, top, wR, H, 20 * k);
+  emoji('⭐', (cw - wR) / 2 + 15 * k, top + H / 2 + 1, 15 * k);
+  texto(txtRep, (cw - wR) / 2 + wR - 12 * k, top + H / 2 - 4 * k, 17 * k, colRep, 'right', true);
+  texto(textoCorto(t('rango' + rango), wR - 12 * k, 8.5 * k, true), cw / 2, top + H - 8 * k,
+        8.5 * k, 'rgba(255,255,255,0.6)', 'center', true);
 
   // Carga
   const txtBag = player.carga.length + '/' + state.capacidad;
@@ -2903,19 +3217,102 @@ function dibujarModal() {
   rr(modal.x, modal.y + 6, modal.w, modal.h, 22); ctx.fill();
   ctx.fillStyle = 'rgba(24,38,26,0.99)';
   rr(modal.x, modal.y, modal.w, modal.h, 22); ctx.fill();
-  ctx.strokeStyle = modal.peligro ? 'rgba(230,90,90,0.55)' : 'rgba(255,255,255,0.18)';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = modal.festejo ? 'rgba(255,209,102,0.85)'
+                  : (modal.peligro ? 'rgba(230,90,90,0.55)' : 'rgba(255,255,255,0.18)');
+  ctx.lineWidth = modal.festejo ? 3 : 2;
   rr(modal.x, modal.y, modal.w, modal.h, 22); ctx.stroke();
 
-  emoji(modal.peligro ? '⚠️' : '💬', modal.x + modal.w / 2, modal.y + 34, 26);
-  texto(textoCorto(modal.tit, modal.w - 36, 19, true), modal.x + modal.w / 2, modal.y + 66, 19,
-        modal.peligro ? '#ffb4b4' : '#ffe27a', 'center', true);
+  emoji(modal.festejo ? '🏆' : (modal.peligro ? '⚠️' : '💬'), modal.x + modal.w / 2, modal.y + 34,
+        modal.festejo ? 30 : 26);
+  texto(textoCorto(modal.tit, modal.w - 36, modal.festejo ? 22 : 19, true), modal.x + modal.w / 2,
+        modal.y + 66, modal.festejo ? 22 : 19,
+        modal.festejo ? '#ffe27a' : (modal.peligro ? '#ffb4b4' : '#ffe27a'), 'center', true);
+  let yy = modal.y + 96;
   for (let i = 0; i < modal.lineas.length; i++) {
-    texto(modal.lineas[i], modal.x + modal.w / 2, modal.y + 96 + i * 21, 14,
-          'rgba(255,255,255,0.82)', 'center', false);
+    texto(modal.lineas[i], modal.x + modal.w / 2, yy + i * 21, 14, 'rgba(255,255,255,0.82)', 'center', false);
+  }
+  yy += modal.lineas.length * 21 + 10;
+  if (modal.stats) {
+    for (let i = 0; i < modal.stats.length; i++) {
+      const fy = yy + i * 26;
+      if (i % 2 === 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        rr(modal.x + 16, fy - 11, modal.w - 32, 24, 8); ctx.fill();
+      }
+      texto(modal.stats[i][0], modal.x + 26, fy, 13, 'rgba(255,255,255,0.7)', 'left', false);
+      texto(modal.stats[i][1], modal.x + modal.w - 26, fy, 14, '#ffe27a', 'right', true);
+    }
   }
   if (modal.no) botonModal(modal.btnNo, modal.no, false, modal.hover === 'no');
   botonModal(modal.btnSi, modal.si, true, modal.hover === 'si');
+  ctx.restore();
+}
+
+/* -------------------------------- Intro ---------------------------------- */
+// Sin pila: a este tamaño la torre de fruta le tapaba la cara
+const maniqui = { x: 0, y: 0, carga: [], facing: 1, phase: 0, moving: true, swayT: 0 };
+
+function dibujarIntro() {
+  const a = clamp(intro.t / 0.45, 0, 1);
+  const bob = Math.sin(intro.t * 1.9) * 6;
+  ctx.save();
+  ctx.globalAlpha = a;
+
+  const g = ctx.createLinearGradient(0, 0, 0, ch);
+  g.addColorStop(0, 'rgba(6,18,10,0.95)');
+  g.addColorStop(0.5, 'rgba(14,34,18,0.88)');
+  g.addColorStop(1, 'rgba(6,18,10,0.97)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, cw, ch);
+
+  // Frutas flotando de fondo
+  for (let i = 0; i < 9; i++) {
+    const f = FRUITS[i % FRUITS.length];
+    const px = ((i * 137) % 100) / 100 * cw;
+    const py = (((i * 61) % 100) / 100 * ch + intro.t * (12 + i * 3)) % (ch + 60) - 30;
+    ctx.save();
+    ctx.globalAlpha = a * 0.16;
+    ctx.fillStyle = f.colores.fruta;
+    circulo(px, py, 12 + (i % 3) * 5); ctx.fill();
+    ctx.restore();
+  }
+
+  const tam = Math.min(66, cw * 0.18);
+  texto('KIOSA', cw / 2, ch * 0.16 + bob * 0.4, tam, '#ffd166', 'center', true, 9, 'rgba(0,0,0,0.6)');
+  texto(textoCorto('el imperio de las huertas', cw - 30, 19, true), cw / 2, ch * 0.16 + tam * 0.62 + bob * 0.4,
+        19, '#a8e6a0', 'center', true, 5, 'rgba(0,0,0,0.5)');
+
+  ctx.save();
+  ctx.translate(cw / 2, ch * 0.50 + bob);
+  const esc = Math.min(2.8, cw / 145);
+  ctx.scale(esc, esc);
+  maniqui.phase = intro.t * 6;
+  maniqui.swayT = intro.t * 6;
+  dibujarPersonaje(maniqui, { camisa: '#3fb0e8', gorra: '#e63946', logo: true, playera: true });
+  ctx.restore();
+
+  texto(textoCorto(t('introSub'), cw - 40, 14, false), cw / 2, ch * 0.60, 14,
+        'rgba(255,255,255,0.75)', 'center', false);
+
+  const b = intro.btn;
+  const pul = 1 + Math.sin(intro.t * 3.4) * 0.028;
+  ctx.save();
+  ctx.translate(b.x + b.w / 2, b.y + b.h / 2);
+  ctx.scale(pul, pul);
+  ctx.translate(-(b.x + b.w / 2), -(b.y + b.h / 2));
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  rr(b.x, b.y + 6, b.w, b.h, 22); ctx.fill();
+  const gb = ctx.createLinearGradient(0, b.y, 0, b.y + b.h);
+  gb.addColorStop(0, '#6bea78'); gb.addColorStop(1, '#2f9d42');
+  ctx.fillStyle = gb;
+  rr(b.x, b.y, b.w, b.h, 22); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2.5;
+  rr(b.x, b.y, b.w, b.h, 22); ctx.stroke();
+  texto('▶  ' + t('btnJugar'), b.x + b.w / 2, b.y + b.h / 2, 25, '#0c2a11', 'center', true);
+  ctx.restore();
+
+  texto(textoCorto(t('introTip'), cw - 40, 13, false), cw / 2, b.y + b.h + 30, 13,
+        'rgba(255,255,255,0.5)', 'center', false);
   ctx.restore();
 }
 
@@ -2941,6 +3338,7 @@ function render() {
   const drawables = [];
   for (const p of plants) drawables.push({ y: p.y, d: 0, o: p });
   for (const h of helpers) drawables.push({ y: h.y, d: 1, o: h });
+  for (const c of clientes) drawables.push({ y: c.y, d: 3, o: c });
   drawables.push({ y: player.y, d: 2, o: player });
   drawables.sort((a, b) => a.y - b.y);
   dibujarCura();
@@ -2954,7 +3352,8 @@ function render() {
         emoji('💸', it.o.x, it.o.y - 78, 20);
         ctx.restore();
       }
-    } else dibujarJugador();
+    } else if (it.d === 3) dibujarCliente(it.o);
+    else dibujarJugador();
   }
   for (const p of plagas) dibujarPlaga(p);
 
@@ -2962,6 +3361,7 @@ function render() {
   dibujarHint();
   ctx.restore();
 
+  if (intro.activo) { dibujarIntro(); return; }
   dibujarHUD();
   if (panel.abierto) dibujarPanel();
   if (modal.abierto) dibujarModal();
@@ -2981,11 +3381,22 @@ function paso(ts) {
   tiempo += dt;
   medirPerf(isFinite(msFrame) && msFrame > 0 ? Math.min(msFrame, 200) : 16);
 
+  // En la intro el mundo se congela: nada de plagas comiendo antes de empezar
+  if (intro.activo) {
+    intro.t += dt;
+    actualizarParticulas(dt);
+    actualizarCamara(dt);
+    render();
+    window.requestAnimationFrame(paso);
+    return;
+  }
+
   revisarDia();
   const inp = inputVector();
   player.update(dt, inp.x, inp.y);
   for (const p of plants) p.update(dt);
   for (const h of helpers) h.update(dt);
+  actualizarClientes(dt);
   actualizarOleada(dt);
   actualizarPlagas(dt);
   actualizarCirculos(dt);
@@ -3005,6 +3416,12 @@ function paso(ts) {
   actualizarParticulas(dt);
   actualizarCamara(dt);
   if (modal.abierto) modal.t += dt;
+  if (festejoFinal > 0) {                       // lluvia de confeti del final
+    festejoFinal -= dt;
+    for (let i = 0; i < 3; i++) {
+      lanzarConfeti(rand(20, WORLD_W - 20), cam.y + rand(-20, 60), 1);
+    }
+  }
 
   for (const f of FRUITS) {
     if (desbloqueada(f.id) && f._fade > 0) f._fade = Math.max(0, f._fade - dt * 1.4);
@@ -3054,6 +3471,24 @@ const game = {
   get plants() { return plants; },
   get helpers() { return helpers; },
   get plagas() { return plagas; },
+  get clientes() { return clientes; },
+  get intro() { return intro.activo; },
+  get introBtn() { return intro.btn; },
+  comenzar() { comenzarJuego(); return true; },
+  spawnCliente() {
+    if (clientes.length >= CONFIG.CLIENTE_MAX) return false;
+    const usados = clientes.map(c => c.slot);
+    for (let s = 0; s < SLOTS_CLIENTE.length; s++) {
+      if (usados.indexOf(s) < 0) { clientes.push(new Cliente(s)); return true; }
+    }
+    return false;
+  },
+  surtir(n) {
+    let k = 0;
+    while (k < (n || 1) && !estanteLleno()) { depositar(FRUITS[0].id); k++; }
+    return state.estante.length;
+  },
+  terminar() { abrirFinal(); return true; },
   get combo() { return { n: combo.n, t: combo.t, mult: comboMult() }; },
   get oleada() { return oleada; },
   get impagos() { return helpersImpagos; },
