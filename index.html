@@ -125,6 +125,30 @@ const CONFIG = {
   ESPANTA_EVITA: 0.70,
   ESPANTA_AUTO: 6,
 
+  // Racha de venta: vender sin parar sube el multiplicador
+  COMBO_GRACIA: 3.0,                       // s sin vender antes de perderla
+  COMBO_ESCALONES: [[35, 3], [22, 2.5], [12, 2], [5, 1.5]],
+
+  // Contagio de la marchitez y cura por proximidad
+  CONTAGIO_DESDE_CAP: 1,                   // a partir del capítulo 2
+  CONTAGIO_INTERVALO: 7,
+  CONTAGIO_RADIO: 190,         // los mangos base están a 169-220 px entre sí
+  CURA_TIEMPO: 1.0,
+  CURA_RADIO: 60,
+
+  // Oleadas al cerrar capítulo
+  OLEADA_DURACION: 45,
+  OLEADA_PLAGAS: 6,
+  OLEADA_SPAWN: 2.5,
+  OLEADA_MAX_PERDIDAS: 8,
+  OLEADA_INTENTOS: 3,
+  OLEADA_PREMIO: 500,
+  OLEADA_RESPIRO: 3,
+
+  // Sueldo de los ayudantes (por minuto); sin dinero dejan de trabajar
+  SUELDO_BASE: 40,
+  SUELDO_POR_AYUDANTE: 0.6,
+
   // Rendimiento
   CONFETI_MAX: 240,
   CONFETI_MAX_BAJO: 60,
@@ -161,6 +185,10 @@ const I18N = {
     retos: 'Retos', campana: 'Campaña', opcionales: 'Opcionales', diarios: 'Diarios',
     sinDiarios: 'Vuelve mañana por retos nuevos.',
     hechoPor: 'Hecho por PC Electronics',
+    oleada: '¡OLEADA!', oleadaSuperada: '¡Oleada superada!', oleadaFallida: 'Oleada fallida',
+    oleadaFin: 'La huerta aguantó', oleadaHUD: '¡OLEADA! {s}s', perdidas: 'Perdidas {a}/{b}',
+    intento: 'Intento {a}/{b}', sinPagar: 'Sin sueldo', sueldoAlto: 'No alcanza para los sueldos',
+    contagio: 'La plaga se extiende', curado: '¡Planta salvada!',
     zMango: 'HUERTA DE MANGOS', zNaranja: 'HUERTA DE NARANJAS', zSandia: 'PARCHE DE SANDÍAS',
     zPapaya: 'HUERTA DE PAPAYAS', zPina: 'PARCHE DE PIÑAS',
     cArbol: '+1 PLANTA', cMochila: 'MOCHILA +5', cAyudante: 'AYUDANTE',
@@ -201,6 +229,10 @@ const I18N = {
     retos: 'Goals', campana: 'Campaign', opcionales: 'Optional', diarios: 'Daily',
     sinDiarios: 'Come back tomorrow for new goals.',
     hechoPor: 'Made by PC Electronics',
+    oleada: 'SWARM!', oleadaSuperada: 'Swarm survived!', oleadaFallida: 'Swarm failed',
+    oleadaFin: 'The orchard held on', oleadaHUD: 'SWARM! {s}s', perdidas: 'Lost {a}/{b}',
+    intento: 'Try {a}/{b}', sinPagar: 'Unpaid', sueldoAlto: 'Not enough for wages',
+    contagio: 'The blight is spreading', curado: 'Plant saved!',
     zMango: 'MANGO GROVE', zNaranja: 'ORANGE GROVE', zSandia: 'WATERMELON PATCH',
     zPapaya: 'PAPAYA GROVE', zPina: 'PINEAPPLE PATCH',
     cArbol: '+1 PLANT', cMochila: 'BACKPACK +5', cAyudante: 'HELPER',
@@ -241,6 +273,10 @@ const I18N = {
     retos: 'Desafios', campana: 'Campanha', opcionales: 'Opcionais', diarios: 'Diários',
     sinDiarios: 'Volte amanhã para novos desafios.',
     hechoPor: 'Feito por PC Electronics',
+    oleada: 'REVOADA!', oleadaSuperada: 'Revoada superada!', oleadaFallida: 'Revoada falhou',
+    oleadaFin: 'A horta aguentou', oleadaHUD: 'REVOADA! {s}s', perdidas: 'Perdidas {a}/{b}',
+    intento: 'Tentativa {a}/{b}', sinPagar: 'Sem salário', sueldoAlto: 'Não dá para os salários',
+    contagio: 'A praga se espalha', curado: 'Planta salva!',
     zMango: 'POMAR DE MANGAS', zNaranja: 'POMAR DE LARANJAS', zSandia: 'ROÇA DE MELANCIAS',
     zPapaya: 'POMAR DE MAMÕES', zPina: 'ROÇA DE ABACAXIS',
     cArbol: '+1 PLANTA', cMochila: 'MOCHILA +5', cAyudante: 'AJUDANTE',
@@ -430,6 +466,7 @@ function estadoNuevo() {
     ventasPorFruta: {},
     recolectadas: 0,
     plagasEspantadas: 0,
+    curadas: 0,
     capacidad: CONFIG.CAP_START,
     compras: { arbol: 0, mochila: 0, riego: 0, espanta: 0 },
     extras: {},
@@ -437,6 +474,7 @@ function estadoNuevo() {
     ayudantes: 0,
     retoIdx: 0,
     cumplidos: [],
+    oleadasHechas: [],
     diarios: { fecha: fechaHoy(), ids: diariosDeHoy(fechaHoy()), cobrados: [] },
     hoy: estadoHoyNuevo(),
     sinMarchita: 0,
@@ -465,6 +503,17 @@ let plagaTimer = 0;
 // Una vez pulsado ↺ no se vuelve a guardar: si no, el `pagehide` del reload
 // reescribe el estado que sigue en memoria y deshace el borrado.
 let reiniciando = false;
+// Racha de venta y oleada: son del momento, no se guardan
+const combo = { n: 0, t: 0 };
+let oleada = null;
+let helpersImpagos = false;
+let avisoSueldo = 0;
+
+function comboMult() {
+  for (const e of CONFIG.COMBO_ESCALONES) if (combo.n >= e[0]) return e[1];
+  return 1;
+}
+function romperCombo() { combo.n = 0; combo.t = 0; }
 let rachaEspanto = [];
 
 function num(v, def) { return (typeof v === 'number' && isFinite(v)) ? v : def; }
@@ -496,6 +545,7 @@ const Save = {
         capacidad: state.capacidad, compras: state.compras, extras: state.extras,
         espantaZonas: state.espantaZonas, ayudantes: state.ayudantes,
         retoIdx: state.retoIdx, cumplidos: state.cumplidos,
+        oleadasHechas: state.oleadasHechas, curadas: state.curadas,
         diarios: state.diarios, hoy: state.hoy, sinMarchita: state.sinMarchita,
         op: state.op, pagos: state.pagos, hints: state.hints,
         mute: state.mute, idioma: state.idioma, calidad: state.calidad,
@@ -543,6 +593,12 @@ const Save = {
         s.espantaZonas = d.espantaZonas.filter(id => !!FRUIT_BY_ID[id]).slice(0, CONFIG.ESPANTA_MAX);
       }
       if (Array.isArray(d.cumplidos)) s.cumplidos = d.cumplidos.filter(id => !!RETO_BY_ID[id]);
+      if (Array.isArray(d.oleadasHechas)) {
+        s.oleadasHechas = d.oleadasHechas
+          .map(n => num(n, -1) | 0)
+          .filter(n => n >= 0 && n < CAP_NOMBRES.length);
+      }
+      s.curadas = Math.max(0, num(d.curadas, 0) | 0);
       if (d.pagos && typeof d.pagos === 'object') {
         for (const k in s.pagos) s.pagos[k] = Math.max(0, num(d.pagos[k], 0));
       }
@@ -686,6 +742,7 @@ class Plant {
     this.frutas = CONFIG.PLANT_MAX_FRUIT;
     this.regen = 0;
     this.marchita = 0;
+    this.contagio = 0;
     this.pop = popInicial ? 1 : 0;
     this.seed = Math.random() * Math.PI * 2;
   }
@@ -696,6 +753,11 @@ class Plant {
     if (this.marchita > 0) {
       this.marchita = Math.max(0, this.marchita - dt);
       this.regen = 0;
+      // La marchitez se contagia a la vecina más cercana si no la curas
+      if (contagioActivo()) {
+        this.contagio += dt;
+        if (this.contagio >= CONFIG.CONTAGIO_INTERVALO) { this.contagio = 0; contagiarDesde(this); }
+      }
     } else if (this.frutas < CONFIG.PLANT_MAX_FRUIT) {
       this.regen += dt;
       if (this.regen >= this.regenTiempo) { this.regen = 0; this.frutas++; this.pop = 0.6; }
@@ -722,6 +784,8 @@ class Player {
     this.swayT = 0;
     this.fullRun = false;
     this.eraLleno = false;
+    this.curaT = 0;
+    this.curando = null;
   }
   get factorVel() {
     return Math.max(CONFIG.SPEED_MIN_FACTOR, 1 - CONFIG.SPEED_PENALTY_PER_FRUIT * this.carga.length);
@@ -764,6 +828,23 @@ class Player {
       }
     } else this.harvestT = 0;
 
+    // ---- Curar una planta marchita quedándote cerca ----
+    const enferma = plantaMarchitaCercana(this.x, this.y, CONFIG.CURA_RADIO);
+    this.curando = enferma;
+    if (enferma) {
+      this.curaT += dt;
+      if (this.curaT >= CONFIG.CURA_TIEMPO) {
+        this.curaT = 0;
+        enferma.marchita = 0;
+        enferma.contagio = 0;
+        enferma.pop = 1;
+        state.curadas++;
+        lanzarConfeti(enferma.x, enferma.y - 30, 12);
+        floats.push({ x: enferma.x, y: enferma.y - 46, t: 0, txt: t('curado'), color: '#7dffa0' });
+        SFX.pop();
+      }
+    } else this.curaT = 0;
+
     // Mochila llena: cuenta el llenado una sola vez por ciclo
     const lleno = this.carga.length >= state.capacidad;
     if (lleno && !this.eraLleno) { state.hoy.llenadas++; this.fullRun = true; }
@@ -774,7 +855,7 @@ class Player {
       this.sellT += dt;
       while (this.sellT >= CONFIG.SELL_INTERVAL && this.carga.length > 0) {
         this.sellT -= CONFIG.SELL_INTERVAL;
-        venderUna(this.carga.pop(), this.x, this.y - 10);
+        venderUna(this.carga.pop(), this.x, this.y - 10, true);
         if (this.carga.length === 0 && this.fullRun) { state.op.mochilaFull = 1; this.fullRun = false; }
       }
     } else this.sellT = 0;
@@ -811,6 +892,7 @@ class Helper {
   }
   update(dt) {
     this.swayT += dt * (this.moving ? 6 : 2);
+    if (helpersImpagos) { this.moving = false; return; }   // sin sueldo no trabajan
     if (this.modo === 'cosechar') {
       if (this.carga.length >= CONFIG.HELPER_CAP) { this.modo = 'vender'; this.t = 0; return; }
       if (!this.target || this.target.frutas <= 0 || plants.indexOf(this.target) < 0) {
@@ -927,7 +1009,8 @@ class Plaga {
         if (p.frutas > 0) {
           p.frutas--;
           p.pop = 1;
-          if (p.frutas === 0) { marchitar(p); this.huir(); return; }
+          if (oleada && oleada.t >= 0) oleada.perdidas++;
+          if (p.frutas === 0) { marchitar(p, true); this.huir(); return; }
         } else { this.huir(); return; }
       }
 
@@ -1004,29 +1087,67 @@ function elegirObjetivoPlaga() {
   return lista[(Math.random() * lista.length) | 0];
 }
 
-function marchitar(p) {
+// porPlaga: solo el daño directo de una plaga rompe la racha de venta.
+// El contagio ya castiga bastante quitándote plantas.
+function marchitar(p, porPlaga) {
+  if (p.marchita > 0) return;
   p.marchita = CONFIG.PLAGA_MARCHITA;
+  p.contagio = 0;
   state.sinMarchita = 0;
   state.hoy.sinMarchita = 0;
   cam.shake = Math.max(cam.shake, 0.22);
+  if (porPlaga) romperCombo();
+}
+
+function contagioActivo() { return capituloActual() >= CONFIG.CONTAGIO_DESDE_CAP; }
+
+function contagiarDesde(p) {
+  let best = null, bd = CONFIG.CONTAGIO_RADIO * CONFIG.CONTAGIO_RADIO;
+  for (const o of plants) {
+    if (o === p || o.marchita > 0) continue;
+    const dx = o.x - p.x, dy = o.y - p.y, d = dx * dx + dy * dy;
+    if (d <= bd) { bd = d; best = o; }
+  }
+  if (!best) return;
+  marchitar(best, false);
+  floats.push({ x: best.x, y: best.y - 40, t: 0, txt: t('contagio'), color: '#ff8a5c' });
+}
+
+function plantaMarchitaCercana(x, y, radio) {
+  let best = null, bd = radio * radio;
+  for (const p of plants) {
+    if (p.marchita <= 0) continue;
+    const dx = p.x - x, dy = p.y - y, d = dx * dx + dy * dy;
+    if (d <= bd) { bd = d; best = p; }
+  }
+  return best;
 }
 
 function enVenta(x, y) {
   return x > SELL.x && x < SELL.x + SELL.w && y > SELL.y && y < SELL.y + SELL.h;
 }
 
-function venderUna(id, x, y) {
+// `porJugador` distingue tus ventas de las de los ayudantes: solo las tuyas
+// suben la racha, para que la automatización no la regale.
+function venderUna(id, x, y, porJugador) {
   const f = FRUIT_BY_ID[id];
   if (!f) return;
-  state.dinero += f.precio;
-  state.dineroTotal += f.precio;
-  state.hoy.dinero += f.precio;
+  let mult = 1;
+  if (porJugador) { combo.n++; combo.t = 0; mult = comboMult(); }
+  const ganado = Math.round(f.precio * mult);
+  state.dinero += ganado;
+  state.dineroTotal += ganado;
+  state.hoy.dinero += ganado;
   state.ventasTotales++;
   state.hoy.ventas++;
   state.ventasPorFruta[id] = (state.ventasPorFruta[id] || 0) + 1;
   state.hoy.porFruta[id] = (state.hoy.porFruta[id] || 0) + 1;
   state.hints.vender = true;
-  floats.push({ x: x + rand(-14, 14), y: y - 20, t: 0, txt: '+$' + f.precio, color: '#2ecc55' });
+  floats.push({
+    x: x + rand(-14, 14), y: y - 20, t: 0,
+    txt: '+$' + ganado + (mult > 1 ? ' ×' + mult : ''),
+    color: mult > 1 ? '#ffd166' : '#2ecc55'
+  });
   SFX.chaching();
 }
 
@@ -1149,11 +1270,82 @@ function maxPlagas() { return Math.min(CONFIG.PLAGA_MAX_TOPE, 1 + capituloActual
 // No hay plagas hasta completar el primer reto: el tutorial no se pisa.
 function plagasActivas() { return state.retoIdx >= 1; }
 
+/* ------------------------- Oleadas de fin de capítulo -------------------- */
+function oleadaHecha(cap) { return state.oleadasHechas.indexOf(cap) >= 0; }
+
+function iniciarOleada(cap, intento) {
+  oleada = { cap: cap, t: intento > 1 ? -CONFIG.OLEADA_RESPIRO : 0,
+             spawnT: CONFIG.OLEADA_SPAWN, spawned: 0, perdidas: 0, intento: intento || 1 };
+  bigMsg = { txt: t('oleada'), t: 0 };
+  cam.shake = 0.6;
+  SFX.fanfarria();
+}
+
+function terminarOleada() {
+  const cap = oleada.cap, intento = oleada.intento;
+  const gano = oleada.perdidas <= CONFIG.OLEADA_MAX_PERDIDAS;
+  for (const p of plagas) p.huir();
+  if (gano) {
+    const premio = CONFIG.OLEADA_PREMIO * (cap + 1);
+    pagarPremio(premio);
+    bigMsg = { txt: t('oleadaSuperada'), t: 0 };
+    toast(t('oleadaSuperada'), '+$' + premio);
+    for (let i = 0; i < 120; i++) lanzarConfeti(rand(40, WORLD_W - 40), rand(cam.y + 60, cam.y + view.h - 120), 1);
+    state.oleadasHechas.push(cap);
+    oleada = null;
+  } else if (intento >= CONFIG.OLEADA_INTENTOS) {
+    // No se bloquea el avance para siempre: al tercer intento pasa sin premio
+    bigMsg = { txt: t('oleadaFin'), t: 0 };
+    state.oleadasHechas.push(cap);
+    oleada = null;
+  } else {
+    bigMsg = { txt: t('oleadaFallida'), t: 0 };
+    iniciarOleada(cap, intento + 1);
+  }
+  Save.guardar();
+}
+
+function actualizarOleada(dt) {
+  if (!oleada) return;
+  oleada.t += dt;
+  if (oleada.t < 0) return;
+  oleada.spawnT += dt;
+  if (oleada.spawned < CONFIG.OLEADA_PLAGAS && oleada.spawnT >= CONFIG.OLEADA_SPAWN) {
+    oleada.spawnT = 0;
+    const o = elegirObjetivoPlaga();
+    if (o) { plagas.push(new Plaga(o)); oleada.spawned++; }
+  }
+  if (oleada.t >= CONFIG.OLEADA_DURACION) terminarOleada();
+}
+
+/* ------------------------------- Sueldos --------------------------------- */
+function sueldoPorMinuto() {
+  let s = 0;
+  const cap = capituloActual();
+  for (let i = 0; i < state.ayudantes; i++) {
+    s += CONFIG.SUELDO_BASE * (1 + cap) * (1 + CONFIG.SUELDO_POR_AYUDANTE * i);
+  }
+  return s;
+}
+
+function cobrarSueldos(dt) {
+  if (state.ayudantes <= 0) { helpersImpagos = false; return; }
+  const debe = sueldoPorMinuto() / 60 * dt;
+  const cobro = Math.min(state.dinero, debe);
+  state.dinero -= cobro;
+  helpersImpagos = cobro < debe - 1e-9;
+  if (helpersImpagos) {
+    avisoSueldo -= dt;
+    if (avisoSueldo <= 0) { avisoSueldo = 12; toast(t('sueldoAlto'), ''); }
+  } else avisoSueldo = 0;
+}
+
 function actualizarPlagas(dt) {
   for (let i = plagas.length - 1; i >= 0; i--) {
     plagas[i].update(dt);
     if (plagas[i].muerta) plagas.splice(i, 1);
   }
+  if (oleada) { plagaTimer = 0; return; }   // durante la oleada manda la oleada
   if (!plagasActivas()) { plagaTimer = 0; return; }
   plagaTimer += dt;
   if (plagaTimer >= intervaloPlaga()) {
@@ -1217,6 +1409,11 @@ function actualizarRetos(conFiesta) {
     pagarPremio(r.premio);
     if (r.desbloquea) desbloquearZona(r.desbloquea, conFiesta);
     if (conFiesta) festejarReto(r);
+    // Cerrar capítulo dispara la oleada (el último reto ya es el final del juego)
+    const sig = state.retoIdx < CAMPANA.length ? CAMPANA[state.retoIdx] : null;
+    if (conFiesta && !r.final && (!sig || sig.cap !== r.cap) && !oleadaHecha(r.cap) && !oleada) {
+      iniciarOleada(r.cap, 1);
+    }
     Save.guardar();
   }
   // --- Opcionales: sin orden, se pagan una sola vez
@@ -1812,6 +2009,26 @@ const VINE_OFFSETS = [[-20, 4], [18, -2], [-2, 16]];
 function dibujarPlanta(p) {
   if (p.fruit.tipoPlanta === 'rastrera') dibujarRastrera(p);
   else dibujarArbol(p);
+  if (p.marchita > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.62;
+    emoji('🥀', p.x + 26, p.y - (p.fruit.tipoPlanta === 'rastrera' ? 26 : 60), 20);
+    ctx.restore();
+  }
+}
+
+// Anillo de progreso mientras curas una planta marchita
+function dibujarCura() {
+  const p = player.curando;
+  if (!p || player.curaT <= 0) return;
+  const pr = clamp(player.curaT / CONFIG.CURA_TIEMPO, 0, 1);
+  ctx.save();
+  ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(255,255,255,0.30)';
+  ctx.beginPath(); ctx.arc(p.x, p.y - 18, 34, 0, 6.2832); ctx.stroke();
+  ctx.strokeStyle = '#7dffa0';
+  ctx.beginPath(); ctx.arc(p.x, p.y - 18, 34, -Math.PI / 2, -Math.PI / 2 + pr * 6.2832); ctx.stroke();
+  ctx.restore();
 }
 
 function dibujarArbol(p) {
@@ -1907,11 +2124,6 @@ function dibujarRastrera(p) {
     elipse(o[0] - 4, o[1] - 6, 3.4, 2.2); ctx.fill();
   }
   ctx.restore();
-  if (marchita) {
-    ctx.save(); ctx.globalAlpha = 0.5;
-    emoji('💤', p.x + 26, p.y - 26, 18);
-    ctx.restore();
-  }
 }
 
 /* ------------------------- Mostrador y mejoras --------------------------- */
@@ -2285,6 +2497,27 @@ function dibujarHUD() {
   emoji('💰', 22, top + H / 2 + 1, 20 * k, 'left');
   texto(txtDinero, 48 * k, top + H / 2, 20 * k, '#ffe27a', 'left', true);
 
+  // Racha de venta: ficha naranja junto al dinero + barra de gracia
+  const mult = comboMult();
+  if (combo.n > 0 && mult > 1) {
+    const tx = '×' + mult;
+    const wc = anchoTexto(tx, 16 * k, true) + 20 * k;
+    const cx2 = 12 + wD + 6;
+    const late = 1 + Math.max(0, 0.14 - combo.t) * 1.1;
+    ctx.save();
+    ctx.translate(cx2 + wc / 2, top + H / 2);
+    ctx.scale(late, late);
+    ctx.fillStyle = 'rgba(255,176,31,0.96)';
+    rr(-wc / 2, -(H - 8 * k) / 2, wc, H - 8 * k, 12 * k); ctx.fill();
+    texto(tx, 0, -2 * k, 16 * k, '#3a2a05', 'center', true);
+    const g = 1 - clamp(combo.t / CONFIG.COMBO_GRACIA, 0, 1);
+    ctx.fillStyle = 'rgba(60,40,5,0.55)';
+    rr(-wc / 2 + 5, (H - 8 * k) / 2 - 7 * k, wc - 10, 3.5 * k, 2); ctx.fill();
+    ctx.fillStyle = '#fff6d8';
+    rr(-wc / 2 + 5, (H - 8 * k) / 2 - 7 * k, (wc - 10) * g, 3.5 * k, 2); ctx.fill();
+    ctx.restore();
+  }
+
   // Carga
   const txtBag = player.carga.length + '/' + state.capacidad;
   const wB = Math.max(92 * k, anchoTexto(txtBag, 20 * k, true) + 54 * k);
@@ -2293,17 +2526,36 @@ function dibujarHUD() {
   const lleno = player.carga.length >= state.capacidad;
   texto(txtBag, cw - 12 - wB + 38 * k, top + H / 2, 20 * k, lleno ? '#ff8a8a' : '#ffffff', 'left', true);
 
-  // Banner de capítulo (tocarlo abre el panel)
+  // Banner: durante una oleada manda la oleada
   const b = HUD.banner;
-  pill(b.x, b.y, b.w, b.h, 9 * k, 0.72);
-  const r = retoActual();
-  const cap = r ? t('capitulo', { n: r.cap + 1 }) + ' · ' + t(CAP_NOMBRES[r.cap]) : t('modoLibre');
-  const der = r ? t('retoDeN', { a: state.retoIdx + 1, b: CAMPANA.length })
-                : t('frutasVendidas', { n: state.ventasTotales });
-  const wDer = anchoTexto(der, 11 * k, true);
-  texto(textoCorto(cap, b.w - wDer - 34 * k, 12 * k, true), b.x + 10 * k, b.y + b.h / 2, 12 * k, '#ffe27a', 'left', true);
-  texto(der, b.x + b.w - 20 * k, b.y + b.h / 2, 11 * k, 'rgba(255,255,255,0.8)', 'right', true);
-  texto('▾', b.x + b.w - 9 * k, b.y + b.h / 2, 12 * k, 'rgba(255,255,255,0.8)', 'center', true);
+  if (oleada) {
+    const urg = 0.5 + 0.5 * Math.sin(tiempo * 6);
+    ctx.fillStyle = 'rgba(126,22,22,0.9)';
+    rr(b.x, b.y, b.w, b.h, 9 * k); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,120,120,' + (0.5 + 0.4 * urg).toFixed(2) + ')';
+    ctx.lineWidth = 2;
+    rr(b.x, b.y, b.w, b.h, 9 * k); ctx.stroke();
+    const seg = Math.max(0, Math.ceil(CONFIG.OLEADA_DURACION - Math.max(0, oleada.t)));
+    const izq = oleada.t < 0
+      ? t('intento', { a: oleada.intento, b: CONFIG.OLEADA_INTENTOS })
+      : t('oleadaHUD', { s: seg });
+    const der = t('perdidas', { a: oleada.perdidas, b: CONFIG.OLEADA_MAX_PERDIDAS });
+    const wDer2 = anchoTexto(der, 11 * k, true);
+    texto(textoCorto(izq, b.w - wDer2 - 24 * k, 12 * k, true), b.x + 10 * k, b.y + b.h / 2,
+          12 * k, '#ffd7d7', 'left', true);
+    texto(der, b.x + b.w - 10 * k, b.y + b.h / 2, 11 * k,
+          oleada.perdidas > CONFIG.OLEADA_MAX_PERDIDAS ? '#ff9a9a' : 'rgba(255,255,255,0.9)', 'right', true);
+  } else {
+    pill(b.x, b.y, b.w, b.h, 9 * k, 0.72);
+    const r = retoActual();
+    const cap = r ? t('capitulo', { n: r.cap + 1 }) + ' · ' + t(CAP_NOMBRES[r.cap]) : t('modoLibre');
+    const der2 = r ? t('retoDeN', { a: state.retoIdx + 1, b: CAMPANA.length })
+                   : t('frutasVendidas', { n: state.ventasTotales });
+    const wDer = anchoTexto(der2, 11 * k, true);
+    texto(textoCorto(cap, b.w - wDer - 34 * k, 12 * k, true), b.x + 10 * k, b.y + b.h / 2, 12 * k, '#ffe27a', 'left', true);
+    texto(der2, b.x + b.w - 20 * k, b.y + b.h / 2, 11 * k, 'rgba(255,255,255,0.8)', 'right', true);
+    texto('▾', b.x + b.w - 9 * k, b.y + b.h / 2, 12 * k, 'rgba(255,255,255,0.8)', 'center', true);
+  }
 
   // Tres filas de retos
   const vis = retosVisibles();
@@ -2553,10 +2805,18 @@ function render() {
   for (const h of helpers) drawables.push({ y: h.y, d: 1, o: h });
   drawables.push({ y: player.y, d: 2, o: player });
   drawables.sort((a, b) => a.y - b.y);
+  dibujarCura();
   for (const it of drawables) {
     if (it.d === 0) dibujarPlanta(it.o);
-    else if (it.d === 1) dibujarPersonaje(it.o, { camisa: it.o.color, gorra: '#e63946', logo: true });
-    else dibujarJugador();
+    else if (it.d === 1) {
+      dibujarPersonaje(it.o, { camisa: it.o.color, gorra: '#e63946', logo: true });
+      if (helpersImpagos) {                       // sin sueldo: parados y marcados
+        ctx.save();
+        ctx.globalAlpha = 0.55 + 0.45 * Math.sin(tiempo * 4);
+        emoji('💸', it.o.x, it.o.y - 78, 20);
+        ctx.restore();
+      }
+    } else dibujarJugador();
   }
   for (const p of plagas) dibujarPlaga(p);
 
@@ -2587,8 +2847,15 @@ function paso(ts) {
   player.update(dt, inp.x, inp.y);
   for (const p of plants) p.update(dt);
   for (const h of helpers) h.update(dt);
+  actualizarOleada(dt);
   actualizarPlagas(dt);
   actualizarCirculos(dt);
+  cobrarSueldos(dt);
+
+  if (combo.n > 0) {
+    combo.t += dt;
+    if (combo.t >= CONFIG.COMBO_GRACIA) romperCombo();
+  }
 
   state.sinMarchita += dt;
   state.hoy.sinMarchita += dt;
@@ -2647,6 +2914,12 @@ const game = {
   get plants() { return plants; },
   get helpers() { return helpers; },
   get plagas() { return plagas; },
+  get combo() { return { n: combo.n, t: combo.t, mult: comboMult() }; },
+  get oleada() { return oleada; },
+  get impagos() { return helpersImpagos; },
+  sueldo() { return sueldoPorMinuto(); },
+  lanzarOleada(cap) { iniciarOleada(cap === undefined ? capituloActual() : cap, 1); return oleada; },
+  marchitar(i) { const p = plants[i || 0]; if (p) marchitar(p, true); return !!p; },
   CONFIG, FRUITS, CAMPANA, OPCIONALES, DIARIOS, circles, I18N, t,
   dinero(n) {
     const v = Number(n) || 0;
