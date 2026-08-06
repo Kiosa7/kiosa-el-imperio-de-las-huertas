@@ -669,6 +669,7 @@ let avisoSueldo = 0;
 let clienteTimer = 0;
 let mapacheTimer = 0;
 let bacheTimer = 0;
+let oleadaCola = [];          // capítulos cerrados mientras había otra oleada
 let bachePend = null;
 const baches = [];
 
@@ -1447,6 +1448,7 @@ function reconstruirMundo() {
   plagas.length = 0;
   mapaches.length = 0;
   sueloFrutas.length = 0;
+  oleadaCola.length = 0;
 }
 
 function plantaCercanaConFruta(x, y, radio) {
@@ -1846,16 +1848,25 @@ function terminarOleada() {
     for (let i = 0; i < 120; i++) lanzarConfeti(rand(40, WORLD_W - 40), rand(cam.y + 60, cam.y + view.h - 120), 1);
     state.oleadasHechas.push(cap);
     oleada = null;
+    siguienteOleadaEnCola();
   } else if (intento >= CONFIG.OLEADA_INTENTOS) {
     // No se bloquea el avance para siempre: al tercer intento pasa sin premio
     bigMsg = { txt: t('oleadaFin'), t: 0 };
     state.oleadasHechas.push(cap);
     oleada = null;
+    siguienteOleadaEnCola();
   } else {
     bigMsg = { txt: t('oleadaFallida'), t: 0 };
     iniciarOleada(cap, intento + 1);
   }
   Save.guardar();
+}
+
+function siguienteOleadaEnCola() {
+  while (oleadaCola.length) {
+    const cap = oleadaCola.shift();
+    if (!oleadaHecha(cap)) { iniciarOleada(cap, 1); return; }
+  }
 }
 
 function actualizarOleada(dt) {
@@ -1964,8 +1975,10 @@ function actualizarRetos(conFiesta) {
     if (conFiesta) festejarReto(r);
     // Cerrar capítulo dispara la oleada (el último reto ya es el final del juego)
     const sig = state.retoIdx < CAMPANA.length ? CAMPANA[state.retoIdx] : null;
-    if (conFiesta && !r.final && (!sig || sig.cap !== r.cap) && !oleadaHecha(r.cap) && !oleada) {
-      iniciarOleada(r.cap, 1);
+    if (conFiesta && !r.final && (!sig || sig.cap !== r.cap) && !oleadaHecha(r.cap)) {
+      // Si ya hay una corriendo se encola: antes se perdía sin más
+      if (oleada) { if (oleadaCola.indexOf(r.cap) < 0) oleadaCola.push(r.cap); }
+      else iniciarOleada(r.cap, 1);
     }
     Save.guardar();
   }
@@ -4579,6 +4592,7 @@ const game = {
   get mapaches() { return mapaches; },
   get suelo() { return sueloFrutas; },
   get baches() { return baches; },
+  get oleadaCola() { return oleadaCola; },
   rebarajarBaches() { rebarajarBaches(false); return baches.length; },
   spawnMapache() { mapaches.push(new Mapache()); return true; },
   tropezar() { tropezar(player); return sueloFrutas.length; },
