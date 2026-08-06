@@ -636,6 +636,7 @@ function estadoNuevo() {
     pagos: { arbol: 0, mochila: 0, ayudante: 0, riego: 0, espanta: 0, puesto: 0 },
     hints: { caminar: false, vender: false, mejorar: false, plaga: false },
     mute: false,
+    hudExp: false,
     idioma: detectarIdioma(),
     calidad: 'auto',
     desbloqueadas: FRUITS.filter(f => f.desbloqueadaInicio).map(f => f.id)
@@ -717,7 +718,7 @@ const Save = {
         tropiezos: state.tropiezos, robadas: state.robadas, recogidas: state.recogidas,
         diarios: state.diarios, hoy: state.hoy, sinMarchita: state.sinMarchita,
         op: state.op, pagos: state.pagos, hints: state.hints,
-        mute: state.mute, idioma: state.idioma, calidad: state.calidad,
+        mute: state.mute, hudExp: state.hudExp, idioma: state.idioma, calidad: state.calidad,
         desbloqueadas: state.desbloqueadas
       }));
     } catch (e) {}
@@ -743,6 +744,7 @@ const Save = {
       s.retoIdx = clamp(num(d.retoIdx, 0) | 0, 0, CAMPANA.length);
       s.sinMarchita = Math.max(0, num(d.sinMarchita, 0));
       s.mute = !!d.mute;
+      s.hudExp = !!d.hudExp;
       s.idioma = IDIOMAS.indexOf(d.idioma) >= 0 ? d.idioma : detectarIdioma();
       s.calidad = ['auto', 'bajo', 'alto'].indexOf(d.calidad) >= 0 ? d.calidad : 'auto';
 
@@ -2377,16 +2379,24 @@ function layoutHUD() {
   HUD.btn.idioma = { x: bx, y: by, s: bs }; by += paso;
   HUD.btn.share  = { x: bx, y: by, s: bs }; by += paso;
   HUD.btn.reset  = { x: bx, y: by, s: bs };
-  const lw = cw - 24 - bs - 10;
+  // Ancho con tope: estirada a toda la pantalla tapaba la huerta
+  const lw = Math.min(cw - 24 - bs - 10, Math.round(330 * k));
   const by0 = HUD.top + HUD.h + Math.round(10 * k);
-  HUD.banner = { x: 12, y: by0, w: lw, h: Math.round(26 * k) };
-  const fh = Math.round(30 * k), gap = Math.round(4 * k);
+  const gap = Math.round(5 * k);
+  // Tarjeta principal: capítulo + reto en curso + barra, todo en una
+  HUD.banner = { x: 12, y: by0, w: lw, h: Math.round(50 * k) };
+  const fh = Math.round(30 * k);
   HUD.filas = [];
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     HUD.filas.push({ x: 12, y: HUD.banner.y + HUD.banner.h + gap + i * (fh + gap), w: lw, h: fh });
   }
-  HUD.lista = { x: 12, y: HUD.banner.y, w: lw, h: HUD.banner.h + gap + 3 * (fh + gap) };
+  HUD.lista = hudExpandido()
+    ? { x: 12, y: HUD.banner.y, w: lw, h: HUD.banner.h + gap + 2 * (fh + gap) }
+    : { x: 12, y: HUD.banner.y, w: lw, h: HUD.banner.h };
 }
+
+// En pantallas bajas se queda plegada aunque el jugador la haya abierto
+function hudExpandido() { return !!state.hudExp && ch >= 620; }
 
 function layoutPanel() {
   panel.x = 16; panel.y = 54; panel.w = cw - 32; panel.h = ch - 108;
@@ -2506,7 +2516,17 @@ canvas.addEventListener('pointerdown', e => {
     });
     e.preventDefault(); return;
   }
-  if (puntoEnRect(HUD.lista, p.x, p.y)) {
+  // En la tarjeta principal: la flecha pliega, el resto abre el panel
+  if (puntoEnRect(HUD.banner, p.x, p.y)) {
+    if (p.x > HUD.banner.x + HUD.banner.w - 42 * HUD.k) {
+      state.hudExp = !state.hudExp;
+      layoutHUD();
+      SFX.pop();
+      Save.guardar();
+    } else { panel.abierto = true; panel.scroll = 0; }
+    e.preventDefault(); return;
+  }
+  if (hudExpandido() && puntoEnRect(HUD.lista, p.x, p.y)) {
     panel.abierto = true; panel.scroll = 0; e.preventDefault(); return;
   }
 
@@ -3410,25 +3430,53 @@ function botonHUD(b, icono) {
   emoji(icono, b.x + b.s / 2, b.y + b.s / 2 + 1, Math.round(b.s * 0.5));
 }
 
+const COLOR_RETO = { c: '#ffd166', o: '#c9a0ff', d: '#7ec8ff' };
+
+// Tarjeta del HUD: degradado suave, borde fino y franja de acento a la izquierda
+function tarjetaHUD(x, y, w, h, r, acento) {
+  const g = ctx.createLinearGradient(0, y, 0, y + h);
+  g.addColorStop(0, 'rgba(28,44,30,0.90)');
+  g.addColorStop(1, 'rgba(14,26,16,0.90)');
+  ctx.fillStyle = g;
+  rr(x, y, w, h, r); ctx.fill();
+  ctx.save();
+  rr(x, y, w, h, r); ctx.clip();
+  ctx.fillStyle = acento;
+  ctx.fillRect(x, y, 3.5, h);
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(255,255,255,0.13)';
+  ctx.lineWidth = 1.5;
+  rr(x, y, w, h, r); ctx.stroke();
+}
+
+function barraReto(x, y, w, h, prog, col, casi) {
+  ctx.fillStyle = 'rgba(255,255,255,0.14)';
+  rr(x, y, w, h, h / 2); ctx.fill();
+  const fw = Math.max(h, w * prog);
+  ctx.fillStyle = (casi && Math.sin(tiempo * 8) > 0) ? '#e8fff0' : col;
+  rr(x, y, fw, h, h / 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.28)';
+  rr(x + 1.5, y + 1, Math.max(0, fw - 3), h * 0.38, h * 0.19); ctx.fill();
+}
+
 function dibujarFilaReto(fila, item) {
   const k = HUD.k, r = item.r;
   const val = r.prog(state);
   const prog = clamp(val / r.meta, 0, 1);
-  const casi = prog >= 0.9 && prog < 1;
-  pill(fila.x, fila.y, fila.w, fila.h, 10 * k, 0.7);
+  const col = COLOR_RETO[item.tipo] || '#5ee06a';
+  tarjetaHUD(fila.x, fila.y, fila.w, fila.h, 11 * k, col);
   const icono = item.tipo === 'c' ? '🎯' : (item.tipo === 'o' ? '⭐' : '📅');
-  emoji(icono, fila.x + 15 * k, fila.y + fila.h / 2, 13 * k);
+  ctx.fillStyle = 'rgba(255,255,255,0.10)';
+  circulo(fila.x + 19 * k, fila.y + fila.h / 2, 11 * k); ctx.fill();
+  emoji(icono, fila.x + 19 * k, fila.y + fila.h / 2, 12 * k, 'center', col);
   const cnt = Math.min(Math.floor(val), r.meta) + '/' + r.meta;
-  const wCnt = anchoTexto(cnt, 11 * k, true);
-  const bx = fila.x + 27 * k;
-  const bw = fila.w - 27 * k - wCnt - 16 * k;
-  texto(textoCorto(textoReto(r), bw, 12 * k, true), bx, fila.y + fila.h * 0.33, 12 * k, '#ffffff', 'left', true);
-  const by = fila.y + fila.h * 0.72, bh = 7 * k;
-  ctx.fillStyle = 'rgba(255,255,255,0.18)';
-  rr(bx, by - bh / 2, bw, bh, bh / 2); ctx.fill();
-  ctx.fillStyle = (casi && Math.sin(tiempo * 8) > 0) ? '#c9ffc4' : '#5ee06a';
-  rr(bx, by - bh / 2, Math.max(4, bw * prog), bh, bh / 2); ctx.fill();
-  texto(cnt, fila.x + fila.w - 8 * k, fila.y + fila.h / 2, 11 * k, 'rgba(255,255,255,0.92)', 'right', true);
+  const wCnt = anchoTexto(cnt, 10.5 * k, true);
+  const bx = fila.x + 34 * k;
+  const bw = fila.w - 34 * k - wCnt - 14 * k;
+  texto(textoCorto(textoReto(r), bw, 11.5 * k, true), bx, fila.y + fila.h * 0.34, 11.5 * k,
+        'rgba(255,255,255,0.94)', 'left', true);
+  barraReto(bx, fila.y + fila.h * 0.62, bw, 5.5 * k, prog, col, prog >= 0.9 && prog < 1);
+  texto(cnt, fila.x + fila.w - 9 * k, fila.y + fila.h / 2, 10.5 * k, 'rgba(255,255,255,0.7)', 'right', true);
 }
 
 function dibujarHUD() {
@@ -3505,20 +3553,45 @@ function dibujarHUD() {
     texto(der, b.x + b.w - 10 * k, b.y + b.h / 2, 11 * k,
           oleada.perdidas > CONFIG.OLEADA_MAX_PERDIDAS ? '#ff9a9a' : 'rgba(255,255,255,0.9)', 'right', true);
   } else {
-    pill(b.x, b.y, b.w, b.h, 9 * k, 0.72);
+    // Tarjeta principal: capítulo arriba, reto en curso con su barra abajo
     const r = retoActual();
+    tarjetaHUD(b.x, b.y, b.w, b.h, 12 * k, '#ffd166');
     const cap = r ? t('capitulo', { n: r.cap + 1 }) + ' · ' + t(CAP_NOMBRES[r.cap]) : t('modoLibre');
     const der2 = r ? t('retoDeN', { a: state.retoIdx + 1, b: CAMPANA.length })
                    : t('frutasVendidas', { n: state.ventasTotales });
-    const wDer = anchoTexto(der2, 11 * k, true);
-    texto(textoCorto(cap, b.w - wDer - 34 * k, 12 * k, true), b.x + 10 * k, b.y + b.h / 2, 12 * k, '#ffe27a', 'left', true);
-    texto(der2, b.x + b.w - 20 * k, b.y + b.h / 2, 11 * k, 'rgba(255,255,255,0.8)', 'right', true);
-    texto('▾', b.x + b.w - 9 * k, b.y + b.h / 2, 12 * k, 'rgba(255,255,255,0.8)', 'center', true);
+    const wDer = anchoTexto(der2, 10 * k, true);
+    texto(textoCorto(cap, b.w - wDer - 40 * k, 10.5 * k, true), b.x + 12 * k, b.y + 13 * k,
+          10.5 * k, 'rgba(255,226,122,0.95)', 'left', true);
+    texto(der2, b.x + b.w - 26 * k, b.y + 13 * k, 10 * k, 'rgba(255,255,255,0.6)', 'right', true);
+    // Flecha de plegar/desplegar
+    texto(hudExpandido() ? '▴' : '▾', b.x + b.w - 12 * k, b.y + 13 * k, 12 * k,
+          'rgba(255,255,255,0.75)', 'center', true);
+    if (r) {
+      const val = r.prog(state), prog = clamp(val / r.meta, 0, 1);
+      const cnt = Math.min(Math.floor(val), r.meta) + '/' + r.meta;
+      const wCnt = anchoTexto(cnt, 10.5 * k, true);
+      const bw = b.w - 24 * k - wCnt - 8 * k;
+      emoji('🎯', b.x + 20 * k, b.y + 32 * k, 12 * k, 'center', '#ffd166');
+      texto(textoCorto(textoReto(r), bw - 18 * k, 12.5 * k, true), b.x + 32 * k, b.y + 31 * k,
+            12.5 * k, '#ffffff', 'left', true);
+      texto(cnt, b.x + b.w - 12 * k, b.y + 31 * k, 10.5 * k, 'rgba(255,255,255,0.7)', 'right', true);
+      barraReto(b.x + 12 * k, b.y + 40 * k, b.w - 24 * k, 5.5 * k, prog, '#5ee06a', prog >= 0.9 && prog < 1);
+    } else {
+      texto('🏆', b.x + 20 * k, b.y + 32 * k, 13 * k, 'center');
+      texto(t('modoLibre').replace('🏆 ', ''), b.x + 32 * k, b.y + 32 * k, 12.5 * k, '#ffe27a', 'left', true);
+    }
   }
 
-  // Tres filas de retos
-  const vis = retosVisibles();
-  for (let i = 0; i < vis.length && i < HUD.filas.length; i++) dibujarFilaReto(HUD.filas[i], vis[i]);
+  // Filas extra solo si está desplegada
+  if (hudExpandido()) {
+    const vis = retosVisibles();
+    let n = 0;
+    for (let i = 0; i < vis.length && n < HUD.filas.length; i++) {
+      if (vis[i].tipo === 'c') continue;                 // ya va en la tarjeta
+      dibujarFilaReto(HUD.filas[n], vis[i]);
+      n++;
+    }
+  }
 
   // Botones
   botonHUD(HUD.btn.mute, state.mute ? '🔇' : '🔊');
