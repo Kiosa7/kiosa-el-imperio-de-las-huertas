@@ -49,11 +49,44 @@
     touch-action: manipulation; -webkit-tap-highlight-color: transparent;
   }
   #cred:hover, #cred:focus { color: #fff; background: rgba(16,26,18,.88); }
+  /* Redes sociales: solo en la portada, para no estorbar jugando */
+  #social {
+    position: fixed; left: 50%; bottom: 6px; transform: translateX(-50%);
+    z-index: 6; display: flex; gap: 6px; flex-wrap: nowrap; justify-content: center;
+    max-width: 98vw;
+  }
+  #social .soc {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 10px; border-radius: 999px; cursor: pointer;
+    font-size: 11.5px; font-weight: 700; line-height: 1; white-space: nowrap;
+    font-family: inherit; color: #eaf6e8; text-decoration: none;
+    background: rgba(16,26,18,.82); border: 1px solid rgba(255,255,255,.18);
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  #social .soc:hover, #social .soc:focus { background: rgba(28,48,32,.95); border-color: rgba(255,255,255,.35); }
+  #social .fb {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 17px; height: 17px; border-radius: 5px;
+    background: #1877f2; color: #fff; font-weight: 800; font-size: 12px;
+  }
+  #social .ico { font-size: 13px; }
+  .jugando #social { display: none; }
+  .portada #cred { display: none; }
+  @media (max-width: 400px) {
+    #social { gap: 5px; }
+    #social .soc { font-size: 10.5px; padding: 6px 8px; gap: 4px; }
+    #social .fb { width: 15px; height: 15px; font-size: 11px; }
+  }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <a id="cred" href="https://www.facebook.com/PcElectronics7/" target="_blank" rel="noopener">Hecho por PC Electronics</a>
+<div id="social">
+  <a class="soc" id="fbKiosa" href="https://www.facebook.com/Kiosa07/" target="_blank" rel="noopener"><span class="fb">f</span>Kiosa</a>
+  <a class="soc" id="fbPc" href="https://www.facebook.com/PcElectronics7/" target="_blank" rel="noopener"><span class="fb">f</span>PC Electronics</a>
+  <button class="soc" id="btnShare" type="button"><span class="ico">📤</span><span id="txtShare">Compartir</span></button>
+</div>
 <script>
 "use strict";
 /* =========================================================================
@@ -97,7 +130,10 @@ const CONFIG = {
   // Puesto: ya no vendes al pisar, SURTES el estante. El dinero entra
   // cuando un cliente compra de ahí.
   SELL_INTERVAL: 0.10,                     // ritmo al descargar en el estante
-  PUESTO_CAP: 14,
+  PUESTO_CAP_BASE: 14,
+  PUESTO_PASO: 4,
+  PUESTO_MAX: 5,
+  PUESTO_COSTO: 150, PUESTO_MULT: 1.7,
 
   // Compradores
   CLIENTE_INTERVALO_BASE: 9,
@@ -208,6 +244,8 @@ const CONFIG = {
   // Crédito de autoría (el <a> del HTML lleva la misma URL como respaldo
   // por si el script no llega a correr; este es el valor que manda)
   CREDITO_URL: 'https://www.facebook.com/PcElectronics7/',
+  FB_KIOSA: 'https://www.facebook.com/Kiosa07/',
+  FB_PC: 'https://www.facebook.com/PcElectronics7/',
 
   // Guardado
   SAVE_KEY: 'kiosaImperio.v2',
@@ -240,7 +278,7 @@ const I18N = {
     capitulo: 'Cap. {n}', retoDeN: 'Reto {a}/{b}', completado: 'Completado',
     retos: 'Retos', campana: 'Campaña', opcionales: 'Opcionales', diarios: 'Diarios',
     sinDiarios: 'Vuelve mañana por retos nuevos.',
-    hechoPor: 'Hecho por PC Electronics',
+    hechoPor: 'Hecho por PC Electronics', compartir: 'Compartir',
     finalTxt: 'Levantaste el imperio de las huertas. Kiosa está orgulloso de ti.',
     btnSeguir: 'Seguir jugando', sDinero: 'Dinero ganado', sFrutas: 'Frutas vendidas',
     sClientes: 'Clientes servidos', sPlagas: 'Plagas espantadas', sRep: 'Reputación final',
@@ -264,7 +302,7 @@ const I18N = {
     zMango: 'HUERTA DE MANGOS', zNaranja: 'HUERTA DE NARANJAS', zSandia: 'PARCHE DE SANDÍAS',
     zPapaya: 'HUERTA DE PAPAYAS', zPina: 'PARCHE DE PIÑAS',
     cArbol: '+1 PLANTA', cMochila: 'MOCHILA +5', cAyudante: 'AYUDANTE',
-    cRiego: 'RIEGO', cEspanta: 'ESPANTAPÁJAROS',
+    cRiego: 'RIEGO', cEspanta: 'ESPANTAPÁJAROS', cPuesto: 'PUESTO +4',
     hCaminar: 'Camina hacia los árboles', hVender: 'Lleva la pila a VENDER',
     hMejorar: 'Párate en un círculo para mejorar', hPlaga: '¡Corre, espanta la plaga!',
     cap1: 'Primeros brotes', cap2: 'La huerta crece', cap3: 'Defiende la cosecha',
@@ -276,7 +314,7 @@ const I18N = {
     r_c10: 'Compra un espantapájaros', r_c11: 'Aguanta 3 min sin marchitas',
     r_c12: 'Sirve {n} clientes completos', r_c13: 'Contrata el segundo ayudante',
     r_c14: 'Alcanza {n} de reputación', r_c15: 'Gana ${n} en total',
-    r_c16: 'Vende {n} sandías', r_c17: 'Ten {n} plantas a la vez',
+    r_c16: 'Amplía el puesto a {n}', r_c17: 'Ten {n} plantas a la vez',
     r_c18: 'Vende {n} papayas', r_c19: 'Espanta {n} plagas',
     r_c20: 'Vende {n} frutas en total',
     r_o1: 'Llena la mochila y véndela entera', r_o2: 'Espanta 3 plagas en 10 s',
@@ -302,7 +340,7 @@ const I18N = {
     capitulo: 'Ch. {n}', retoDeN: 'Goal {a}/{b}', completado: 'Complete',
     retos: 'Goals', campana: 'Campaign', opcionales: 'Optional', diarios: 'Daily',
     sinDiarios: 'Come back tomorrow for new goals.',
-    hechoPor: 'Made by PC Electronics',
+    hechoPor: 'Made by PC Electronics', compartir: 'Share',
     finalTxt: 'You built the orchard empire. Kiosa is proud of you.',
     btnSeguir: 'Keep playing', sDinero: 'Money earned', sFrutas: 'Fruit sold',
     sClientes: 'Customers served', sPlagas: 'Pests scared off', sRep: 'Final reputation',
@@ -326,7 +364,7 @@ const I18N = {
     zMango: 'MANGO GROVE', zNaranja: 'ORANGE GROVE', zSandia: 'WATERMELON PATCH',
     zPapaya: 'PAPAYA GROVE', zPina: 'PINEAPPLE PATCH',
     cArbol: '+1 PLANT', cMochila: 'BACKPACK +5', cAyudante: 'HELPER',
-    cRiego: 'IRRIGATION', cEspanta: 'SCARECROW',
+    cRiego: 'IRRIGATION', cEspanta: 'SCARECROW', cPuesto: 'STALL +4',
     hCaminar: 'Walk to the trees', hVender: 'Take the stack to SELL',
     hMejorar: 'Stand on a circle to upgrade', hPlaga: 'Run, scare the pest away!',
     cap1: 'First sprouts', cap2: 'The orchard grows', cap3: 'Defend the harvest',
@@ -338,7 +376,7 @@ const I18N = {
     r_c10: 'Buy a scarecrow', r_c11: 'Go 3 min with no wilting',
     r_c12: 'Serve {n} customers fully', r_c13: 'Hire the second helper',
     r_c14: 'Reach {n} reputation', r_c15: 'Earn ${n} in total',
-    r_c16: 'Sell {n} watermelons', r_c17: 'Have {n} plants at once',
+    r_c16: 'Grow the stall to {n}', r_c17: 'Have {n} plants at once',
     r_c18: 'Sell {n} papayas', r_c19: 'Scare off {n} pests',
     r_c20: 'Sell {n} fruit in total',
     r_o1: 'Fill the backpack and sell it all', r_o2: 'Scare 3 pests in 10 s',
@@ -364,7 +402,7 @@ const I18N = {
     capitulo: 'Cap. {n}', retoDeN: 'Desafio {a}/{b}', completado: 'Completo',
     retos: 'Desafios', campana: 'Campanha', opcionales: 'Opcionais', diarios: 'Diários',
     sinDiarios: 'Volte amanhã para novos desafios.',
-    hechoPor: 'Feito por PC Electronics',
+    hechoPor: 'Feito por PC Electronics', compartir: 'Compartilhar',
     finalTxt: 'Você ergueu o império das hortas. Kiosa está orgulhoso de você.',
     btnSeguir: 'Continuar jogando', sDinero: 'Dinheiro ganho', sFrutas: 'Frutas vendidas',
     sClientes: 'Clientes atendidos', sPlagas: 'Pragas espantadas', sRep: 'Reputação final',
@@ -388,7 +426,7 @@ const I18N = {
     zMango: 'POMAR DE MANGAS', zNaranja: 'POMAR DE LARANJAS', zSandia: 'ROÇA DE MELANCIAS',
     zPapaya: 'POMAR DE MAMÕES', zPina: 'ROÇA DE ABACAXIS',
     cArbol: '+1 PLANTA', cMochila: 'MOCHILA +5', cAyudante: 'AJUDANTE',
-    cRiego: 'IRRIGAÇÃO', cEspanta: 'ESPANTALHO',
+    cRiego: 'IRRIGAÇÃO', cEspanta: 'ESPANTALHO', cPuesto: 'POSTO +4',
     hCaminar: 'Ande até as árvores', hVender: 'Leve a pilha até VENDER',
     hMejorar: 'Fique num círculo para melhorar', hPlaga: 'Corra, espante a praga!',
     cap1: 'Primeiros brotos', cap2: 'A horta cresce', cap3: 'Defenda a colheita',
@@ -400,7 +438,7 @@ const I18N = {
     r_c10: 'Compre um espantalho', r_c11: 'Aguente 3 min sem murchar',
     r_c12: 'Atenda {n} clientes por completo', r_c13: 'Contrate o segundo ajudante',
     r_c14: 'Alcance {n} de reputação', r_c15: 'Ganhe ${n} no total',
-    r_c16: 'Venda {n} melancias', r_c17: 'Tenha {n} plantas de uma vez',
+    r_c16: 'Amplie o posto para {n}', r_c17: 'Tenha {n} plantas de uma vez',
     r_c18: 'Venda {n} mamões', r_c19: 'Espante {n} pragas',
     r_c20: 'Venda {n} frutas no total',
     r_o1: 'Encha a mochila e venda inteira', r_o2: 'Espante 3 pragas em 10 s',
@@ -499,7 +537,7 @@ const CAMPANA = [
   { id:'c13', cap:3, k:'r_c13', meta:2,    prog:s => s.ayudantes,                   premio:1500 },
   { id:'c14', cap:3, k:'r_c14', meta:85,   prog:s => Math.floor(s.reputacion),      premio:1500 },
   { id:'c15', cap:3, k:'r_c15', meta:8000, prog:s => Math.floor(s.dineroTotal),     premio:1500, desbloquea:'pina' },
-  { id:'c16', cap:3, k:'r_c16', meta:60,   prog:s => s.ventasPorFruta.sandia || 0,  premio:1500 },
+  { id:'c16', cap:3, k:'r_c16', meta:26,   prog:s => puestoCap(),                   premio:1500 },
   { id:'c17', cap:4, k:'r_c17', meta:20,   prog:s => plants.length,                 premio:3000 },
   { id:'c18', cap:4, k:'r_c18', meta:40,   prog:s => s.ventasPorFruta.papaya || 0,  premio:3000 },
   { id:'c19', cap:4, k:'r_c19', meta:60,   prog:s => s.plagasEspantadas,            premio:3000 },
@@ -583,7 +621,7 @@ function estadoNuevo() {
     robadas: 0,
     recogidas: 0,
     capacidad: CONFIG.CAP_START,
-    compras: { arbol: 0, mochila: 0, riego: 0, espanta: 0 },
+    compras: { arbol: 0, mochila: 0, riego: 0, espanta: 0, puesto: 0 },
     extras: {},
     espantaZonas: [],
     ayudantes: 0,
@@ -595,7 +633,7 @@ function estadoNuevo() {
     sinMarchita: 0,
     terminado: false,
     op: { mochilaFull: 0, racha3: 0, saldoMax: 0 },
-    pagos: { arbol: 0, mochila: 0, ayudante: 0, riego: 0, espanta: 0 },
+    pagos: { arbol: 0, mochila: 0, ayudante: 0, riego: 0, espanta: 0, puesto: 0 },
     hints: { caminar: false, vender: false, mejorar: false, plaga: false },
     mute: false,
     idioma: detectarIdioma(),
@@ -716,6 +754,7 @@ const Save = {
         s.compras.mochila = Math.max(0, num(d.compras.mochila, 0) | 0);
         s.compras.riego = clamp(num(d.compras.riego, 0) | 0, 0, CONFIG.RIEGO_MAX);
         s.compras.espanta = clamp(num(d.compras.espanta, 0) | 0, 0, CONFIG.ESPANTA_MAX);
+        s.compras.puesto = clamp(num(d.compras.puesto, 0) | 0, 0, CONFIG.PUESTO_MAX);
       }
       if (d.extras && typeof d.extras === 'object') {
         for (const f of FRUITS) s.extras[f.id] = clamp(num(d.extras[f.id], 0) | 0, 0, f.posicionesExtra.length);
@@ -738,7 +777,7 @@ const Save = {
       s.terminado = !!d.terminado;
       s.reputacion = clamp(num(d.reputacion, CONFIG.REP_INICIAL), 0, CONFIG.REP_MAX);
       if (Array.isArray(d.estante)) {
-        s.estante = d.estante.filter(id => !!FRUIT_BY_ID[id]).slice(0, CONFIG.PUESTO_CAP);
+        s.estante = d.estante.filter(id => !!FRUIT_BY_ID[id]).slice(0, CONFIG.PUESTO_CAP_BASE + CONFIG.PUESTO_PASO * CONFIG.PUESTO_MAX);
       }
       if (d.pagos && typeof d.pagos === 'object') {
         for (const k in s.pagos) s.pagos[k] = Math.max(0, num(d.pagos[k], 0));
@@ -1205,6 +1244,8 @@ class Cliente {
     const r = CONFIG.CLIENTE_PIDE_MAX - CONFIG.CLIENTE_PIDE_MIN + 1;
     this.quiere = CONFIG.CLIENTE_PIDE_MIN + ((Math.random() * r) | 0);
     this.compradas = 0;
+    // Cada cliente pide UNA fruta concreta de las desbloqueadas
+    this.fruta = state.desbloqueadas[(Math.random() * state.desbloqueadas.length) | 0] || FRUITS[0].id;
     this.paciencia = CONFIG.CLIENTE_PACIENCIA;
     this.estado = 'llegando';
     this.t = 0;
@@ -1262,9 +1303,9 @@ class Cliente {
     } else if (this.estado === 'esperando') {
       this.paciencia -= dt;
       this.t += dt;
-      if (this.t >= CONFIG.CLIENTE_COMPRA && state.estante.length > 0) {
+      if (this.t >= CONFIG.CLIENTE_COMPRA && hayEnEstante(this.fruta)) {
         this.t = 0;
-        const id = comprarDelEstante(this.x, this.y);
+        const id = comprarDelEstante(this.x, this.y, this.fruta);
         if (id) { this.compradas++; this.carga.push(id); }
         if (this.compradas >= this.quiere) { this.salir(true); return; }
       }
@@ -1452,7 +1493,8 @@ function enVenta(x, y) {
 }
 
 /* --------------------- Puesto, clientes y reputación --------------------- */
-function puestoCap() { return CONFIG.PUESTO_CAP; }
+function puestoCap() { return CONFIG.PUESTO_CAP_BASE + CONFIG.PUESTO_PASO * state.compras.puesto; }
+function nivelPuesto() { return clamp(state.compras.puesto, 0, CONFIG.PUESTO_MAX); }
 function estanteLleno() { return state.estante.length >= puestoCap(); }
 
 // Surtir: la fruta pasa de tu espalda al estante. Aquí NO entra dinero.
@@ -1478,10 +1520,18 @@ function intervaloCliente() {
 }
 function ajustarRep(d) { state.reputacion = clamp(state.reputacion + d, 0, CONFIG.REP_MAX); }
 
+function hayEnEstante(fruitId) { return state.estante.indexOf(fruitId) >= 0; }
+
 // El dinero entra AQUÍ: cuando un cliente se lleva una fruta del estante.
-function comprarDelEstante(x, y) {
+// Si pide una fruta concreta, solo se lleva esa: hay que surtir variado.
+function comprarDelEstante(x, y, fruitId) {
   if (!state.estante.length) return null;
-  const id = state.estante.shift();
+  let i = 0;
+  if (fruitId) {
+    i = state.estante.indexOf(fruitId);
+    if (i < 0) return null;
+  }
+  const id = state.estante.splice(i, 1)[0];
   const f = FRUIT_BY_ID[id];
   if (!f) return null;
   const mult = comboMult();
@@ -1677,13 +1727,13 @@ const circles = [
     comprar() { helpers.push(new Helper(state.ayudantes)); state.ayudantes++; }
   },
   {
-    id: 'riego', icono: '💧', k: 'cRiego', x: 277, y: 1520, r: CIRCLE_R,
+    id: 'riego', icono: '💧', k: 'cRiego', x: 195, y: 1520, r: CIRCLE_R,
     precio() { return Math.round(CONFIG.RIEGO_COSTO * Math.pow(CONFIG.RIEGO_MULT, state.compras.riego)); },
     max() { return state.compras.riego >= CONFIG.RIEGO_MAX; },
     comprar() { state.compras.riego = Math.min(CONFIG.RIEGO_MAX, state.compras.riego + 1); }
   },
   {
-    id: 'espanta', icono: '🪧', k: 'cEspanta', x: 443, y: 1520, r: CIRCLE_R,
+    id: 'espanta', icono: '🪧', k: 'cEspanta', x: 360, y: 1520, r: CIRCLE_R,
     precio() { return Math.round(CONFIG.ESPANTA_COSTO * Math.pow(CONFIG.ESPANTA_MULT, state.compras.espanta)); },
     max() { return state.compras.espanta >= CONFIG.ESPANTA_MAX || !zonaParaEspantapajaros(); },
     comprar() {
@@ -1695,12 +1745,21 @@ const circles = [
       const z = FRUIT_BY_ID[id].zona;
       lanzarConfeti(z.x + z.w / 2, z.y + z.h / 2, 30);
     }
+  },
+  {
+    id: 'puesto', icono: '🏪', k: 'cPuesto', x: 525, y: 1520, r: CIRCLE_R,
+    precio() { return Math.round(CONFIG.PUESTO_COSTO * Math.pow(CONFIG.PUESTO_MULT, state.compras.puesto)); },
+    max() { return state.compras.puesto >= CONFIG.PUESTO_MAX; },
+    comprar() {
+      state.compras.puesto = Math.min(CONFIG.PUESTO_MAX, state.compras.puesto + 1);
+      lanzarConfeti(SELL.cx, COUNTER.y, 30);
+    }
   }
 ];
 
 function totalCompras() {
   return state.compras.arbol + state.compras.mochila + state.ayudantes +
-         state.compras.riego + state.compras.espanta;
+         state.compras.riego + state.compras.espanta + state.compras.puesto;
 }
 
 function actualizarCirculos(dt) {
@@ -2286,12 +2345,13 @@ function layoutIntro() {
   const w = Math.min(cw - 64, 260);
   intro.btn = { x: (cw - w) / 2, y: ch * 0.745, w: w, h: 60 };
   const w2 = Math.min(cw - 110, 200);
-  intro.btn2 = { x: (cw - w2) / 2, y: ch * 0.855, w: w2, h: 44 };
+  intro.btn2 = { x: (cw - w2) / 2, y: ch * 0.828, w: w2, h: 44 };
   intro.volver = { x: 14, y: 14, w: 84, h: 36 };
 }
 
 function comenzarJuego() {
   intro.activo = false;
+  pintarUI();
   SFX.resume();
   SFX.fanfarria();
 }
@@ -2345,9 +2405,20 @@ function posCanvas(e) {
 
 function pintarCredito() {
   const a = document.getElementById('cred');
-  if (!a) return;
-  a.textContent = t('hechoPor');
-  a.href = CONFIG.CREDITO_URL;
+  if (a) { a.textContent = t('hechoPor'); a.href = CONFIG.CREDITO_URL; }
+  const k = document.getElementById('fbKiosa');
+  if (k) k.href = CONFIG.FB_KIOSA;
+  const pc = document.getElementById('fbPc');
+  if (pc) pc.href = CONFIG.FB_PC;
+  const sh = document.getElementById('txtShare');
+  if (sh) sh.textContent = t('compartir');
+}
+
+// Las redes solo se ven en la portada; el crédito, solo jugando
+function pintarUI() {
+  const c = document.body.classList;
+  c.toggle('portada', intro.activo);
+  c.toggle('jugando', !intro.activo);
 }
 
 function ciclarIdioma() {
@@ -2773,6 +2844,98 @@ function dibujarRastrera(p) {
 }
 
 /* ------------------------- Mostrador y mejoras --------------------------- */
+/* El puesto crece con la mejora: cada nivel le suma algo visible, para que
+   se note en qué te gastaste el dinero. */
+function dibujarEstructuraPuesto() {
+  const n = nivelPuesto();
+  const cx2 = COUNTER.x + COUNTER.w / 2;
+  const ext = n * 9;                                  // se ensancha al mejorar
+  const x0 = COUNTER.x - ext, w = COUNTER.w + ext * 2;
+
+  // Toldo desde el nivel 2
+  if (n >= 2) {
+    const ty = COUNTER.y - 84;
+    ctx.fillStyle = '#8a5a2b';
+    ctx.fillRect(x0 + 6, ty + 10, 9, COUNTER.y - ty - 6);
+    ctx.fillRect(x0 + w - 15, ty + 10, 9, COUNTER.y - ty - 6);
+    const franjas = 7;
+    for (let i = 0; i < franjas; i++) {
+      ctx.fillStyle = i % 2 ? '#f6f1e2' : (n >= 5 ? '#c9412f' : '#d9573f');
+      const fw = w / franjas;
+      ctx.beginPath();
+      ctx.moveTo(x0 + i * fw, ty);
+      ctx.lineTo(x0 + (i + 1) * fw, ty);
+      ctx.lineTo(x0 + (i + 1) * fw, ty + 24);
+      ctx.quadraticCurveTo(x0 + (i + 0.5) * fw, ty + 34, x0 + i * fw, ty + 24);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.14)';
+    rr(x0, ty - 5, w, 8, 4); ctx.fill();
+  } else if (n >= 1) {
+    // Nivel 1: solo los postes y una viga
+    ctx.fillStyle = '#8a5a2b';
+    ctx.fillRect(x0 + 6, COUNTER.y - 64, 9, 66);
+    ctx.fillRect(x0 + w - 15, COUNTER.y - 64, 9, 66);
+    rr(x0 + 2, COUNTER.y - 70, w - 4, 10, 4); ctx.fill();
+  }
+
+  // Cajas de fruta a los lados desde el nivel 3
+  if (n >= 3) {
+    for (const lado of [-1, 1]) {
+      const bx = cx2 + lado * (w / 2 + 16) - 14;
+      ctx.fillStyle = '#9a6a34'; rr(bx, COUNTER.y + 26, 28, 24, 4); ctx.fill();
+      ctx.fillStyle = '#b98446'; rr(bx + 3, COUNTER.y + 29, 22, 8, 2); ctx.fill();
+      const f = FRUITS[lado > 0 ? 1 : 0];
+      ctx.fillStyle = f.colores.fruta;
+      circulo(bx + 9, COUNTER.y + 24, 6); ctx.fill();
+      circulo(bx + 20, COUNTER.y + 25, 6); ctx.fill();
+    }
+  }
+
+  // Sombra y cuerpo del mostrador
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  rr(x0 + 6, COUNTER.y + COUNTER.h - 6, w, 16, 8); ctx.fill();
+  ctx.fillStyle = n >= 4 ? '#96612a' : '#a9702f';
+  rr(x0, COUNTER.y, w, COUNTER.h, 10); ctx.fill();
+  ctx.fillStyle = n >= 4 ? '#d09a4c' : '#c78a41';
+  rr(x0 + 6, COUNTER.y + 6, w - 12, COUNTER.h - 20, 8); ctx.fill();
+  ctx.strokeStyle = 'rgba(90,55,20,0.45)'; ctx.lineWidth = 2;
+  for (let i = 1; i < 5; i++) {
+    ctx.beginPath();
+    ctx.moveTo(x0 + i * (w / 5), COUNTER.y + 8);
+    ctx.lineTo(x0 + i * (w / 5), COUNTER.y + COUNTER.h - 14);
+    ctx.stroke();
+  }
+
+  // Banderines desde el nivel 3
+  if (n >= 3) {
+    const by = COUNTER.y - (n >= 2 ? 48 : 26);
+    const nb = 9;
+    for (let i = 0; i < nb; i++) {
+      const bx = x0 + 10 + i * ((w - 20) / (nb - 1));
+      const cae = Math.sin(i * 0.9) * 3;
+      ctx.fillStyle = ['#ffd166', '#5ee06a', '#7ec8ff', '#ff8a8a'][i % 4];
+      ctx.beginPath();
+      ctx.moveTo(bx - 6, by + cae); ctx.lineTo(bx + 6, by + cae); ctx.lineTo(bx, by + cae + 13);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+
+  // Filo dorado y macetas en el nivel 5
+  if (n >= 5) {
+    ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 3;
+    rr(x0 + 3, COUNTER.y + 3, w - 6, COUNTER.h - 6, 9); ctx.stroke();
+    for (const lado of [-1, 1]) {
+      const px = cx2 + lado * (w / 2 - 6);
+      ctx.fillStyle = '#b5643c'; rr(px - 11, COUNTER.y - 16, 22, 16, 4); ctx.fill();
+      ctx.fillStyle = '#3fa34d'; circulo(px - 5, COUNTER.y - 20, 6); ctx.fill();
+      circulo(px + 5, COUNTER.y - 19, 5); ctx.fill();
+      ctx.fillStyle = '#ff8ac0'; circulo(px - 6, COUNTER.y - 24, 3); ctx.fill();
+      ctx.fillStyle = '#ffd166'; circulo(px + 6, COUNTER.y - 23, 3); ctx.fill();
+    }
+  }
+}
+
 function dibujarVenta() {
   const activo = enVenta(player.x, player.y);
   const pulso = 0.5 + 0.5 * Math.sin(tiempo * 3.2);
@@ -2789,26 +2952,18 @@ function dibujarVenta() {
   texto(t('vender'), SELL.cx, SELL.cy + 8, 30, activo ? '#2f7d3a' : 'rgba(255,255,255,0.92)',
         'center', true, 5, 'rgba(0,0,0,0.2)');
   ctx.globalAlpha = 1;
-  ctx.fillStyle = 'rgba(0,0,0,0.18)';
-  rr(COUNTER.x + 6, COUNTER.y + COUNTER.h - 6, COUNTER.w, 16, 8); ctx.fill();
-  ctx.fillStyle = '#a9702f';
-  rr(COUNTER.x, COUNTER.y, COUNTER.w, COUNTER.h, 10); ctx.fill();
-  ctx.fillStyle = '#c78a41';
-  rr(COUNTER.x + 6, COUNTER.y + 6, COUNTER.w - 12, COUNTER.h - 20, 8); ctx.fill();
-  ctx.strokeStyle = 'rgba(90,55,20,0.45)'; ctx.lineWidth = 2;
-  for (let i = 1; i < 5; i++) {
-    ctx.beginPath();
-    ctx.moveTo(COUNTER.x + i * (COUNTER.w / 5), COUNTER.y + 8);
-    ctx.lineTo(COUNTER.x + i * (COUNTER.w / 5), COUNTER.y + COUNTER.h - 14);
-    ctx.stroke();
-  }
-  // Existencias del estante sobre el mostrador
+  dibujarEstructuraPuesto();
+  // Existencias del estante sobre el mostrador (3 filas, se ensancha al mejorar)
   const n = state.estante.length;
-  for (let i = 0; i < n && i < CONFIG.PUESTO_CAP; i++) {
+  const ext = nivelPuesto() * 9;
+  const cols = 7 + nivelPuesto();
+  const paso = (COUNTER.w + ext * 2 - 26) / cols;
+  const vis = Math.min(n, cols * 3);
+  for (let i = 0; i < vis; i++) {
     const f = FRUIT_BY_ID[state.estante[i]];
     if (!f) continue;
-    const fila = i < 7 ? 0 : 1, col = i % 7;
-    const fx = COUNTER.x + 17 + col * 28, fy = COUNTER.y + 20 + fila * 24;
+    const fila = (i / cols) | 0, col = i % cols;
+    const fx = COUNTER.x - ext + 17 + col * paso, fy = COUNTER.y + 16 + fila * 17;
     ctx.fillStyle = 'rgba(0,0,0,0.18)';
     elipse(fx, fy + 8, 8, 3); ctx.fill();
     ctx.fillStyle = f.colores.frutaSombra; circulo(fx, fy + 1.5, 8); ctx.fill();
@@ -2989,16 +3144,25 @@ function dibujarCliente(c) {
   dibujarPersonaje(c, { camisa: c.color, gorra: '#6b5236', logo: false });
   if (c.estado === 'esperando') {
     const pr = clamp(c.paciencia / CONFIG.CLIENTE_PACIENCIA, 0, 1);
-    const by = c.y - 78;
+    const by = c.y - 80;
+    const f = FRUIT_BY_ID[c.fruta];
+    const hay = hayEnEstante(c.fruta);
     ctx.save();
-    ctx.fillStyle = 'rgba(20,28,20,0.8)';
-    circulo(c.x, by, 19); ctx.fill();
+    ctx.fillStyle = 'rgba(20,28,20,0.82)';
+    circulo(c.x, by, 21); ctx.fill();
     ctx.lineWidth = 4; ctx.lineCap = 'round';
     ctx.strokeStyle = 'rgba(255,255,255,0.22)';
-    ctx.beginPath(); ctx.arc(c.x, by, 19, 0, 6.2832); ctx.stroke();
+    ctx.beginPath(); ctx.arc(c.x, by, 21, 0, 6.2832); ctx.stroke();
     ctx.strokeStyle = pr > 0.4 ? '#5ee06a' : (pr > 0.18 ? '#ffd166' : '#ff6b6b');
-    ctx.beginPath(); ctx.arc(c.x, by, 19, -Math.PI / 2, -Math.PI / 2 + pr * 6.2832); ctx.stroke();
-    texto(String(c.quiere - c.compradas), c.x, by + 1, 16, '#ffffff', 'center', true);
+    ctx.beginPath(); ctx.arc(c.x, by, 21, -Math.PI / 2, -Math.PI / 2 + pr * 6.2832); ctx.stroke();
+    // la fruta que pide, para que sepas qué surtir
+    if (f) {
+      ctx.fillStyle = f.colores.frutaSombra; circulo(c.x - 4, by - 1, 9); ctx.fill();
+      ctx.fillStyle = f.colores.fruta; circulo(c.x - 4, by - 2.5, 8); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.5)'; circulo(c.x - 6.4, by - 5, 2.4); ctx.fill();
+    }
+    texto('×' + (c.quiere - c.compradas), c.x + 10, by + 6, 12,
+          hay ? '#ffffff' : '#ff9a9a', 'center', true);
     ctx.restore();
   }
   if (c.emo && c.emoT > 0) {
@@ -3304,10 +3468,13 @@ function dibujarHUD() {
   const colRep = ['#ff8a8a', '#ffc86b', '#a8e6a0', '#8fe3ff'][rango];
   const txtRep = String(rep);
   const wR = anchoTexto(txtRep, 17 * k, true) + 44 * k;
-  pill((cw - wR) / 2, top, wR, H, 20 * k);
-  emoji('⭐', (cw - wR) / 2 + 15 * k, top + H / 2 + 1, 15 * k);
-  texto(txtRep, (cw - wR) / 2 + wR - 12 * k, top + H / 2 - 4 * k, 17 * k, colRep, 'right', true);
-  texto(textoCorto(t('rango' + rango), wR - 12 * k, 8.5 * k, true), cw / 2, top + H - 8 * k,
+  // Pegada a la mochila, no al centro: ahí chocaba con la ficha de racha
+  const wBag = Math.max(92 * k, anchoTexto(player.carga.length + '/' + state.capacidad, 20 * k, true) + 54 * k);
+  const xR = cw - 12 - wBag - 6 - wR;
+  pill(xR, top, wR, H, 20 * k);
+  emoji('⭐', xR + 15 * k, top + H / 2 + 1, 15 * k);
+  texto(txtRep, xR + wR - 12 * k, top + H / 2 - 4 * k, 17 * k, colRep, 'right', true);
+  texto(textoCorto(t('rango' + rango), wR - 12 * k, 8.5 * k, true), xR + wR / 2, top + H - 8 * k,
         8.5 * k, 'rgba(255,255,255,0.6)', 'center', true);
 
   // Carga
@@ -3640,6 +3807,46 @@ function dibujarModal() {
 // Sin pila: a este tamaño la torre de fruta le tapaba la cara
 const maniqui = { x: 0, y: 0, carga: [], facing: 1, phase: 0, moving: true, swayT: 0 };
 
+/* Reparto de la portada. Reutiliza los mismos dibujos que el juego, así lo
+   que ves en la intro es exactamente lo que te vas a encontrar dentro. */
+const ACTORES = {
+  ayudante: { x: 0, y: 0, carga: ['mango', 'naranja', 'mango'], facing: 1, phase: 0, moving: true, swayT: 0 },
+  cliente:  { x: 0, y: 0, carga: [], facing: -1, phase: 0, moving: true, swayT: 0 },
+  plaga:    { x: 0, y: 0, ala: 0, estado: 'volando', facing: 1 },
+  mapache:  { x: 0, y: 0, phase: 0, facing: -1, estado: 'huyendo', carga: ['papaya'], emo: null, emoT: 0 },
+  espanta:  { x: 0, y: 0, phase: 0 }
+};
+
+// Árbol decorativo grande, con los colores de la fruta que le toque
+function arbolIntro(x, y, s, fruit, sombra) {
+  const c = fruit.colores;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(s, s);
+  if (sombra) { ctx.globalAlpha = 0.55; }
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  elipse(0, 4, 30, 10); ctx.fill();
+  ctx.fillStyle = c.tronco;
+  rr(-8, -46, 16, 50, 6); ctx.fill();
+  ctx.fillStyle = c.copaOscura;
+  circulo(-19, -2, 32); ctx.fill();
+  circulo(21, 0, 30); ctx.fill();
+  circulo(0, -22, 35); ctx.fill();
+  ctx.fillStyle = c.copa;
+  circulo(-14, -8, 27); ctx.fill();
+  circulo(16, -10, 25); ctx.fill();
+  circulo(0, -28, 28); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.14)';
+  circulo(-12, -30, 14); ctx.fill();
+  const off = [[-18, -12], [16, -18], [0, 6], [-6, -34], [22, -6]];
+  for (const o of off) {
+    ctx.fillStyle = c.frutaSombra; circulo(o[0], o[1] + 2, 9); ctx.fill();
+    ctx.fillStyle = c.fruta; circulo(o[0], o[1], 8.2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; circulo(o[0] - 2.6, o[1] - 2.6, 2.4); ctx.fill();
+  }
+  ctx.restore();
+}
+
 function botonGrande(b, etiqueta, tam, c1, c2, colTxt, pulso) {
   const e = pulso ? 1 + Math.sin(intro.t * 3.4) * 0.028 : 1;
   ctx.save();
@@ -3699,7 +3906,24 @@ function fondoIntro() {
     ctx.restore();
   }
 
-  // Loma de pasto con arbolitos
+  const u = Math.min(1.9, cw / 330);          // escala general de la escena
+
+  // Copas grandes enmarcando el título, cortadas por los bordes
+  arbolIntro(cw * 0.02, ch * 0.20, u * 1.5, FRUIT_BY_ID.mango, true);
+  arbolIntro(cw * 0.98, ch * 0.235, u * 1.4, FRUIT_BY_ID.naranja, true);
+  arbolIntro(cw * 0.15, ch * 0.075, u * 1.0, FRUIT_BY_ID.papaya, true);
+  arbolIntro(cw * 0.86, ch * 0.06, u * 0.9, FRUIT_BY_ID.mango, true);
+
+  // Loma lejana
+  ctx.fillStyle = '#1e5527';
+  ctx.beginPath();
+  ctx.ellipse(cw * 0.3, ch * 0.60 + ch * 0.30, cw * 0.8, ch * 0.26, 0, 0, 6.2832);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cw * 0.78, ch * 0.615 + ch * 0.30, cw * 0.7, ch * 0.25, 0, 0, 6.2832);
+  ctx.fill();
+
+  // Loma principal
   const gy = ch * 0.58;
   ctx.fillStyle = '#2c6f36';
   ctx.beginPath();
@@ -3709,17 +3933,12 @@ function fondoIntro() {
   ctx.beginPath();
   ctx.ellipse(cw / 2, gy + ch * 0.32, cw * 0.88, ch * 0.29, 0, 0, 6.2832);
   ctx.fill();
-  const arb = [[0.13, 0.66, 0.9], [0.87, 0.68, 0.8], [0.28, 0.62, 0.55], [0.73, 0.63, 0.5]];
-  for (const a of arb) {
-    const x = cw * a[0], y = ch * a[1], s = a[2] * Math.min(1, cw / 390);
-    ctx.save();
-    ctx.translate(x, y); ctx.scale(s, s);
-    ctx.fillStyle = '#7a5326'; rr(-5, -28, 10, 30, 4); ctx.fill();
-    ctx.fillStyle = '#26662f'; circulo(-12, -38, 20); ctx.fill(); circulo(13, -36, 18); ctx.fill();
-    ctx.fillStyle = '#2f7d3a'; circulo(0, -50, 21); ctx.fill();
-    ctx.fillStyle = '#ffc233'; circulo(-8, -44, 5); ctx.fill(); circulo(9, -40, 5); ctx.fill();
-    ctx.restore();
-  }
+
+  // Huerta de la loma: árboles de las cinco frutas
+  const arb = [[0.04, 0.715, 0.58, 'mango'], [0.97, 0.700, 0.52, 'naranja'],
+               [0.28, 0.660, 0.38, 'papaya'], [0.44, 0.600, 0.28, 'sandia'],
+               [0.63, 0.592, 0.26, 'pina'], [0.90, 0.610, 0.30, 'mango']];
+  for (const a of arb) arbolIntro(cw * a[0], ch * a[1], u * a[2], FRUIT_BY_ID[a[3]]);
 
   // Viñeta
   const v = ctx.createRadialGradient(cw / 2, ch * 0.44, ch * 0.18, cw / 2, ch * 0.44, ch * 0.78);
@@ -3729,10 +3948,125 @@ function fondoIntro() {
   ctx.fillRect(0, 0, cw, ch);
 }
 
+/* Todos los personajes del juego, haciendo lo suyo en bucle */
+function escenaIntro() {
+  const u = Math.min(1.9, cw / 330);
+  const T = intro.t;
+
+  // Plaga: cruza el cielo en arco, por detrás del título
+  const pa = (T % 9) / 9;
+  const pl = ACTORES.plaga;
+  pl.x = -40 + pa * (cw + 80);
+  pl.y = ch * 0.30 + Math.sin(pa * Math.PI * 2) * ch * 0.06;
+  pl.ala = T * 16;
+  pl.facing = 1;
+  ctx.save();
+  ctx.translate(pl.x, pl.y);
+  ctx.scale(u * 0.8, u * 0.8);
+  ctx.translate(-pl.x, -pl.y);
+  dibujarPlaga(pl);
+  ctx.restore();
+
+  // Ayudante: va y viene cargando fruta al puesto
+  const aa = (T % 11) / 11;
+  const ay = ACTORES.ayudante;
+  const ida = aa < 0.5;
+  ay.x = ida ? cw * (0.08 + (aa / 0.5) * 0.30) : cw * (0.38 - ((aa - 0.5) / 0.5) * 0.30);
+  ay.y = ch * 0.556;
+  ay.facing = ida ? 1 : -1;
+  ay.phase = T * 9;
+  ay.swayT = T * 6;
+  ay.moving = true;
+  ay.carga = ida ? ['mango', 'naranja', 'mango'] : [];
+  ctx.save();
+  ctx.translate(ay.x, ay.y); ctx.scale(u * 0.72, u * 0.72); ctx.translate(-ay.x, -ay.y);
+  dibujarPersonaje(ay, { camisa: CONFIG.HELPER_COLORS[0], gorra: '#e63946', logo: true });
+  ctx.restore();
+
+  // Espantapájaros plantado en la loma
+  const es = ACTORES.espanta;
+  es.x = cw * 0.165; es.y = ch * 0.605; es.phase = 0;
+  ctx.save();
+  ctx.translate(es.x, es.y); ctx.scale(u * 0.85, u * 0.85); ctx.translate(-es.x, -es.y);
+  dibujarEspantapajaros(es);
+  ctx.restore();
+
+  // Cliente: llega, espera un rato y se va contento
+  const ca = (T % 13) / 13;
+  const cl = ACTORES.cliente;
+  const xFin = cw * 0.80;
+  if (ca < 0.25) { cl.x = cw * 1.08 - (ca / 0.25) * (cw * 1.08 - xFin); cl.moving = true; cl.facing = -1; }
+  else if (ca < 0.7) { cl.x = xFin; cl.moving = false; }
+  else { cl.x = xFin + ((ca - 0.7) / 0.3) * (cw * 1.1 - xFin); cl.moving = true; cl.facing = 1; }
+  cl.y = ch * 0.672;
+  cl.phase = T * 9;
+  cl.swayT = T * 6;
+  cl.carga = ca > 0.7 ? ['naranja', 'mango'] : [];
+  ctx.save();
+  ctx.translate(cl.x, cl.y); ctx.scale(u * 1.0, u * 1.0); ctx.translate(-cl.x, -cl.y);
+  dibujarPersonaje(cl, { camisa: '#c07de0', gorra: '#6b5236', logo: false });
+  ctx.restore();
+  if (ca >= 0.25 && ca < 0.7) {
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    emoji('🛒', cl.x, cl.y - 78 * u, 20 * u);
+    ctx.restore();
+  }
+
+  // Mapache: cruza el primer plano con una fruta robada
+  const ma = (T % 8) / 8;
+  const mp = ACTORES.mapache;
+  mp.x = cw * 1.12 - ma * (cw * 1.24);
+  mp.y = ch * 0.706;
+  mp.facing = -1;
+  mp.phase = T * 15;
+  ctx.save();
+  ctx.translate(mp.x, mp.y); ctx.scale(u * 1.05, u * 1.05); ctx.translate(-mp.x, -mp.y);
+  dibujarMapache(mp);
+  ctx.restore();
+}
+
 function dibujarIntroPortada(e) {
+  escenaIntro();
+
   const bob = Math.sin(intro.t * 1.9) * 5;
   const tam = Math.min(70, cw * 0.185);
   const ty = ch * 0.155 - (1 - e) * 50 + bob * 0.35;
+
+  // Guirnalda de rama, hojas y frutas colgando sobre el título
+  const u = Math.min(1.9, cw / 330);
+  const gx0 = cw * 0.10, gx1 = cw * 0.90, gyy = ty - tam * 0.46;
+  const bez = tt => {
+    const m = 1 - tt;
+    return { x: m * m * gx0 + 2 * m * tt * (cw / 2) + tt * tt * gx1,
+             y: m * m * (gyy + 12 * u) + 2 * m * tt * (gyy - 30 * u) + tt * tt * (gyy + 12 * u) };
+  };
+  ctx.save();
+  ctx.strokeStyle = '#2f6f34'; ctx.lineWidth = 5 * u; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(gx0, gyy + 12 * u);
+  ctx.quadraticCurveTo(cw / 2, gyy - 30 * u, gx1, gyy + 12 * u);
+  ctx.stroke();
+  for (let i = 0; i <= 12; i++) {
+    const pt = bez(i / 12);
+    ctx.save();
+    ctx.translate(pt.x, pt.y);
+    ctx.rotate((i % 2 ? 0.7 : -0.7) + Math.sin(intro.t * 1.3 + i) * 0.08);
+    ctx.fillStyle = i % 2 ? '#3fa34d' : '#4fb85c';
+    elipse(0, 0, 11 * u, 5 * u); ctx.fill();
+    ctx.restore();
+  }
+  for (let i = 0; i < 5; i++) {
+    const pt = bez(0.08 + i * 0.21);
+    const f = FRUITS[i];
+    const cae = 16 * u + Math.sin(intro.t * 1.6 + i * 1.1) * 3 * u;
+    ctx.strokeStyle = 'rgba(60,110,60,0.9)'; ctx.lineWidth = 2 * u;
+    ctx.beginPath(); ctx.moveTo(pt.x, pt.y); ctx.lineTo(pt.x, pt.y + cae); ctx.stroke();
+    ctx.fillStyle = f.colores.frutaSombra; circulo(pt.x, pt.y + cae + 9 * u, 9 * u); ctx.fill();
+    ctx.fillStyle = f.colores.fruta; circulo(pt.x, pt.y + cae + 8 * u, 8 * u); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.5)'; circulo(pt.x - 2.6 * u, pt.y + cae + 5.6 * u, 2.6 * u); ctx.fill();
+  }
+  ctx.restore();
 
   ctx.save();
   ctx.font = fuente(tam, true);
@@ -3758,8 +4092,8 @@ function dibujarIntroPortada(e) {
   ctx.restore();
 
   ctx.save();
-  ctx.translate(cw / 2, ch * 0.66 + bob);
-  const esc = Math.min(2.4, cw / 165) * (0.85 + 0.15 * e);
+  ctx.translate(cw / 2, ch * 0.628 + bob);
+  const esc = Math.min(2.2, cw / 180) * (0.85 + 0.15 * e);
   ctx.scale(esc, esc);
   maniqui.phase = intro.t * 6;
   maniqui.swayT = intro.t * 6;
@@ -3967,6 +4301,9 @@ function iniciar() {
   Save.cargar();
   LANG = state.idioma;
   pintarCredito();
+  pintarUI();
+  const bs = document.getElementById('btnShare');
+  if (bs) bs.addEventListener('click', compartir);
   construirFondo();
   reconstruirMundo();
   rebarajarBaches(true);
