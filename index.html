@@ -77,15 +77,38 @@
     #social .soc { font-size: 10.5px; padding: 6px 8px; gap: 4px; }
     #social .fb { width: 15px; height: 15px; font-size: 11px; }
   }
+  /* Cuadro para anotar el nombre del récord, sobre el diálogo final.
+     JS lo posiciona cada frame para que siga al modal si la ventana cambia. */
+  #recordBox {
+    position: fixed; display: none; z-index: 7;
+    align-items: center; gap: 6px;
+  }
+  #recordBox input {
+    flex: 1; min-width: 0; padding: 9px 10px; border-radius: 10px;
+    background: rgba(10,18,11,.92); border: 1.5px solid rgba(255,255,255,.22);
+    color: #fff6d8; font-family: inherit; font-size: 14px; font-weight: 600;
+    outline: none;
+  }
+  #recordBox input::placeholder { color: rgba(255,246,216,.4); }
+  #recordBox input:focus { border-color: #ffd166; }
+  #recordBox button {
+    padding: 9px 14px; border-radius: 10px; border: 0; cursor: pointer;
+    background: linear-gradient(#6bea78, #2f9d42); color: #0c2a11;
+    font-family: inherit; font-weight: 800; font-size: 13px; white-space: nowrap;
+  }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<a id="cred" href="https://www.facebook.com/PcElectronics7/" target="_blank" rel="noopener">Hecho por PC Electronics</a>
+<a id="cred" href="https://www.facebook.com/PcElectronics7/" target="_blank" rel="noopener">Hecho por PcElectronics</a>
 <div id="social">
   <a class="soc" id="fbKiosa" href="https://www.facebook.com/Kiosa07/" target="_blank" rel="noopener"><span class="fb">f</span>Kiosa</a>
-  <a class="soc" id="fbPc" href="https://www.facebook.com/PcElectronics7/" target="_blank" rel="noopener"><span class="fb">f</span>PC Electronics</a>
+  <a class="soc" id="fbPc" href="https://www.facebook.com/PcElectronics7/" target="_blank" rel="noopener"><span class="fb">f</span>PcElectronics</a>
   <button class="soc" id="btnShare" type="button"><span class="ico">📤</span><span id="txtShare">Compartir</span></button>
+</div>
+<div id="recordBox">
+  <input id="recordInput" type="text" maxlength="14" placeholder="Tu nombre" autocomplete="off">
+  <button id="recordBtn" type="button">Guardar</button>
 </div>
 <script>
 "use strict";
@@ -144,7 +167,7 @@ const CONFIG = {
   CLIENTE_INTERVALO_MIN: 3.5,
   CLIENTE_POR_CAP: 1.0,                    // llegan más seguido cada capítulo
   CLIENTE_MAX: 3,
-  CLIENTE_PACIENCIA: 9,
+  CLIENTE_PACIENCIA: 7.5,       // antes 9: menos margen para surtir a tiempo
   CLIENTE_COMPRA: 0.35,
   CLIENTE_VEL: 150,
   CLIENTE_PIDE_MIN: 1,
@@ -155,7 +178,7 @@ const CONFIG = {
   REP_INICIAL: 70,
   REP_MAX: 100,
   REP_SERVIDO: 1,
-  REP_ENOJO: 6,
+  REP_ENOJO: 8,                 // antes 6: un cliente enojado pesa más
   REP_PRECIO_MIN: 0.7,
   REP_PRECIO_RANGO: 0.6,
 
@@ -172,7 +195,10 @@ const CONFIG = {
   HELPER_CAP: 6,
   HELPER_HARVEST_INTERVAL: 0.30,
   HELPER_SELL_INTERVAL: 0.18,
-  HELPER_COLORS: ['#e0568f', '#7b5cd6', '#f2a03d'],
+  // Un solo color liso para todos: antes cada ayudante tenía un color y la
+  // misma gorra roja de Kiosa, así que se confundían con el jugador.
+  HELPER_COLOR: '#6f8a4a',
+  HELPER_GORRA: '#4f6a34',
 
   // Plagas
   PLAGA_INTERVALO_BASE: 18,
@@ -216,7 +242,7 @@ const CONFIG = {
   // Baches del camino: cuanto más cargas, más probable es caerse
   BACHE_RADIO: 27,
   BACHE_PROB_BASE: 0.05,
-  BACHE_PROB_POR_FRUTA: 0.022,
+  BACHE_PROB_POR_FRUTA: 0.028,  // antes 0.022: cargado, tropiezas más seguido
   BACHE_PROB_MAX: 0.85,
   BACHE_CAIDA_MIN: 2,
   BACHE_CAIDA_MAX: 5,
@@ -232,7 +258,7 @@ const CONFIG = {
 
   // Ladrones: van primero por la fruta caída y, si no hay, por tu pila.
   // Si te alcanzan te quitan TODO, así que el peso decide si escapas.
-  MAPACHE_INTERVALO: 20,
+  MAPACHE_INTERVALO: 15,        // antes 20: los ladrones aparecen más seguido
   MAPACHE_MIN_CARGA: 6,
   MAPACHE_MAX: 2,
   MAPACHE_RADIO_ROBO: 28,
@@ -282,10 +308,12 @@ const I18N = {
     capitulo: 'Cap. {n}', retoDeN: 'Reto {a}/{b}', completado: 'Completado',
     retos: 'Retos', campana: 'Campaña', opcionales: 'Opcionales', diarios: 'Diarios',
     sinDiarios: 'Vuelve mañana para nuevos retos.',
-    hechoPor: 'Hecho por PC Electronics', compartir: 'Compartir',
+    hechoPor: 'Hecho por PcElectronics', compartir: 'Compartir',
     finalTxt: 'Kiosa levantó el imperio de las huertas. Cada árbol y cada cliente son tuyos.',
     btnSeguir: 'Seguir jugando', sDinero: 'Dinero ganado', sFrutas: 'Frutas vendidas',
     sClientes: 'Clientes servidos', sPlagas: 'Plagas espantadas', sRep: 'Reputación final',
+    sTiempo: 'Tu tiempo', guardarRecord: 'Guardar', placeholderNombre: 'Tu nombre',
+    nuevoRecord: '¡Nuevo récord! #{n}', recordGuardado: 'Récord guardado', mejoresTiempos: 'Mejores tiempos',
     introSub: 'Cosecha, surte tu puesto y haz crecer el imperio',
     btnJugar: 'JUGAR', introTip: 'Arrastra el dedo para mover a Kiosa',
     comoJugar: 'Cómo jugar', btnAJugar: '¡A JUGAR!', volver: 'Volver',
@@ -344,10 +372,12 @@ const I18N = {
     capitulo: 'Ch. {n}', retoDeN: 'Goal {a}/{b}', completado: 'Complete',
     retos: 'Goals', campana: 'Campaign', opcionales: 'Optional', diarios: 'Daily',
     sinDiarios: 'Come back tomorrow for new goals.',
-    hechoPor: 'Made by PC Electronics', compartir: 'Share',
+    hechoPor: 'Made by PcElectronics', compartir: 'Share',
     finalTxt: 'Kiosa built the orchard empire. Every tree and every customer is yours.',
     btnSeguir: 'Keep playing', sDinero: 'Money earned', sFrutas: 'Fruit sold',
     sClientes: 'Customers served', sPlagas: 'Pests scared off', sRep: 'Final reputation',
+    sTiempo: 'Your time', guardarRecord: 'Save', placeholderNombre: 'Your name',
+    nuevoRecord: 'New record! #{n}', recordGuardado: 'Record saved', mejoresTiempos: 'Best times',
     introSub: 'Harvest, restock your stall and grow the empire',
     btnJugar: 'PLAY', introTip: 'Drag your finger to move Kiosa',
     comoJugar: 'How to play', btnAJugar: 'LET’S GO!', volver: 'Back',
@@ -406,10 +436,12 @@ const I18N = {
     capitulo: 'Cap. {n}', retoDeN: 'Desafio {a}/{b}', completado: 'Completo',
     retos: 'Desafios', campana: 'Campanha', opcionales: 'Opcionais', diarios: 'Diários',
     sinDiarios: 'Volte amanhã para novos desafios.',
-    hechoPor: 'Feito por PC Electronics', compartir: 'Compartilhar',
+    hechoPor: 'Feito por PcElectronics', compartir: 'Compartilhar',
     finalTxt: 'Kiosa ergueu o império das hortas. Cada árvore e cada cliente são seus.',
     btnSeguir: 'Continuar jogando', sDinero: 'Dinheiro ganho', sFrutas: 'Frutas vendidas',
     sClientes: 'Clientes atendidos', sPlagas: 'Pragas espantadas', sRep: 'Reputação final',
+    sTiempo: 'Seu tempo', guardarRecord: 'Salvar', placeholderNombre: 'Seu nome',
+    nuevoRecord: 'Novo recorde! #{n}', recordGuardado: 'Recorde salvo', mejoresTiempos: 'Melhores tempos',
     introSub: 'Colha, abasteça seu posto e faça o império crescer',
     btnJugar: 'JOGAR', introTip: 'Arraste o dedo para mover o Kiosa',
     comoJugar: 'Como jogar', btnAJugar: 'BORA!', volver: 'Voltar',
@@ -636,6 +668,7 @@ function estadoNuevo() {
     hoy: estadoHoyNuevo(),
     sinMarchita: 0,
     terminado: false,
+    tiempoJuego: 0,          // segundos jugados desde que sale de la intro
     op: { mochilaFull: 0, racha3: 0, saldoMax: 0 },
     pagos: { arbol: 0, mochila: 0, ayudante: 0, riego: 0, espanta: 0, puesto: 0 },
     hints: { caminar: false, vender: false, mejorar: false, plaga: false },
@@ -692,6 +725,53 @@ function num(v, def) { return (typeof v === 'number' && isFinite(v)) ? v : def; 
 function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
 function lerp(a, b, t) { return a + (b - a) * t; }
 function rand(a, b) { return a + Math.random() * (b - a); }
+
+function formatoTiempo(seg) {
+  seg = Math.max(0, Math.floor(seg));
+  const h = (seg / 3600) | 0, m = ((seg % 3600) / 60) | 0, s = seg % 60;
+  const dd = n => (n < 10 ? '0' : '') + n;
+  return h > 0 ? h + ':' + dd(m) + ':' + dd(s) : m + ':' + dd(s);
+}
+
+/* -------------------------- Récords (tiempos) ----------------------------
+   Viven en una clave APARTE del save principal a propósito: reiniciar la
+   partida (Save.borrar) no debe borrar la tabla de mejores tiempos. */
+const RECORDS_KEY = 'kiosaImperio.records';
+const NOMBRE_KEY = 'kiosaImperio.nombre';
+const RECORDS_MAX = 10;
+
+function cargarRecords() {
+  if (!Save.disponible) return [];
+  try {
+    const raw = window.localStorage.getItem(RECORDS_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .filter(r => r && typeof r.nombre === 'string' && num(r.segundos, 0) > 0)
+      .map(r => ({ nombre: r.nombre.slice(0, 14) || '???', segundos: Math.floor(num(r.segundos, 0)) }))
+      .sort((a, b) => a.segundos - b.segundos)
+      .slice(0, RECORDS_MAX);
+  } catch (e) { return []; }
+}
+
+function agregarRecord(nombre, segundos) {
+  if (!Save.disponible) return { lista: [], puesto: -1 };
+  const limpio = String(nombre || '').trim().slice(0, 14) || 'Jugador';
+  try { window.localStorage.setItem(NOMBRE_KEY, limpio); } catch (e) {}
+  const lista = cargarRecords();
+  lista.push({ nombre: limpio, segundos: Math.max(1, Math.floor(segundos)) });
+  lista.sort((a, b) => a.segundos - b.segundos);
+  const recortada = lista.slice(0, RECORDS_MAX);
+  try { window.localStorage.setItem(RECORDS_KEY, JSON.stringify(recortada)); } catch (e) {}
+  const puesto = recortada.findIndex(r => r.nombre === limpio && r.segundos === Math.max(1, Math.floor(segundos)));
+  return { lista: recortada, puesto: puesto };
+}
+
+function nombreGuardado() {
+  if (!Save.disponible) return '';
+  try { return window.localStorage.getItem(NOMBRE_KEY) || ''; } catch (e) { return ''; }
+}
 function hacia(v, obj, paso) { return v < obj ? Math.min(obj, v + paso) : Math.max(obj, v - paso); }
 
 // El ciclo de piernas avanza con la DISTANCIA recorrida, no con el reloj:
@@ -727,6 +807,7 @@ const Save = {
         oleadasHechas: state.oleadasHechas, curadas: state.curadas,
         estanteTrays: state.estanteTrays, reputacion: state.reputacion,
         servidos: state.servidos, enojados: state.enojados, terminado: state.terminado,
+        tiempoJuego: state.tiempoJuego,
         tropiezos: state.tropiezos, robadas: state.robadas, recogidas: state.recogidas,
         diarios: state.diarios, hoy: state.hoy, sinMarchita: state.sinMarchita,
         op: state.op, pagos: state.pagos, hints: state.hints,
@@ -789,6 +870,7 @@ const Save = {
       s.robadas = Math.max(0, num(d.robadas, 0) | 0);
       s.recogidas = Math.max(0, num(d.recogidas, 0) | 0);
       s.terminado = !!d.terminado;
+      s.tiempoJuego = Math.max(0, num(d.tiempoJuego, 0));
       s.reputacion = clamp(num(d.reputacion, CONFIG.REP_INICIAL), 0, CONFIG.REP_MAX);
       if (d.pagos && typeof d.pagos === 'object') {
         for (const k in s.pagos) s.pagos[k] = Math.max(0, num(d.pagos[k], 0));
@@ -1117,7 +1199,7 @@ class Player {
 class Helper {
   constructor(idx) {
     this.idx = idx;
-    this.color = CONFIG.HELPER_COLORS[idx % CONFIG.HELPER_COLORS.length];
+    this.color = CONFIG.HELPER_COLOR;
     this.x = SELL.cx + (idx - 1) * 56;
     this.y = SELL.cy + 30;
     this.carga = [];
@@ -2416,7 +2498,8 @@ function layoutModal() {
   modal.w = w;
   modal.lineas = envolver(modal.txt, w - 44, 14, false);
   const filas = modal.stats ? modal.stats.length : 0;
-  const h = 66 + modal.lineas.length * 21 + 16 + filas * 26 + (filas ? 28 : 6) + 48 + 18;
+  const cajaH = (modal.festejo && mostrarCajaRecord) ? 54 : 0;
+  const h = 66 + modal.lineas.length * 21 + 16 + filas * 26 + (filas ? 28 : 6) + cajaH + 48 + 18;
   modal.h = h;
   modal.x = (cw - w) / 2;
   modal.y = Math.max(16, (ch - h) / 2);
@@ -2460,8 +2543,10 @@ function abrirFinal() {
     si: t('btnSeguir'),
     no: t('compartir'),
     onNo: function () { compartir(); },   // no cierra: puede compartir y luego seguir
+    onSi: function () { guardarRecordDesdeInput(); },   // guarda con lo que haya, o "Jugador"
     festejo: true,
     stats: [
+      [t('sTiempo'), formatoTiempo(state.tiempoJuego)],
       [t('sDinero'), '$' + Math.floor(state.dineroTotal)],
       [t('sFrutas'), String(state.ventasTotales)],
       [t('sClientes'), String(state.servidos)],
@@ -2469,6 +2554,7 @@ function abrirFinal() {
       [t('sRep'), Math.floor(state.reputacion) + ' · ' + t('rango' + rangoRep())]
     ]
   });
+  mostrarRecordBox();
   Save.guardar();
 }
 
@@ -2487,7 +2573,10 @@ function comenzarJuego() {
   SFX.fanfarria();
 }
 
-function cerrarModal() { modal.abierto = false; modal.onSi = null; modal.onNo = null; modal.hover = null; }
+function cerrarModal() {
+  modal.abierto = false; modal.onSi = null; modal.onNo = null; modal.hover = null;
+  if (mostrarCajaRecord) ocultarRecordBox();
+}
 
 function confirmarModal() {
   const fn = modal.onSi;
@@ -2584,6 +2673,60 @@ function compartir() {
     }
   } catch (e) {}
   toast(url, '');
+}
+
+/* -------------------- Caja de nombre para el récord ---------------------
+   Es un <input> real de HTML superpuesto al modal dibujado en canvas: así
+   se abre el teclado nativo del teléfono en vez de tener que dibujar uno.
+   JS lo coloca cada frame usando las mismas coordenadas que dibujarModal(),
+   que son píxeles CSS relativos al canvas (sin la escala del mundo). */
+let mostrarCajaRecord = false;
+let recordGuardadoYa = false;
+
+function cajaRecordEl() { return document.getElementById('recordBox'); }
+
+function mostrarRecordBox() {
+  mostrarCajaRecord = true;
+  recordGuardadoYa = false;
+  layoutModal();
+  const caja = cajaRecordEl();
+  if (!caja) return;
+  const input = document.getElementById('recordInput');
+  const btn = document.getElementById('recordBtn');
+  if (input) { input.value = nombreGuardado(); input.placeholder = t('placeholderNombre'); }
+  if (btn) btn.textContent = t('guardarRecord');
+  caja.style.display = 'flex';
+  sincronizarRecordBox();
+  setTimeout(() => { try { input && input.focus(); } catch (e) {} }, 50);
+}
+
+function ocultarRecordBox() {
+  mostrarCajaRecord = false;
+  const caja = cajaRecordEl();
+  if (caja) caja.style.display = 'none';
+  if (modal.abierto && modal.festejo) layoutModal();
+}
+
+function sincronizarRecordBox() {
+  if (!mostrarCajaRecord) return;
+  const caja = cajaRecordEl();
+  if (!caja || !modal.abierto || modal.recordY == null) return;
+  const r = canvas.getBoundingClientRect();
+  const escala = r.width / cw;               // por si el CSS reescala el canvas
+  caja.style.left = (r.left + (modal.x + 16) * escala) + 'px';
+  caja.style.top = (r.top + (modal.recordY - 16) * escala) + 'px';
+  caja.style.width = ((modal.w - 32) * escala) + 'px';
+}
+
+// Guarda lo que haya escrito (o "Jugador" si lo dejó vacío) y avisa el puesto
+function guardarRecordDesdeInput() {
+  if (recordGuardadoYa) return;
+  const input = document.getElementById('recordInput');
+  const nombre = input ? input.value : '';
+  const r = agregarRecord(nombre, state.tiempoJuego);
+  recordGuardadoYa = true;
+  if (r.puesto >= 0) toast(t('nuevoRecord', { n: r.puesto + 1 }), formatoTiempo(state.tiempoJuego));
+  else toast(t('recordGuardado'), formatoTiempo(state.tiempoJuego));
 }
 
 function tocarPanel(p) {
@@ -3356,7 +3499,7 @@ function dibujarMapache(m) {
 
 /* ------------------------------ Compradores ------------------------------ */
 function dibujarCliente(c) {
-  dibujarPersonaje(c, { camisa: c.color, gorra: '#6b5236', logo: false });
+  dibujarPersonaje(c, { camisa: c.color, gorra: '#6b5236' });
   if (c.estado === 'esperando') {
     const pr = clamp(c.paciencia / CONFIG.CLIENTE_PACIENCIA, 0, 1);
     const by = c.y - 80;
@@ -3451,49 +3594,31 @@ function dibujarPersonaje(e, opts) {
   rr(-13, -40, 26, 26, 9); ctx.fill();
   ctx.fillStyle = 'rgba(0,0,0,0.10)';
   rr(3, -40, 10, 26, 8); ctx.fill();
-  // Nombre en la playera (solo el protagonista)
-  if (opts.playera) texto('Kiosa', -1, -28, 7.5, '#ffffff', 'center', true, 1.8, 'rgba(10,60,90,0.65)');
   ctx.fillStyle = camisa;
   rr(-19, -38 + paso * 2.5, 7, 18, 3.5); ctx.fill();
   rr(12, -38 - paso * 2.5, 7, 18, 3.5); ctx.fill();
   ctx.fillStyle = '#f2c08a';
   circulo(-15.5, -21 + paso * 2.5, 4); ctx.fill();
   circulo(15.5, -21 - paso * 2.5, 4); ctx.fill();
+  // Sin rostro: solo el volumen de la cabeza, para que nadie se lea como
+  // "personaje con nombre" y todo el reconocimiento venga de la silueta.
   ctx.fillStyle = '#f2c08a';
   circulo(0, -50, 12.5); ctx.fill();
   ctx.fillStyle = 'rgba(0,0,0,0.07)';
   circulo(3, -50, 11); ctx.fill();
-  ctx.fillStyle = '#2b2b2b';
-  circulo(e.facing * 4.2 - 2.4, -50.5, 1.8); ctx.fill();
-  circulo(e.facing * 4.2 + 2.6, -50.5, 1.8); ctx.fill();
-  ctx.strokeStyle = '#2b2b2b'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.arc(e.facing * 3.4, -45.5, 3.6, 0.25, Math.PI - 0.25);
-  ctx.stroke();
   ctx.fillStyle = gorra;
   ctx.beginPath();
   ctx.arc(0, -58, 13, Math.PI, 0);
   ctx.lineTo(13, -56); ctx.lineTo(-13, -56);
   ctx.closePath(); ctx.fill();
-  rr(e.facing > 0 ? 8 : -22, -59.5, 14, 5, 2.5); ctx.fill();
+  // La visera va del lado contrario a hacia dónde camina cuando la gorra
+  // está al revés (solo Kiosa); de frente, apunta con la marcha como siempre.
+  const viseraDer = opts.atras ? e.facing < 0 : e.facing > 0;
+  rr(viseraDer ? 8 : -22, -59.5, 14, 5, 2.5); ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,0.18)';
   ctx.beginPath();
   ctx.arc(0, -58, 13, Math.PI, Math.PI * 1.5);
   ctx.lineTo(0, -58); ctx.closePath(); ctx.fill();
-  if (opts.logo) {
-    ctx.save();
-    ctx.translate(e.facing * 1.5, -63);
-    ctx.fillStyle = '#ff9f1c';
-    elipse(0, 1.5, 5.2, 4.1); ctx.fill();
-    ctx.fillStyle = '#e07a00';
-    elipse(1.4, 2.4, 2.4, 2.0); ctx.fill();
-    ctx.fillStyle = '#3fa34d';
-    ctx.save();
-    ctx.translate(2.2, -2.4); ctx.rotate(-0.6);
-    elipse(0, 0, 3.4, 1.7); ctx.fill();
-    ctx.restore();
-    ctx.restore();
-  }
   // La pila se corta a PILA_VISIBLE: antes crecía sin tope y a mochila llena
   // atravesaba el HUD y se salía de la pantalla. El total sigue en la píldora 🎒.
   const n = Math.min(e.carga.length, CONFIG.PILA_VISIBLE);
@@ -3521,7 +3646,7 @@ function dibujarPersonaje(e, opts) {
 function alturaPila(n) { return Math.min(n, CONFIG.PILA_VISIBLE) * CONFIG.PILA_PASO; }
 
 function dibujarJugador() {
-  dibujarPersonaje(player, { camisa: '#3fb0e8', gorra: '#e63946', logo: true, playera: true });
+  dibujarPersonaje(player, { camisa: '#3fb0e8', gorra: '#e63946', atras: true });
   if (player.carga.length >= state.capacidad) {
     let yy = player.y - 66 - alturaPila(player.carga.length);
     // si quedaría bajo el HUD, se pone a los pies en vez de encimarse
@@ -3693,12 +3818,16 @@ function dibujarFilaReto(fila, item) {
 function dibujarHUD() {
   const k = HUD.k, top = HUD.top, H = HUD.h;
 
-  // Dinero
+  // Dinero, con el cronómetro de la partida como segunda línea chica: así
+  // se puede medir en qué tiempo se termina el juego sin sumar otra píldora.
   const txtDinero = '$' + Math.floor(state.dinero);
-  const wD = Math.max(100 * k, anchoTexto(txtDinero, 20 * k, true) + 56 * k);
+  const txtTiempo = '⏱ ' + formatoTiempo(state.tiempoJuego);
+  const wD = Math.max(100 * k, anchoTexto(txtDinero, 20 * k, true) + 56 * k,
+                       anchoTexto(txtTiempo, 10 * k, true) + 40 * k);
   pill(12, top, wD, H, 20 * k);
-  emoji('💰', 22, top + H / 2 + 1, 20 * k, 'left');
-  texto(txtDinero, 48 * k, top + H / 2, 20 * k, '#ffe27a', 'left', true);
+  emoji('💰', 22, top + H / 2 + 1 - 4 * k, 20 * k, 'left');
+  texto(txtDinero, 48 * k, top + H / 2 - 4 * k, 20 * k, '#ffe27a', 'left', true);
+  texto(txtTiempo, 48 * k, top + H - 8 * k, 10 * k, 'rgba(255,255,255,0.62)', 'left', true);
 
   // Racha de venta: ficha naranja junto al dinero + barra de gracia
   const mult = comboMult();
@@ -4080,10 +4209,16 @@ function dibujarModal() {
       texto(modal.stats[i][0], modal.x + 26, fy, 13, 'rgba(255,255,255,0.7)', 'left', false);
       texto(modal.stats[i][1], modal.x + modal.w - 26, fy, 14, '#ffe27a', 'right', true);
     }
+    yy += modal.stats.length * 26 + 4;
   }
+  // Hueco reservado para el <input> real de HTML del nombre del récord;
+  // se posiciona con estas mismas coordenadas justo después de dibujar.
+  if (modal.festejo && mostrarCajaRecord) { modal.recordY = yy + 22; yy += 54; }
+  else modal.recordY = null;
   if (modal.no) botonModal(modal.btnNo, modal.no, false, modal.hover === 'no');
   botonModal(modal.btnSi, modal.si, true, modal.hover === 'si');
   ctx.restore();
+  sincronizarRecordBox();
 }
 
 /* -------------------------------- Intro ---------------------------------- */
@@ -4341,7 +4476,7 @@ function escenaIntro() {
   ay.carga = ida ? ['mango', 'naranja', 'mango'] : [];
   ctx.save();
   ctx.translate(ay.x, ay.y); ctx.scale(u * 0.72, u * 0.72); ctx.translate(-ay.x, -ay.y);
-  dibujarPersonaje(ay, { camisa: CONFIG.HELPER_COLORS[0], gorra: '#e63946', logo: true });
+  dibujarPersonaje(ay, { camisa: CONFIG.HELPER_COLOR, gorra: CONFIG.HELPER_GORRA });
   ctx.restore();
 
   // Espantapájaros plantado en la loma
@@ -4365,7 +4500,7 @@ function escenaIntro() {
   cl.carga = ca > 0.7 ? ['naranja', 'mango'] : [];
   ctx.save();
   ctx.translate(cl.x, cl.y); ctx.scale(u * 1.0, u * 1.0); ctx.translate(-cl.x, -cl.y);
-  dibujarPersonaje(cl, { camisa: '#c07de0', gorra: '#6b5236', logo: false });
+  dibujarPersonaje(cl, { camisa: '#c07de0', gorra: '#6b5236' });
   ctx.restore();
   if (ca >= 0.25 && ca < 0.7) {
     ctx.save();
@@ -4381,7 +4516,7 @@ function escenaIntro() {
   cl2.phase = 0; cl2.swayT = T * 2;
   ctx.save();
   ctx.translate(cl2.x, cl2.y); ctx.scale(u * 0.82, u * 0.82); ctx.translate(-cl2.x, -cl2.y);
-  dibujarPersonaje(cl2, { camisa: '#4fb39a', gorra: '#8a6a3a', logo: false });
+  dibujarPersonaje(cl2, { camisa: '#4fb39a', gorra: '#8a6a3a' });
   ctx.restore();
 
   // Un ladrón de cada tipo, cada uno en su carril y a su ritmo
@@ -4483,7 +4618,7 @@ function dibujarIntroPortada(e) {
   ctx.scale(esc, esc);
   maniqui.phase = intro.t * 6;
   maniqui.swayT = intro.t * 6;
-  dibujarPersonaje(maniqui, { camisa: '#3fb0e8', gorra: '#e63946', logo: true, playera: true });
+  dibujarPersonaje(maniqui, { camisa: '#3fb0e8', gorra: '#e63946', atras: true });
   ctx.restore();
 
   ctx.save();
@@ -4581,7 +4716,7 @@ function render() {
   for (const it of drawables) {
     if (it.d === 0) dibujarPlanta(it.o);
     else if (it.d === 1) {
-      dibujarPersonaje(it.o, { camisa: it.o.color, gorra: '#e63946', logo: true });
+      dibujarPersonaje(it.o, { camisa: it.o.color, gorra: CONFIG.HELPER_GORRA });
       if (helpersImpagos) {                       // sin sueldo: parados y marcados
         ctx.save();
         ctx.globalAlpha = 0.55 + 0.45 * Math.sin(tiempo * 4);
@@ -4630,6 +4765,7 @@ function paso(ts) {
   }
 
   revisarDia();
+  if (!state.terminado) state.tiempoJuego += dt;   // el reloj para al terminar, no sigue en modo libre
   const inp = inputVector();
   player.update(dt, inp.x, inp.y);
   for (const p of plants) p.update(dt);
@@ -4691,6 +4827,13 @@ function iniciar() {
   pintarUI();
   const bs = document.getElementById('btnShare');
   if (bs) bs.addEventListener('click', compartir);
+  const rb = document.getElementById('recordBtn');
+  if (rb) rb.addEventListener('click', guardarRecordDesdeInput);
+  const ri = document.getElementById('recordInput');
+  if (ri) ri.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); guardarRecordDesdeInput(); }
+    e.stopPropagation();   // que "r" o flechas no muevan a Kiosa mientras escribe
+  });
   construirFondo();
   reconstruirMundo();
   rebarajarBaches(true);
@@ -4781,10 +4924,18 @@ const game = {
   idioma(l) { if (IDIOMAS.indexOf(l) >= 0) { LANG = l; state.idioma = l; anchosCache = Object.create(null); pintarCredito(); Save.guardar(); } return LANG; },
   get modal() {
     return modal.abierto
-      ? { tit: modal.tit, txt: modal.txt, si: modal.si, no: modal.no, btnSi: modal.btnSi, btnNo: modal.btnNo }
+      ? { tit: modal.tit, txt: modal.txt, si: modal.si, no: modal.no, btnSi: modal.btnSi, btnNo: modal.btnNo,
+          stats: modal.stats, recordY: modal.recordY }
       : null;
   },
   dialogo(cfg) { abrirModal(cfg || { tit: 'Kiosa', txt: '...', si: 'OK' }); return true; },
+  get tiempoJuego() { return state.tiempoJuego; },
+  formatoTiempo(s) { return formatoTiempo(s); },
+  get records() { return cargarRecords(); },
+  get cajaRecordVisible() { return mostrarCajaRecord; },
+  agregarRecord(nombre, segundos) { return agregarRecord(nombre, segundos); },
+  guardarRecordActual() { guardarRecordDesdeInput(); return true; },
+  terminarConTiempo(seg) { state.tiempoJuego = seg; abrirFinal(); return true; },
   calidad(c) { if (['auto', 'bajo', 'alto'].indexOf(c) >= 0) { state.calidad = c; resize(); Save.guardar(); } return state.calidad; },
   fps() { return Math.round(1000 / Math.max(1, perf.ms)); },
   guardar() { Save.guardar(); },
