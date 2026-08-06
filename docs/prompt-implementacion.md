@@ -4,6 +4,8 @@
 
 ---
 
+Actúa como un desarrollador senior experto en juegos HTML5/canvas, game feel y juegos hypercasual móviles. Tu tarea es entregar el juego completo y terminado en una sola respuesta. **No me hagas ninguna pregunta**: toda decisión que no esté especificada aquí tómala tú mismo con el mejor criterio de la industria y sigue adelante. No entregues fragmentos, pseudocódigo ni placeholders (nada de "// aquí iría..." o "completa esto"): entrega el archivo completo y funcional de principio a fin.
+
 Crea un juego móvil 2D estilo **arcade idle** (como los anuncios jugables de Township) llamado **"Kiosa: el imperio de las huertas"** (usa este nombre en el `<title>` de la página y en cualquier lugar donde aparezca el nombre del juego). Entrega **un solo archivo `index.html` autocontenido**: HTML5 + canvas + JavaScript vanilla (clases), **sin dependencias externas ni build step**, optimizado para pantalla vertical de celular y funcional en PC. **Todo el texto del juego en español.**
 
 ## Personaje
@@ -94,3 +96,9 @@ Guardado automático en `localStorage` (cada ~3 s, al comprar, al completar reto
 3. Recargar la página conserva el progreso; el reinicio lo borra tras confirmar.
 4. Sin errores en consola durante una partida completa.
 5. Agregar una fruta nueva requiere únicamente añadir un objeto al arreglo `FRUITS`.
+
+## Reglas de entrega (obligatorias)
+
+- Entrega **únicamente el archivo `index.html` completo**, en un solo bloque de código, listo para guardar y abrir en el navegador. Sin pasos de instalación ni instrucciones adicionales largas.
+- Antes de entregar, repasa mentalmente los 5 criterios de aceptación y verifica que tu código los cumple todos.
+- No preguntes nada ni pidas confirmación: si algo es ambiguo, decide tú y entrega.
