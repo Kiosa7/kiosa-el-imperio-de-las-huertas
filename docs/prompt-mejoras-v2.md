@@ -2,6 +2,8 @@
 
 > Prompt autocontenido para que una IA implemente la versión 2 del juego. Parte del `index.html` v1 ya existente (adjúntalo junto con este documento). Generado el 2026-08-05.
 
+> **Estado: implementado** el 2026-08-05 en el commit `cbcb4d3`. Este documento queda como spec de referencia de la v2. Lo único que no se implementó es el modo "bajo" manual de calidad como opción visible al jugador: existe en `game.calidad()` pero no tiene botón en el HUD, porque el ajuste automático por tiempo de frame lo cubre.
+
 ---
 
 Actúa como un desarrollador senior experto en juegos HTML5/canvas, game feel, rendimiento en móviles de gama baja y juegos hypercasual. Te entrego el archivo `index.html` de la versión 1 de **"Kiosa: el imperio de las huertas"**, un juego arcade idle 2D en un solo archivo (canvas + JS vanilla, sin dependencias). Tu tarea es entregar la **versión 2 completa y terminada**.
