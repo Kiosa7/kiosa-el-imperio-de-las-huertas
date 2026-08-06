@@ -173,6 +173,32 @@ const CONFIG = {
   SUELDO_BASE: 40,
   SUELDO_POR_AYUDANTE: 0.6,
 
+  // Baches del camino: cuanto más cargas, más probable es caerse
+  BACHE_RADIO: 27,
+  BACHE_PROB_BASE: 0.05,
+  BACHE_PROB_POR_FRUTA: 0.022,
+  BACHE_PROB_MAX: 0.85,
+  BACHE_CAIDA_MIN: 2,
+  BACHE_CAIDA_MAX: 5,
+  BACHE_ATURDIDO: 0.55,
+  BACHE_CAMBIO: 30,            // cada cuánto se rehace el camino
+  BACHE_FUNDIDO: 2,            // velocidad del fundido (1/s)
+  BACHE_N_BASE: 5,
+  BACHE_N_MAX: 9,
+  BACHE_LEJOS: 100,            // no aparece un bache tan cerca de ti
+  FRUTA_SUELO_VIDA: 12,
+  FRUTA_SUELO_RADIO: 36,
+  FRUTA_SUELO_ESPERA: 0.9,     // sin esto la recoges en el mismo frame que se cae
+
+  // Mapache: va primero por la fruta caída y, si no hay, por tu pila
+  MAPACHE_VEL: 150,
+  MAPACHE_INTERVALO: 20,
+  MAPACHE_MIN_CARGA: 6,
+  MAPACHE_ROBA: 3,
+  MAPACHE_MAX: 2,
+  MAPACHE_RADIO_ROBO: 28,
+  MAPACHE_RADIO_ESPANTO: 70,
+
   // Rendimiento
   CONFETI_MAX: 240,
   CONFETI_MAX_BAJO: 60,
@@ -221,6 +247,8 @@ const I18N = {
     introSub: 'Cosecha, surte tu puesto y haz crecer el imperio',
     btnJugar: 'JUGAR', introTip: 'Arrastra el dedo para mover a Kiosa',
     comoJugar: 'Cómo jugar', btnAJugar: '¡A JUGAR!', volver: 'Volver',
+    tropiezo: '¡Se te cayó!', robo: '¡Te robó!', caminoCambio: 'El camino cambió',
+    r6t: 'Cuidado en el camino', r6d: 'Los baches te tiran la fruta y el mapache se la lleva',
     r1t: 'Cosecha', r1d: 'Acércate a los árboles y se llena tu mochila sola',
     r2t: 'Surte el puesto', r2d: 'Párate en VENDER para pasar la fruta al estante',
     r3t: 'Atiende a los clientes', r3d: 'Compran del estante; si lo hallan vacío se van enojados',
@@ -281,6 +309,8 @@ const I18N = {
     introSub: 'Harvest, restock your stall and grow the empire',
     btnJugar: 'PLAY', introTip: 'Drag your finger to move Kiosa',
     comoJugar: 'How to play', btnAJugar: 'LET’S GO!', volver: 'Back',
+    tropiezo: 'You dropped it!', robo: 'It stole from you!', caminoCambio: 'The road shifted',
+    r6t: 'Watch the road', r6d: 'Potholes make you drop fruit and the raccoon takes it',
     r1t: 'Harvest', r1d: 'Walk up to the trees and your backpack fills by itself',
     r2t: 'Restock the stall', r2d: 'Stand on SELL to move fruit onto the shelf',
     r3t: 'Serve the customers', r3d: 'They buy from the shelf; find it empty and they leave angry',
@@ -341,6 +371,8 @@ const I18N = {
     introSub: 'Colha, abasteça seu posto e faça o império crescer',
     btnJugar: 'JOGAR', introTip: 'Arraste o dedo para mover o Kiosa',
     comoJugar: 'Como jogar', btnAJugar: 'BORA!', volver: 'Voltar',
+    tropiezo: 'Você derrubou!', robo: 'Roubou de você!', caminoCambio: 'O caminho mudou',
+    r6t: 'Cuidado no caminho', r6d: 'Os buracos derrubam a fruta e o guaxinim leva',
     r1t: 'Colha', r1d: 'Chegue perto das árvores e a mochila enche sozinha',
     r2t: 'Abasteça o posto', r2d: 'Fique em VENDER para passar a fruta à prateleira',
     r3t: 'Atenda os clientes', r3d: 'Compram da prateleira; se estiver vazia vão embora bravos',
@@ -547,6 +579,9 @@ function estadoNuevo() {
     reputacion: CONFIG.REP_INICIAL,
     servidos: 0,
     enojados: 0,
+    tropiezos: 0,
+    robadas: 0,
+    recogidas: 0,
     capacidad: CONFIG.CAP_START,
     compras: { arbol: 0, mochila: 0, riego: 0, espanta: 0 },
     extras: {},
@@ -575,6 +610,8 @@ const plants = [];
 const helpers = [];
 const plagas = [];
 const clientes = [];
+const mapaches = [];
+const sueloFrutas = [];
 const espantas = [];
 const confetti = [];
 const floats = [];
@@ -591,6 +628,10 @@ let oleada = null;
 let helpersImpagos = false;
 let avisoSueldo = 0;
 let clienteTimer = 0;
+let mapacheTimer = 0;
+let bacheTimer = 0;
+let bachePend = null;
+const baches = [];
 
 // Tres huecos delante del mostrador, al norte, para no estorbar la zona
 // donde se para el jugador a surtir.
@@ -635,6 +676,7 @@ const Save = {
         oleadasHechas: state.oleadasHechas, curadas: state.curadas,
         estante: state.estante, reputacion: state.reputacion,
         servidos: state.servidos, enojados: state.enojados, terminado: state.terminado,
+        tropiezos: state.tropiezos, robadas: state.robadas, recogidas: state.recogidas,
         diarios: state.diarios, hoy: state.hoy, sinMarchita: state.sinMarchita,
         op: state.op, pagos: state.pagos, hints: state.hints,
         mute: state.mute, idioma: state.idioma, calidad: state.calidad,
@@ -690,6 +732,9 @@ const Save = {
       s.curadas = Math.max(0, num(d.curadas, 0) | 0);
       s.servidos = Math.max(0, num(d.servidos, 0) | 0);
       s.enojados = Math.max(0, num(d.enojados, 0) | 0);
+      s.tropiezos = Math.max(0, num(d.tropiezos, 0) | 0);
+      s.robadas = Math.max(0, num(d.robadas, 0) | 0);
+      s.recogidas = Math.max(0, num(d.recogidas, 0) | 0);
       s.terminado = !!d.terminado;
       s.reputacion = clamp(num(d.reputacion, CONFIG.REP_INICIAL), 0, CONFIG.REP_MAX);
       if (Array.isArray(d.estante)) {
@@ -882,11 +927,14 @@ class Player {
     this.eraLleno = false;
     this.curaT = 0;
     this.curando = null;
+    this.aturdido = 0;
+    this.bacheActual = null;
   }
   get factorVel() {
     return Math.max(CONFIG.SPEED_MIN_FACTOR, 1 - CONFIG.SPEED_PENALTY_PER_FRUIT * this.carga.length);
   }
   update(dt, ix, iy) {
+    if (this.aturdido > 0) { this.aturdido = Math.max(0, this.aturdido - dt); ix = 0; iy = 0; }
     const mag = Math.hypot(ix, iy);
     this.moving = mag > 0.06;
     if (this.moving) {
@@ -903,6 +951,29 @@ class Player {
     }
     this.x = clamp(this.x, 22, WORLD_W - 22);
     this.y = clamp(this.y, 30, WORLD_H - 24);
+
+    // ---- Baches: cruzarlos cargado te tira la fruta ----
+    const b = bacheEn(this.x, this.y);
+    if (b) {
+      if (b !== this.bacheActual) {
+        this.bacheActual = b;
+        if (this.carga.length > 0 && this.aturdido <= 0 && Math.random() < probTropiezo(this.carga.length)) {
+          tropezar(this);
+        }
+      }
+    } else this.bacheActual = null;
+
+    // ---- Recoger la fruta que se cayó ----
+    for (let i = sueloFrutas.length - 1; i >= 0 && this.carga.length < state.capacidad; i--) {
+      const f = sueloFrutas[i];
+      if (f.t < CONFIG.FRUTA_SUELO_ESPERA) continue;      // deja que asiente
+      if (Math.hypot(f.x - this.x, f.y - this.y) <= CONFIG.FRUTA_SUELO_RADIO) {
+        this.carga.push(f.id);
+        sueloFrutas.splice(i, 1);
+        state.recogidas++;
+        SFX.pop();
+      }
+    }
 
     // ---- Cosecha por proximidad ----
     if (this.carga.length < state.capacidad) {
@@ -1205,6 +1276,75 @@ class Cliente {
   }
 }
 
+/* -------------------------------- Mapache -------------------------------- */
+class Mapache {
+  constructor() {
+    const izq = Math.random() < 0.5;
+    this.x = izq ? -30 : WORLD_W + 30;
+    this.y = clamp(player.y + rand(-180, 180), 60, WORLD_H - 60);
+    this.estado = 'buscando';
+    this.carga = [];
+    this.facing = izq ? 1 : -1;
+    this.phase = 0;
+    this.fuera = false;
+    this.emoT = 0;
+  }
+  mover(tx, ty, dt) {
+    const dx = tx - this.x, dy = ty - this.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const paso = Math.min(CONFIG.MAPACHE_VEL * dt, d);
+    this.x += dx / d * paso;
+    this.y += dy / d * paso;
+    if (Math.abs(dx) > 1) this.facing = dx > 0 ? 1 : -1;
+    this.phase += dt * 14;
+    return d;
+  }
+  huir() { if (this.estado !== 'huyendo') this.estado = 'huyendo'; }
+  // Va primero por la fruta del suelo; solo si no hay, persigue tu pila
+  objetivo() {
+    let best = null, bd = Infinity;
+    for (const f of sueloFrutas) {
+      const d = Math.hypot(f.x - this.x, f.y - this.y);
+      if (d < bd) { bd = d; best = f; }
+    }
+    if (best) return { x: best.x, y: best.y, suelo: best };
+    if (player.carga.length >= CONFIG.MAPACHE_MIN_CARGA) return { x: player.x, y: player.y, suelo: null };
+    return null;
+  }
+  update(dt) {
+    if (this.emoT > 0) this.emoT -= dt;
+    if (this.estado !== 'huyendo') {
+      for (const h of helpers) {              // los ayudantes lo ahuyentan
+        if (Math.hypot(h.x - this.x, h.y - this.y) <= CONFIG.MAPACHE_RADIO_ESPANTO) {
+          this.huir(); this.emo = '💨'; this.emoT = 1.2; return;
+        }
+      }
+      const o = this.objetivo();
+      if (!o) { this.huir(); return; }
+      const d = this.mover(o.x, o.y, dt);
+      if (d < CONFIG.MAPACHE_RADIO_ROBO) {
+        if (o.suelo) {
+          const i = sueloFrutas.indexOf(o.suelo);
+          if (i >= 0) { this.carga.push(sueloFrutas[i].id); sueloFrutas.splice(i, 1); }
+        } else {
+          let n = 0;
+          while (n < CONFIG.MAPACHE_ROBA && player.carga.length > 0) { this.carga.push(player.carga.pop()); n++; }
+          if (n > 0) {
+            state.robadas += n;
+            floats.push({ x: player.x, y: player.y - 46, t: 0, txt: t('robo'), color: '#ff8a8a' });
+            cam.shake = Math.max(cam.shake, 0.3);
+            SFX.alerta();
+          }
+        }
+        this.huir();
+      }
+    } else {
+      this.mover(this.x < WORLD_W / 2 ? -70 : WORLD_W + 70, this.y + 40, dt);
+      if (this.x < -60 || this.x > WORLD_W + 60) this.fuera = true;
+    }
+  }
+}
+
 class Espantapajaros {
   constructor(fruitId) {
     const z = FRUIT_BY_ID[fruitId].zona;
@@ -1239,6 +1379,8 @@ function reconstruirMundo() {
   espantas.length = 0;
   for (const id of state.espantaZonas) if (FRUIT_BY_ID[id]) espantas.push(new Espantapajaros(id));
   plagas.length = 0;
+  mapaches.length = 0;
+  sueloFrutas.length = 0;
 }
 
 function plantaCercanaConFruta(x, y, radio) {
@@ -1358,6 +1500,101 @@ function comprarDelEstante(x, y) {
   });
   SFX.chaching();
   return id;
+}
+
+/* ------------------ Baches, fruta caída y mapaches ----------------------- */
+// El camino se rehace cada tanto para que no te aprendas la ruta segura.
+function nBaches() { return Math.min(CONFIG.BACHE_N_MAX, CONFIG.BACHE_N_BASE + capituloActual()); }
+
+function puntosBacheNuevos(n) {
+  const lejos = POS_BACHE.filter(p => Math.hypot(p[0] - player.x, p[1] - player.y) > CONFIG.BACHE_LEJOS);
+  const pool = (lejos.length >= n ? lejos : POS_BACHE).slice();
+  const out = [];
+  while (out.length < n && pool.length) out.push(pool.splice((Math.random() * pool.length) | 0, 1)[0]);
+  return out;
+}
+
+function aplicarBaches(instantaneo) {
+  baches.length = 0;
+  for (const p of bachePend) baches.push({ x: p[0], y: p[1], a: instantaneo ? 1 : 0, fase: 'entrando' });
+  bachePend = null;
+}
+
+function rebarajarBaches(instantaneo) {
+  bachePend = puntosBacheNuevos(nBaches());
+  if (instantaneo || !baches.length) { aplicarBaches(true); return; }
+  for (const b of baches) b.fase = 'saliendo';
+  toast(t('caminoCambio'), '');
+}
+
+function actualizarBaches(dt) {
+  bacheTimer += dt;
+  if (!bachePend && bacheTimer >= CONFIG.BACHE_CAMBIO) { bacheTimer = 0; rebarajarBaches(false); }
+  let todosFuera = bachePend !== null;
+  for (const b of baches) {
+    if (b.fase === 'saliendo') {
+      b.a = Math.max(0, b.a - dt * CONFIG.BACHE_FUNDIDO);
+      if (b.a > 0) todosFuera = false;
+    } else b.a = Math.min(1, b.a + dt * CONFIG.BACHE_FUNDIDO);
+  }
+  if (bachePend && todosFuera) aplicarBaches(false);
+}
+
+// Solo tropiezas con un bache ya asentado, nunca con uno a medio aparecer
+function bacheEn(x, y) {
+  for (const b of baches) {
+    if (b.a < 0.85 || b.fase === 'saliendo') continue;
+    const dx = b.x - x, dy = (b.y - y) * 1.5;      // los baches son elípticos
+    if (dx * dx + dy * dy <= CONFIG.BACHE_RADIO * CONFIG.BACHE_RADIO) return b;
+  }
+  return null;
+}
+
+function probTropiezo(n) {
+  return Math.min(CONFIG.BACHE_PROB_MAX, CONFIG.BACHE_PROB_BASE + CONFIG.BACHE_PROB_POR_FRUTA * n);
+}
+
+function soltarAlSuelo(id, x, y) {
+  sueloFrutas.push({ id: id, x: clamp(x, 20, WORLD_W - 20), y: clamp(y, 40, WORLD_H - 20), t: 0, pop: 1 });
+}
+
+function tropezar(p) {
+  const r = CONFIG.BACHE_CAIDA_MAX - CONFIG.BACHE_CAIDA_MIN + 1;
+  const n = Math.min(p.carga.length, CONFIG.BACHE_CAIDA_MIN + ((Math.random() * r) | 0));
+  for (let i = 0; i < n; i++) {
+    const id = p.carga.pop();
+    if (!id) break;
+    soltarAlSuelo(id, p.x + rand(-54, 54), p.y + rand(-34, 46));
+  }
+  p.aturdido = CONFIG.BACHE_ATURDIDO;
+  cam.shake = Math.max(cam.shake, 0.32);
+  floats.push({ x: p.x, y: p.y - 42, t: 0, txt: t('tropiezo'), color: '#ffa96b' });
+  state.tropiezos++;
+  SFX.alerta();
+}
+
+function actualizarSuelo(dt) {
+  for (let i = sueloFrutas.length - 1; i >= 0; i--) {
+    const f = sueloFrutas[i];
+    f.t += dt;
+    if (f.pop > 0) f.pop = Math.max(0, f.pop - dt * 3);
+    if (f.t >= CONFIG.FRUTA_SUELO_VIDA) sueloFrutas.splice(i, 1);
+  }
+}
+
+function actualizarMapaches(dt) {
+  for (let i = mapaches.length - 1; i >= 0; i--) {
+    mapaches[i].update(dt);
+    if (mapaches[i].fuera) mapaches.splice(i, 1);
+  }
+  if (!plagasActivas()) { mapacheTimer = 0; return; }
+  const hayBotin = sueloFrutas.length > 0 || player.carga.length >= CONFIG.MAPACHE_MIN_CARGA;
+  if (!hayBotin) { mapacheTimer = 0; return; }
+  mapacheTimer += dt;
+  if (mapacheTimer >= CONFIG.MAPACHE_INTERVALO) {
+    mapacheTimer = 0;
+    if (mapaches.length < CONFIG.MAPACHE_MAX) mapaches.push(new Mapache());
+  }
 }
 
 // Los clientes solo empiezan a llegar cuando ya surtiste una vez: así el
@@ -1854,6 +2091,17 @@ function construirFondo() {
     g.closePath();
   };
 
+  // Bases de zona ANTES que los caminos: si van después, tapan la brecha y
+  // el corredor entre huertas queda tan angosto que los baches no se pueden
+  // esquivar. Con el camino encima, la ruta se ve entera y ancha.
+  for (const f of FRUITS) {
+    const z = f.zona;
+    g.fillStyle = '#8ad168';
+    rrg(z.x, z.y, z.w, z.h, 18); g.fill();
+    g.fillStyle = 'rgba(0,0,0,0.04)';
+    for (let y = z.y + 10; y < z.y + z.h; y += 40) g.fillRect(z.x + 8, y, z.w - 16, 14);
+  }
+
   // Caminos: espina vertical + tres travesaños
   g.fillStyle = '#d7ac72';
   rrg(316, 372, 88, 1080, 30); g.fill();
@@ -1949,7 +2197,17 @@ const REGLAS = [
   { ico: '🧺', k: 'r2', col: '#ffd166' },
   { ico: '🙋', k: 'r3', col: '#7ec8ff' },
   { ico: '🐦', k: 'r4', col: '#ff8a8a' },
-  { ico: '⭐', k: 'r5', col: '#c9a0ff' }
+  { ico: '⭐', k: 'r5', col: '#c9a0ff' },
+  { ico: '🕳️', k: 'r6', col: '#ffa96b' }
+];
+
+// Puntos posibles de bache, todos sobre camino visible y descentrados: el
+// camino es ancho y esquivarlos es la habilidad, no un peaje obligatorio.
+const POS_BACHE = [
+  [340, 462], [376, 470], [344, 540], [378, 548], [338, 660], [380, 668],
+  [342, 780], [378, 812], [340, 1000], [378, 1008], [346, 1062], [372, 1300],
+  [150, 599], [206, 599], [262, 599], [458, 599], [516, 599], [572, 599],
+  [150, 917], [252, 917], [308, 917], [412, 917], [472, 917], [568, 917]
 ];
 let festejoFinal = 0;
 
@@ -2634,6 +2892,96 @@ function dibujarEspantapajaros(e) {
   ctx.closePath(); ctx.fill();
   ctx.fillRect(-16, -58, 32, 4);
   ctx.restore();
+}
+
+/* ------------------- Baches, fruta caída y mapaches ---------------------- */
+function dibujarBaches() {
+  for (const b of baches) {
+    if (b.a <= 0.01) continue;
+    const r = CONFIG.BACHE_RADIO * (0.55 + 0.45 * b.a);
+    ctx.save();
+    ctx.globalAlpha = b.a;
+    ctx.fillStyle = 'rgba(120,88,48,0.55)';
+    elipse(b.x, b.y + 3, r + 3, (r + 3) / 1.5); ctx.fill();
+    ctx.fillStyle = '#6b4b23';
+    elipse(b.x, b.y, r, r / 1.5); ctx.fill();
+    ctx.fillStyle = '#4a3216';
+    elipse(b.x, b.y + 1.5, r * 0.78, r / 1.5 * 0.72); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    elipse(b.x - r * 0.25, b.y - r * 0.22, r * 0.32, r * 0.16); ctx.fill();
+    ctx.restore();
+  }
+}
+
+function dibujarSuelo() {
+  for (const f of sueloFrutas) {
+    const fr = FRUIT_BY_ID[f.id];
+    if (!fr) continue;
+    const s = 1 + f.pop * 0.35;
+    const parpadeo = f.t > CONFIG.FRUTA_SUELO_VIDA - 3 ? (Math.sin(f.t * 14) > 0 ? 0.35 : 1) : 1;
+    ctx.save();
+    ctx.globalAlpha = parpadeo;
+    ctx.translate(f.x, f.y);
+    ctx.scale(s, s);
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
+    elipse(0, 7, 10, 4); ctx.fill();
+    ctx.fillStyle = fr.colores.frutaSombra; circulo(0, 0, 8.5); ctx.fill();
+    ctx.fillStyle = fr.colores.fruta; circulo(0, -1.4, 7.6); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.45)'; circulo(-2.4, -3.6, 2.3); ctx.fill();
+    ctx.restore();
+  }
+}
+
+function dibujarMapache(m) {
+  const paso = Math.sin(m.phase) * (m.estado === 'huyendo' ? 1 : 0.8);
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.2)';
+  elipse(m.x, m.y + 4, 20, 7); ctx.fill();
+  ctx.translate(m.x, m.y);
+  ctx.scale(m.facing, 1);
+  // cola anillada
+  ctx.save();
+  ctx.rotate(Math.sin(m.phase * 0.6) * 0.18);
+  for (let i = 0; i < 4; i++) {
+    ctx.fillStyle = i % 2 ? '#5b5b66' : '#2e2e36';
+    circulo(-20 - i * 7, -8 - i * 3, 7 - i * 0.6); ctx.fill();
+  }
+  ctx.restore();
+  ctx.fillStyle = '#6d6d79';
+  elipse(0, -8, 17, 11); ctx.fill();
+  ctx.fillStyle = '#575763';
+  rr(-9, -2 + Math.max(0, paso * 3), 6, 8, 3); ctx.fill();
+  rr(4, -2 + Math.max(0, -paso * 3), 6, 8, 3); ctx.fill();
+  ctx.fillStyle = '#7c7c88';
+  circulo(14, -14, 10); ctx.fill();
+  ctx.fillStyle = '#5b5b66';
+  circulo(9, -22, 4); ctx.fill();
+  circulo(19, -22, 4); ctx.fill();
+  // antifaz
+  ctx.fillStyle = '#2a2a33';
+  rr(8, -17, 14, 6, 3); ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  circulo(12, -14.5, 2); ctx.fill();
+  circulo(19, -14.5, 2); ctx.fill();
+  ctx.fillStyle = '#1b1b1b';
+  circulo(12.6, -14.5, 1.1); ctx.fill();
+  circulo(19.6, -14.5, 1.1); ctx.fill();
+  ctx.fillStyle = '#2a2a33';
+  circulo(24, -12, 2.4); ctx.fill();
+  ctx.restore();
+  // lo que lleva robado
+  for (let i = 0; i < m.carga.length && i < 4; i++) {
+    const fr = FRUIT_BY_ID[m.carga[i]];
+    if (!fr) continue;
+    ctx.fillStyle = fr.colores.fruta;
+    circulo(m.x - m.facing * 6, m.y - 24 - i * 8, 5.5); ctx.fill();
+  }
+  if (m.emo && m.emoT > 0) {
+    ctx.save();
+    ctx.globalAlpha = clamp(m.emoT / 0.6, 0, 1);
+    emoji(m.emo, m.x, m.y - 40, 20);
+    ctx.restore();
+  }
 }
 
 /* ------------------------------ Compradores ------------------------------ */
@@ -3493,6 +3841,7 @@ function render() {
   ctx.translate(-cam.x + sx, -cam.y + sy);
 
   if (fondo) ctx.drawImage(fondo, 0, 0);
+  dibujarBaches();
   for (const f of FRUITS) dibujarZona(f);
   dibujarVenta();
   for (const c of circles) dibujarCirculo(c);
@@ -3505,6 +3854,9 @@ function render() {
   drawables.push({ y: player.y, d: 2, o: player });
   drawables.sort((a, b) => a.y - b.y);
   dibujarCura();
+  dibujarSuelo();
+  for (const m of mapaches) drawables.push({ y: m.y, d: 4, o: m });
+  drawables.sort((a, b) => a.y - b.y);
   for (const it of drawables) {
     if (it.d === 0) dibujarPlanta(it.o);
     else if (it.d === 1) {
@@ -3516,6 +3868,7 @@ function render() {
         ctx.restore();
       }
     } else if (it.d === 3) dibujarCliente(it.o);
+    else if (it.d === 4) dibujarMapache(it.o);
     else dibujarJugador();
   }
   for (const p of plagas) dibujarPlaga(p);
@@ -3560,6 +3913,9 @@ function paso(ts) {
   player.update(dt, inp.x, inp.y);
   for (const p of plants) p.update(dt);
   for (const h of helpers) h.update(dt);
+  actualizarBaches(dt);
+  actualizarSuelo(dt);
+  actualizarMapaches(dt);
   actualizarClientes(dt);
   actualizarOleada(dt);
   actualizarPlagas(dt);
@@ -3613,6 +3969,7 @@ function iniciar() {
   pintarCredito();
   construirFondo();
   reconstruirMundo();
+  rebarajarBaches(true);
   actualizarRetos(false);          // reconcilia saves viejos sin fiesta
   for (const f of FRUITS) f._fade = desbloqueada(f.id) ? 0 : 1;
   resize();
@@ -3636,6 +3993,12 @@ const game = {
   get helpers() { return helpers; },
   get plagas() { return plagas; },
   get clientes() { return clientes; },
+  get mapaches() { return mapaches; },
+  get suelo() { return sueloFrutas; },
+  get baches() { return baches; },
+  rebarajarBaches() { rebarajarBaches(false); return baches.length; },
+  spawnMapache() { mapaches.push(new Mapache()); return true; },
+  tropezar() { tropezar(player); return sueloFrutas.length; },
   get intro() { return intro.activo; },
   get introBtn() { return intro.btn; },
   comenzar() { comenzarJuego(); return true; },
