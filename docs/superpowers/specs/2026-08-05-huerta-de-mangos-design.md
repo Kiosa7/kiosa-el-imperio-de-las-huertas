@@ -1,6 +1,8 @@
-# Huerta de Mangos — Diseño del juego
+# Kiosa: el imperio de las huertas — Diseño del juego
 
-**Fecha:** 2026-08-05 · **Estado:** aprobado en brainstorming, pendiente de plan de implementación
+**Fecha:** 2026-08-05 · **Estado:** aprobado en brainstorming; la implementación la hará una IA externa con `docs/prompt-implementacion.md`
+
+> Nombre de trabajo original: "Huerta de Mangos" (renombrado el 2026-08-05 a "Kiosa: el imperio de las huertas").
 
 ## Resumen
 

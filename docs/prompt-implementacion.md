@@ -1,10 +1,10 @@
-# Prompt de implementación — Huerta de Mangos
+# Prompt de implementación — Kiosa: el imperio de las huertas
 
 > Prompt autocontenido para que una IA implemente el juego completo. Generado del spec aprobado el 2026-08-05.
 
 ---
 
-Crea un juego móvil 2D estilo **arcade idle** (como los anuncios jugables de Township) llamado **"Huerta de Mangos"**. Entrega **un solo archivo `index.html` autocontenido**: HTML5 + canvas + JavaScript vanilla (clases), **sin dependencias externas ni build step**, optimizado para pantalla vertical de celular y funcional en PC. **Todo el texto del juego en español.**
+Crea un juego móvil 2D estilo **arcade idle** (como los anuncios jugables de Township) llamado **"Kiosa: el imperio de las huertas"** (usa este nombre en el `<title>` de la página y en cualquier lugar donde aparezca el nombre del juego). Entrega **un solo archivo `index.html` autocontenido**: HTML5 + canvas + JavaScript vanilla (clases), **sin dependencias externas ni build step**, optimizado para pantalla vertical de celular y funcional en PC. **Todo el texto del juego en español.**
 
 ## Personaje
 
@@ -78,7 +78,7 @@ Efectos generados con **WebAudio** (sin archivos): pop al cosechar (tono con var
 
 Guardado automático en `localStorage` (cada ~3 s, al comprar, al completar retos y en `visibilitychange`): dinero, dinero total ganado, ventas totales y por fruta, capacidad, mejoras compradas, árboles extra, ayudantes, reto actual, progreso parcial de pagos, hints vistos y silencio. Botón ↺ pide confirmación, borra el save y recarga.
 
-**Robustez:** si `localStorage` no está disponible (modo privado), el juego corre sin guardar y sin errores; si el save está corrupto o es de otra versión, se descarta y se inicia partida nueva; usa una clave con versión (p. ej. `huertaMangos.v1`).
+**Robustez:** si `localStorage` no está disponible (modo privado), el juego corre sin guardar y sin errores; si el save está corrupto o es de otra versión, se descarta y se inicia partida nueva; usa una clave con versión (p. ej. `kiosaImperio.v1`).
 
 ## Arquitectura y calidad
 
