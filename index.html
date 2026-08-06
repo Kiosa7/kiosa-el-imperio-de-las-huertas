@@ -53,7 +53,7 @@
 </head>
 <body>
 <canvas id="c"></canvas>
-<a id="cred" href="https://www.facebook.com/PcElectronics" target="_blank" rel="noopener">Hecho por PC Electronics</a>
+<a id="cred" href="https://www.facebook.com/PcElectronics7/" target="_blank" rel="noopener">Hecho por PC Electronics</a>
 <script>
 "use strict";
 /* =========================================================================
@@ -154,6 +154,10 @@ const CONFIG = {
   CONFETI_MAX_BAJO: 60,
   MS_MALO: 22,
   MS_BUENO: 14,
+
+  // Crédito de autoría (el <a> del HTML lleva la misma URL como respaldo
+  // por si el script no llega a correr; este es el valor que manda)
+  CREDITO_URL: 'https://www.facebook.com/PcElectronics7/',
 
   // Guardado
   SAVE_KEY: 'kiosaImperio.v2',
@@ -1807,7 +1811,9 @@ function posCanvas(e) {
 
 function pintarCredito() {
   const a = document.getElementById('cred');
-  if (a) a.textContent = t('hechoPor');
+  if (!a) return;
+  a.textContent = t('hechoPor');
+  a.href = CONFIG.CREDITO_URL;
 }
 
 function ciclarIdioma() {
