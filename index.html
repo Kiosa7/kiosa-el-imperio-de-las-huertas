@@ -178,7 +178,9 @@ const I18N = {
     modoLibre: '🏆 Modo libre', frutasVendidas: 'Frutas vendidas: {n}',
     retoCompletado: '¡Reto completado!', imperioCompleto: '¡Imperio completo!',
     fuera: '¡Fuera!', mitad: 'Vas a la mitad', recompensa: 'Recompensa',
-    reiniciar: '¿Reiniciar el juego? Se borrará todo tu progreso.',
+    reiniciarTit: '¿Reiniciar el juego?',
+    reiniciar: 'Perderás todo: dinero, plantas, ayudantes y retos. No se puede deshacer.',
+    btnSi: 'Sí, reiniciar', btnNo: 'Cancelar',
     enlaceCopiado: 'Enlace copiado',
     compartirTxt: 'Llevo ${d} y {n} frutas vendidas en Kiosa: el imperio de las huertas',
     capitulo: 'Cap. {n}', retoDeN: 'Reto {a}/{b}', completado: 'Completado',
@@ -222,7 +224,9 @@ const I18N = {
     modoLibre: '🏆 Free play', frutasVendidas: 'Fruit sold: {n}',
     retoCompletado: 'Goal complete!', imperioCompleto: 'Empire complete!',
     fuera: 'Shoo!', mitad: 'Halfway there', recompensa: 'Reward',
-    reiniciar: 'Restart the game? All your progress will be erased.',
+    reiniciarTit: 'Restart the game?',
+    reiniciar: 'You will lose everything: money, plants, helpers and goals. This cannot be undone.',
+    btnSi: 'Yes, restart', btnNo: 'Cancel',
     enlaceCopiado: 'Link copied',
     compartirTxt: 'I have ${d} and {n} fruit sold in Kiosa: the orchard empire',
     capitulo: 'Ch. {n}', retoDeN: 'Goal {a}/{b}', completado: 'Complete',
@@ -266,7 +270,9 @@ const I18N = {
     modoLibre: '🏆 Modo livre', frutasVendidas: 'Frutas vendidas: {n}',
     retoCompletado: 'Desafio completo!', imperioCompleto: 'Império completo!',
     fuera: 'Xô!', mitad: 'Já vai na metade', recompensa: 'Recompensa',
-    reiniciar: 'Reiniciar o jogo? Todo o seu progresso será apagado.',
+    reiniciarTit: 'Reiniciar o jogo?',
+    reiniciar: 'Você perderá tudo: dinheiro, plantas, ajudantes e desafios. Não dá para desfazer.',
+    btnSi: 'Sim, reiniciar', btnNo: 'Cancelar',
     enlaceCopiado: 'Link copiado',
     compartirTxt: 'Tenho ${d} e {n} frutas vendidas em Kiosa: o império das hortas',
     capitulo: 'Cap. {n}', retoDeN: 'Desafio {a}/{b}', completado: 'Completo',
@@ -1668,6 +1674,7 @@ function resize() {
   anchosCache = Object.create(null);
   layoutHUD();
   layoutPanel();
+  if (modal.abierto) layoutModal();
 }
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => setTimeout(resize, 120));
@@ -1700,6 +1707,64 @@ const joy = { activo: false, id: null, bx: 0, by: 0, kx: 0, ky: 0, dx: 0, dy: 0 
 const HUD = { k: 1, top: 14, h: 40, btn: {}, filas: [], banner: null, lista: null };
 const panel = { abierto: false, tab: 0, scroll: 0, maxScroll: 0, dragId: null, dragY: 0, movido: false };
 let anchosCache = Object.create(null);
+
+/* Diálogo propio dentro del canvas: nada de window.confirm, que rompe el
+   estilo del juego y en móvil sale con el dominio de GitHub. Reutilizable:
+   abrirModal({ tit, txt, si, no, peligro, onSi }). */
+const modal = {
+  abierto: false, t: 0, tit: '', txt: '', si: '', no: '',
+  peligro: false, onSi: null, lineas: [], hover: null,
+  x: 0, y: 0, w: 0, h: 0, btnSi: null, btnNo: null
+};
+
+function envolver(txt, max, size, bold) {
+  const palabras = String(txt).split(' ');
+  const out = [];
+  let linea = '';
+  for (const p of palabras) {
+    const prueba = linea ? linea + ' ' + p : p;
+    if (linea && anchoTexto(prueba, size, bold) > max) { out.push(linea); linea = p; }
+    else linea = prueba;
+  }
+  if (linea) out.push(linea);
+  return out;
+}
+
+function layoutModal() {
+  const w = Math.min(cw - 40, 330);
+  modal.w = w;
+  modal.lineas = envolver(modal.txt, w - 44, 14, false);
+  const h = 66 + modal.lineas.length * 21 + 22 + 48 + 18;
+  modal.h = h;
+  modal.x = (cw - w) / 2;
+  modal.y = Math.max(20, (ch - h) / 2);
+  const bw = (w - 40) / 2, bh = 48;
+  const by = modal.y + h - 18 - bh;
+  modal.btnNo = { x: modal.x + 16, y: by, w: bw, h: bh };
+  modal.btnSi = { x: modal.x + w - 16 - bw, y: by, w: bw, h: bh };
+}
+
+function abrirModal(cfg) {
+  modal.abierto = true;
+  modal.t = 0;
+  modal.tit = cfg.tit || '';
+  modal.txt = cfg.txt || '';
+  modal.si = cfg.si || 'OK';
+  modal.no = cfg.no || '';
+  modal.peligro = !!cfg.peligro;
+  modal.onSi = cfg.onSi || null;
+  modal.hover = null;
+  layoutModal();
+  SFX.resume();
+}
+
+function cerrarModal() { modal.abierto = false; modal.onSi = null; modal.hover = null; }
+
+function confirmarModal() {
+  const fn = modal.onSi;
+  cerrarModal();
+  if (fn) fn();
+}
 
 function layoutHUD() {
   const k = ch < 700 ? 0.85 : 1;
@@ -1790,6 +1855,13 @@ canvas.addEventListener('pointerdown', e => {
   SFX.resume();
   const p = posCanvas(e);
 
+  if (modal.abierto) {
+    if (puntoEnRect(modal.btnSi, p.x, p.y)) { SFX.pop(); confirmarModal(); }
+    else if (modal.no && puntoEnRect(modal.btnNo, p.x, p.y)) { SFX.pop(); cerrarModal(); }
+    else if (p.x < modal.x || p.x > modal.x + modal.w || p.y < modal.y || p.y > modal.y + modal.h) cerrarModal();
+    e.preventDefault();
+    return;
+  }
   if (panel.abierto) {
     if (!tocarPanel(p)) { panel.dragId = e.pointerId; panel.dragY = p.y; panel.movido = false; }
     e.preventDefault();
@@ -1803,11 +1875,11 @@ canvas.addEventListener('pointerdown', e => {
   if (puntoEnRect(HUD.btn.idioma, p.x, p.y)) { ciclarIdioma(); e.preventDefault(); return; }
   if (puntoEnRect(HUD.btn.share, p.x, p.y)) { compartir(); e.preventDefault(); return; }
   if (puntoEnRect(HUD.btn.reset, p.x, p.y)) {
-    if (window.confirm(t('reiniciar'))) {
-      reiniciando = true;
-      Save.borrar();
-      window.location.reload();
-    }
+    abrirModal({
+      tit: t('reiniciarTit'), txt: t('reiniciar'),
+      si: t('btnSi'), no: t('btnNo'), peligro: true,
+      onSi: function () { reiniciando = true; Save.borrar(); window.location.reload(); }
+    });
     e.preventDefault(); return;
   }
   if (puntoEnRect(HUD.lista, p.x, p.y)) {
@@ -1824,6 +1896,12 @@ canvas.addEventListener('pointerdown', e => {
 
 canvas.addEventListener('pointermove', e => {
   const p = posCanvas(e);
+  if (modal.abierto) {
+    modal.hover = puntoEnRect(modal.btnSi, p.x, p.y) ? 'si'
+                : (modal.no && puntoEnRect(modal.btnNo, p.x, p.y) ? 'no' : null);
+    e.preventDefault();
+    return;
+  }
   if (panel.abierto) {
     if (panel.dragId === e.pointerId) {
       panel.scroll = clamp(panel.scroll - (p.y - panel.dragY), 0, panel.maxScroll);
@@ -1865,6 +1943,12 @@ window.addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   keys[k] = true;
   SFX.resume();
+  if (modal.abierto) {
+    if (k === 'escape') cerrarModal();
+    if (k === 'enter') confirmarModal();
+    e.preventDefault();
+    return;
+  }
   if (k === 'escape' && panel.abierto) panel.abierto = false;
   if (k === 'tab') { panel.abierto = !panel.abierto; e.preventDefault(); }
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].indexOf(k) >= 0) e.preventDefault();
@@ -1873,7 +1957,7 @@ window.addEventListener('keyup', e => { if (e.key) keys[e.key.toLowerCase()] = f
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; soltarJoystick(null); });
 
 function inputVector() {
-  if (panel.abierto) return { x: 0, y: 0 };
+  if (panel.abierto || modal.abierto) return { x: 0, y: 0 };
   let ix = 0, iy = 0;
   if (keys['a'] || keys['arrowleft']) ix -= 1;
   if (keys['d'] || keys['arrowright']) ix += 1;
@@ -2781,6 +2865,54 @@ function dibujarTarjeta(it, x, y, w) {
   texto(etq, x + w - 12, y + 50, 11, it.hecho ? '#8fe39a' : 'rgba(255,255,255,0.75)', 'right', true);
 }
 
+/* ------------------------------- Diálogo --------------------------------- */
+function botonModal(b, etiqueta, primario, activo) {
+  const base = primario
+    ? (modal.peligro ? [224, 74, 74] : [58, 161, 74])
+    : [70, 82, 72];
+  const luz = activo ? 22 : 0;
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  rr(b.x, b.y + 3, b.w, b.h, 14); ctx.fill();
+  ctx.fillStyle = 'rgb(' + (base[0] + luz) + ',' + (base[1] + luz) + ',' + (base[2] + luz) + ')';
+  rr(b.x, b.y, b.w, b.h, 14); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 2;
+  rr(b.x, b.y, b.w, b.h, 14); ctx.stroke();
+  texto(textoCorto(etiqueta, b.w - 16, 15, true), b.x + b.w / 2, b.y + b.h / 2, 15,
+        primario ? '#ffffff' : 'rgba(255,255,255,0.9)', 'center', true);
+}
+
+function dibujarModal() {
+  const a = clamp(modal.t / 0.16, 0, 1);
+  const e = 1 - Math.pow(1 - a, 3);          // salida suave
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,' + (0.66 * a).toFixed(3) + ')';
+  ctx.fillRect(0, 0, cw, ch);
+
+  ctx.translate(modal.x + modal.w / 2, modal.y + modal.h / 2);
+  ctx.scale(0.9 + 0.1 * e, 0.9 + 0.1 * e);
+  ctx.translate(-(modal.x + modal.w / 2), -(modal.y + modal.h / 2));
+  ctx.globalAlpha = a;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  rr(modal.x, modal.y + 6, modal.w, modal.h, 22); ctx.fill();
+  ctx.fillStyle = 'rgba(24,38,26,0.99)';
+  rr(modal.x, modal.y, modal.w, modal.h, 22); ctx.fill();
+  ctx.strokeStyle = modal.peligro ? 'rgba(230,90,90,0.55)' : 'rgba(255,255,255,0.18)';
+  ctx.lineWidth = 2;
+  rr(modal.x, modal.y, modal.w, modal.h, 22); ctx.stroke();
+
+  emoji(modal.peligro ? '⚠️' : '💬', modal.x + modal.w / 2, modal.y + 34, 26);
+  texto(textoCorto(modal.tit, modal.w - 36, 19, true), modal.x + modal.w / 2, modal.y + 66, 19,
+        modal.peligro ? '#ffb4b4' : '#ffe27a', 'center', true);
+  for (let i = 0; i < modal.lineas.length; i++) {
+    texto(modal.lineas[i], modal.x + modal.w / 2, modal.y + 96 + i * 21, 14,
+          'rgba(255,255,255,0.82)', 'center', false);
+  }
+  if (modal.no) botonModal(modal.btnNo, modal.no, false, modal.hover === 'no');
+  botonModal(modal.btnSi, modal.si, true, modal.hover === 'si');
+  ctx.restore();
+}
+
 /* ---------------------------- Render completo ---------------------------- */
 function render() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -2826,6 +2958,7 @@ function render() {
 
   dibujarHUD();
   if (panel.abierto) dibujarPanel();
+  if (modal.abierto) dibujarModal();
 }
 
 /* =============================== 17. LOOP =============================== */
@@ -2865,6 +2998,7 @@ function paso(ts) {
   revisarMitad();
   actualizarParticulas(dt);
   actualizarCamara(dt);
+  if (modal.abierto) modal.t += dt;
 
   for (const f of FRUITS) {
     if (desbloqueada(f.id) && f._fade > 0) f._fade = Math.max(0, f._fade - dt * 1.4);
@@ -2944,6 +3078,12 @@ const game = {
     return true;
   },
   idioma(l) { if (IDIOMAS.indexOf(l) >= 0) { LANG = l; state.idioma = l; anchosCache = Object.create(null); pintarCredito(); Save.guardar(); } return LANG; },
+  get modal() {
+    return modal.abierto
+      ? { tit: modal.tit, txt: modal.txt, si: modal.si, no: modal.no, btnSi: modal.btnSi, btnNo: modal.btnNo }
+      : null;
+  },
+  dialogo(cfg) { abrirModal(cfg || { tit: 'Kiosa', txt: '...', si: 'OK' }); return true; },
   calidad(c) { if (['auto', 'bajo', 'alto'].indexOf(c) >= 0) { state.calidad = c; resize(); Save.guardar(); } return state.calidad; },
   fps() { return Math.round(1000 / Math.max(1, perf.ms)); },
   guardar() { Save.guardar(); },
