@@ -4,8 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#2f8f3d">
-<meta name="description" content="Kiosa: el imperio de las huertas — juego arcade idle de cosecha.">
-<title>Kiosa: el imperio de las huertas</title>
+<meta name="description" content="Kiosa: el imperio de las huertas — juego arcade idle de cosecha. Desarrollado por PcElectronics.">
+<meta name="author" content="PcElectronics">
+<title>Kiosa: el imperio de las huertas — PcElectronics</title>
 <style>
   * { box-sizing: border-box; }
   html, body {
@@ -30,6 +31,7 @@
 "use strict";
 /* =========================================================================
    KIOSA: EL IMPERIO DE LAS HUERTAS
+   Desarrollado por PcElectronics
    Juego arcade idle 2D — HTML5 canvas + JS vanilla, un solo archivo.
    Secciones: CONFIG · FRUITS · CHALLENGES · Estado · Save · SFX · Entidades
               (Plant, Player, Helper) · Zonas y círculos · Retos · Partículas
@@ -192,8 +194,10 @@ const Save = {
     } catch (e) { return false; }
   })(),
 
+  bloqueado: false,   // true durante un reinicio duro: evita que pagehide reescriba el save
+
   guardar() {
-    if (!this.disponible) return;
+    if (!this.disponible || this.bloqueado) return;
     try {
       const data = {
         v: CONFIG.SAVE_VERSION,
@@ -768,10 +772,73 @@ function layoutHUD() {
   const top = 14;
   HUD_BTN.mute.x = cw - 48; HUD_BTN.mute.y = top + 52;
   HUD_BTN.reset.x = cw - 48; HUD_BTN.reset.y = top + 98;
+  layoutDialogo();
 }
 
 function puntoEnBtn(b, x, y) {
   return x >= b.x && x <= b.x + b.s && y >= b.y && y <= b.y + b.s;
+}
+function puntoEnRect(r, x, y) {
+  return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+}
+
+/* --------------------- Diálogo de confirmación (canvas) ------------------ */
+const DLG = {
+  visible: false,
+  x: 0, y: 0, w: 0, h: 0,
+  si: { x: 0, y: 0, w: 0, h: 0 },
+  no: { x: 0, y: 0, w: 0, h: 0 }
+};
+
+function layoutDialogo() {
+  const w = Math.min(310, Math.max(220, cw - 44));
+  const h = 176;
+  DLG.w = w; DLG.h = h;
+  DLG.x = Math.round((cw - w) / 2);
+  DLG.y = Math.round((ch - h) / 2);
+  const bw = (w - 3 * 16) / 2, bh = 46;
+  const by = DLG.y + h - bh - 16;
+  DLG.no.x = DLG.x + 16; DLG.no.y = by; DLG.no.w = bw; DLG.no.h = bh;
+  DLG.si.x = DLG.x + w - 16 - bw; DLG.si.y = by; DLG.si.w = bw; DLG.si.h = bh;
+}
+
+function abrirDialogoReinicio() {
+  layoutDialogo();
+  DLG.visible = true;
+  soltarJoystick(null);
+  for (const k in keys) keys[k] = false;
+}
+
+/* Reinicio en caliente: sin recargar la página (una recarga dispara
+   'pagehide' y volvía a guardar la partida vieja, así que no reiniciaba). */
+function reiniciarJuego() {
+  const mute = state.mute;
+  Save.borrar();
+  state = estadoNuevo();
+  state.mute = mute;
+
+  player.x = 360; player.y = 700;
+  player.carga.length = 0;
+  player.facing = 1; player.phase = 0; player.moving = false;
+  player.harvestT = 0; player.sellT = 0; player.swayT = 0; player.fullT = 0;
+
+  reconstruirMundo();
+  reconstruirFades();
+  for (const c of circles) c._hover = false;
+
+  confetti.length = 0;
+  floats.length = 0;
+  bigMsg = null;
+  saveTimer = 0;
+  cam.shake = 0;
+  soltarJoystick(null);
+  for (const k in keys) keys[k] = false;
+
+  cam.x = view.w >= WORLD_W ? (WORLD_W - view.w) / 2 : clamp(player.x - view.w / 2, 0, WORLD_W - view.w);
+  cam.y = view.h >= WORLD_H ? (WORLD_H - view.h) / 2 : clamp(player.y - view.h / 2, 0, WORLD_H - view.h);
+
+  Save.guardar();
+  if (!state.mute) SFX.pop();
 }
 
 function posCanvas(e) {
@@ -782,6 +849,17 @@ function posCanvas(e) {
 canvas.addEventListener('pointerdown', e => {
   SFX.resume();
   const p = posCanvas(e);
+  if (DLG.visible) {
+    if (puntoEnRect(DLG.si, p.x, p.y)) {
+      DLG.visible = false;
+      reiniciarJuego();
+    } else if (puntoEnRect(DLG.no, p.x, p.y) ||
+               !puntoEnRect({ x: DLG.x, y: DLG.y, w: DLG.w, h: DLG.h }, p.x, p.y)) {
+      DLG.visible = false;
+    }
+    e.preventDefault();
+    return;
+  }
   if (puntoEnBtn(HUD_BTN.mute, p.x, p.y)) {
     state.mute = !state.mute;
     if (!state.mute) SFX.pop();
@@ -789,10 +867,8 @@ canvas.addEventListener('pointerdown', e => {
     return;
   }
   if (puntoEnBtn(HUD_BTN.reset, p.x, p.y)) {
-    if (window.confirm('¿Reiniciar el juego? Se borrará todo tu progreso.')) {
-      Save.borrar();
-      window.location.reload();
-    }
+    abrirDialogoReinicio();
+    e.preventDefault();
     return;
   }
   if (joy.activo) return;
@@ -829,8 +905,14 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('keydown', e => {
   if (!e.key) return;
   const k = e.key.toLowerCase();
-  keys[k] = true;
   SFX.resume();
+  if (DLG.visible) {
+    if (k === 'escape') DLG.visible = false;
+    else if (k === 'enter') { DLG.visible = false; reiniciarJuego(); }
+    e.preventDefault();
+    return;
+  }
+  keys[k] = true;
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].indexOf(k) >= 0) e.preventDefault();
 }, { passive: false });
 window.addEventListener('keyup', e => { if (e.key) keys[e.key.toLowerCase()] = false; });
@@ -1152,6 +1234,7 @@ function dibujarPersonaje(e, opts) {
   const camisa = opts.camisa;
   const gorra = opts.gorra;
   const conLogo = opts.logo;
+  const nombre = opts.nombre;      // texto estampado en la camisa
   const paso = Math.sin(e.phase) * (e.moving ? 1 : 0);
   ctx.save();
   ctx.translate(e.x, e.y);
@@ -1172,6 +1255,25 @@ function dibujarPersonaje(e, opts) {
   rr(-13, -40, 26, 26, 9); ctx.fill();
   ctx.fillStyle = 'rgba(0,0,0,0.10)';
   rr(3, -40, 10, 26, 8); ctx.fill();
+  // nombre estampado en la camisa
+  if (nombre) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    rr(-11.5, -32.5, 23, 11, 4); ctx.fill();
+    ctx.font = '800 8px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    // se condensa si hace falta para no salirse de la camisa
+    const anchoTxt = ctx.measureText(nombre).width || 1;
+    const escala = Math.min(1, 21 / anchoTxt);
+    ctx.translate(0, -26.8);
+    ctx.scale(escala, 1);
+    ctx.lineWidth = 2.2 / escala; ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(12,42,62,0.55)';
+    ctx.strokeText(nombre, 0, 0);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(nombre, 0, 0);
+    ctx.restore();
+  }
   // brazos
   ctx.fillStyle = camisa;
   rr(-19, -38 + paso * 2.5, 7, 18, 3.5); ctx.fill();
@@ -1242,7 +1344,7 @@ function dibujarPersonaje(e, opts) {
 }
 
 function dibujarJugador() {
-  dibujarPersonaje(player, { camisa: '#3fb0e8', gorra: '#e63946', logo: true });
+  dibujarPersonaje(player, { camisa: '#3fb0e8', gorra: '#e63946', logo: true, nombre: 'KIOSA' });
   if (player.carga.length >= state.capacidad) {
     const yy = player.y - 66 - Math.min(player.carga.length, 12) * 9.5;
     const bob = Math.sin(tiempo * 6) * 2;
@@ -1401,6 +1503,44 @@ function dibujarHUD() {
     texto(bigMsg.txt, 0, 0, 34, '#ffe27a', 'center', true, 6, 'rgba(0,0,0,0.35)');
     ctx.restore();
   }
+
+  dibujarCredito();
+  dibujarDialogo();
+}
+
+/* ------------------------------- Crédito -------------------------------- */
+function dibujarCredito() {
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  texto('Desarrollado por PcElectronics', cw / 2, ch - 14, 11, '#ffffff', 'center', false,
+        3, 'rgba(0,0,0,0.45)');
+  ctx.restore();
+}
+
+/* -------------------------- Diálogo de reinicio -------------------------- */
+function dibujarDialogo() {
+  if (!DLG.visible) return;
+  ctx.save();
+  ctx.fillStyle = 'rgba(6,12,8,0.62)';
+  ctx.fillRect(0, 0, cw, ch);
+
+  pill(DLG.x, DLG.y, DLG.w, DLG.h, 20, 0.94);
+  texto('↺  ¿Reiniciar el juego?', DLG.x + DLG.w / 2, DLG.y + 40, 19, '#ffe27a', 'center', true);
+  texto('Se borrará todo tu progreso', DLG.x + DLG.w / 2, DLG.y + 70, 13, 'rgba(255,255,255,0.85)', 'center', false);
+  texto('y volverás a empezar de cero.', DLG.x + DLG.w / 2, DLG.y + 90, 13, 'rgba(255,255,255,0.85)', 'center', false);
+
+  botonDialogo(DLG.no, 'Cancelar', '#3a5a3f', '#ffffff');
+  botonDialogo(DLG.si, 'Sí, reiniciar', '#c9453e', '#ffffff');
+  ctx.restore();
+}
+
+function botonDialogo(b, txt, fondo, color) {
+  ctx.fillStyle = fondo;
+  rr(b.x, b.y, b.w, b.h, 12); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = 2;
+  rr(b.x, b.y, b.w, b.h, 12); ctx.stroke();
+  texto(txt, b.x + b.w / 2, b.y + b.h / 2, 14, color, 'center', true);
 }
 
 function botonHUD(b, icono) {
@@ -1463,7 +1603,7 @@ function paso(ts) {
   dt = Math.min(dt, CONFIG.MAX_DT);
   tiempo += dt;
 
-  const inp = inputVector();
+  const inp = DLG.visible ? { x: 0, y: 0 } : inputVector();
   player.update(dt, inp.x, inp.y);
   for (const p of plants) p.update(dt);
   for (const h of helpers) h.update(dt);
@@ -1522,7 +1662,14 @@ const game = {
   },
   desbloquear(id) { desbloquearZona(id, true); Save.guardar(); },
   guardar() { Save.guardar(); },
-  reiniciar() { Save.borrar(); window.location.reload(); }
+  reiniciar() { DLG.visible = false; reiniciarJuego(); return 'Partida reiniciada.'; },
+  // Reinicio duro (recarga la página): bloquea el guardado para que los
+  // handlers de 'pagehide'/'visibilitychange' no reescriban el save borrado.
+  reiniciarDuro() {
+    Save.borrar();
+    Save.bloqueado = true;
+    window.location.reload();
+  }
 };
 window.game = game;
 
