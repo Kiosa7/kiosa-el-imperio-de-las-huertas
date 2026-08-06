@@ -1,8 +1,8 @@
 name: Desplegar a GitHub Pages
 
 # El constructor antiguo de Pages empezó a fallar con "Page build failed" y
-# duración 0, incluso pidiendo reconstrucción a mano. El sitio son archivos
-# estáticos, así que se publican tal cual desde Actions.
+# duración 0, así que se publica desde Actions. Se sube solo lo que forma el
+# sitio: ni .git, ni .github, ni los documentos de diseño.
 
 on:
   push:
@@ -16,7 +16,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   desplegar:
@@ -28,13 +28,22 @@ jobs:
       - name: Descargar el repositorio
         uses: actions/checkout@v4
 
+      - name: Reunir los archivos del sitio
+        run: |
+          mkdir -p sitio
+          cp index.html iconos.html manifest.webmanifest sw.js sitio/
+          cp icon-192.png icon-512.png og.png sitio/
+          touch sitio/.nojekyll
+          ls -la sitio
+          du -sh sitio
+
       - name: Preparar Pages
         uses: actions/configure-pages@v5
 
       - name: Empaquetar el sitio
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: sitio
 
       - name: Publicar
         id: deploy
