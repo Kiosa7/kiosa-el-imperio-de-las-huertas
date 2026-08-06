@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kiosa — generador de íconos</title>
+<style>
+  body { margin:0; padding:24px; background:#16241a; color:#e8f2e6;
+         font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  h1 { font-size:20px; margin:0 0 6px; color:#ffe27a; }
+  p  { margin:0 0 20px; color:#a9c2a5; font-size:14px; max-width:640px; line-height:1.5; }
+  .fila { display:flex; flex-wrap:wrap; gap:24px; align-items:flex-start; }
+  .caja { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+          border-radius:14px; padding:14px; }
+  .caja h2 { font-size:13px; margin:0 0 10px; color:#8fe39a; font-weight:600; }
+  canvas { display:block; background:#0d150f; border-radius:8px; max-width:100%; height:auto; }
+  button { margin-top:12px; width:100%; padding:9px 14px; border:0; border-radius:9px;
+           background:#3aa14a; color:#fff; font-weight:700; font-size:13px; cursor:pointer; }
+  button:hover { background:#46b95a; }
+  #todo { max-width:320px; margin-top:22px; background:#ffb01f; color:#3a2a05; }
+</style>
+</head>
+<body>
+<h1>Generador de íconos de Kiosa</h1>
+<p>Los PNG no pueden vivir dentro del HTML del juego, así que se generan aquí. Pulsa
+   <b>Descargar los tres</b> y guarda los archivos en la raíz del repositorio, junto a
+   <code>index.html</code>. Con eso el juego queda instalable en el celular y el enlace
+   muestra vista previa al compartirlo.</p>
+
+<div class="fila">
+  <div class="caja"><h2>icon-192.png</h2><canvas id="c192" width="192" height="192"></canvas>
+    <button data-c="c192" data-n="icon-192.png">Descargar</button></div>
+  <div class="caja"><h2>icon-512.png</h2><canvas id="c512" width="512" height="512" style="width:256px"></canvas>
+    <button data-c="c512" data-n="icon-512.png">Descargar</button></div>
+  <div class="caja"><h2>og.png — 1200×630</h2><canvas id="cog" width="1200" height="630" style="width:520px"></canvas>
+    <button data-c="cog" data-n="og.png">Descargar</button></div>
+</div>
+<button id="todo">Descargar los tres</button>
+
+<script>
+"use strict";
+function rr(g,x,y,w,h,r){ r=Math.min(r,Math.abs(w)/2,Math.abs(h)/2); g.beginPath();
+  g.moveTo(x+r,y); g.lineTo(x+w-r,y); g.arcTo(x+w,y,x+w,y+r,r);
+  g.lineTo(x+w,y+h-r); g.arcTo(x+w,y+h,x+w-r,y+h,r);
+  g.lineTo(x+r,y+h); g.arcTo(x,y+h,x,y+h-r,r);
+  g.lineTo(x,y+r); g.arcTo(x,y,x+r,y,r); g.closePath(); }
+function circ(g,x,y,r){ g.beginPath(); g.arc(x,y,r,0,6.2832); g.closePath(); }
+function elip(g,x,y,rx,ry){ g.beginPath(); g.ellipse(x,y,rx,ry,0,0,6.2832); g.closePath(); }
+
+// Pasto con franjas, igual que el fondo del juego
+function pasto(g,w,h){
+  g.fillStyle='#7cc95a'; g.fillRect(0,0,w,h);
+  g.fillStyle='rgba(255,255,255,0.05)';
+  for(let y=0;y<h;y+=h/9) g.fillRect(0,y,w,h/18);
+}
+
+// Árbol de mango
+function arbol(g,x,y,s){
+  g.save(); g.translate(x,y); g.scale(s,s);
+  g.fillStyle='rgba(0,0,0,0.16)'; elip(g,0,4,28,10); g.fill();
+  g.fillStyle='#8a5a2b'; rr(g,-7,-40,14,44,5); g.fill();
+  g.translate(0,-58);
+  g.fillStyle='#2f8b41'; circ(g,-16,2,28); g.fill(); circ(g,18,4,26); g.fill(); circ(g,0,-16,30); g.fill();
+  g.fillStyle='#46b05a'; circ(g,-12,-4,24); g.fill(); circ(g,14,-6,22); g.fill(); circ(g,0,-22,24); g.fill();
+  g.fillStyle='rgba(255,255,255,0.16)'; circ(g,-10,-24,12); g.fill();
+  const off=[[-16,-8],[14,-14],[0,10]];
+  for(const o of off){
+    g.fillStyle='#e8901d'; circ(g,o[0],o[1]+2,8.5); g.fill();
+    g.fillStyle='#ffc233'; circ(g,o[0],o[1],8); g.fill();
+    g.fillStyle='rgba(255,255,255,0.5)'; circ(g,o[0]-2.6,o[1]-2.6,2.4); g.fill();
+  }
+  g.restore();
+}
+
+// Kiosa de cuerpo entero (el mismo dibujo del juego)
+function kiosa(g,x,y,s){
+  g.save(); g.translate(x,y); g.scale(s,s);
+  g.fillStyle='rgba(0,0,0,0.20)'; elip(g,0,3,17,7); g.fill();
+  g.fillStyle='#3a5fa8'; rr(g,-9,-16,8,17,4); g.fill(); rr(g,1,-16,8,17,4); g.fill();
+  g.fillStyle='#5a3d1e'; rr(g,-10,-1,10,5,2.5); g.fill(); rr(g,0,-1,10,5,2.5); g.fill();
+  g.fillStyle='#3fb0e8'; rr(g,-13,-40,26,26,9); g.fill();
+  rr(g,-19,-38,7,18,3.5); g.fill(); rr(g,12,-38,7,18,3.5); g.fill();
+  g.fillStyle='#f2c08a'; circ(g,-15.5,-21,4); g.fill(); circ(g,15.5,-21,4); g.fill();
+  circ(g,0,-50,12.5); g.fill();
+  g.fillStyle='#2b2b2b'; circ(g,1.8,-50.5,1.8); g.fill(); circ(g,6.8,-50.5,1.8); g.fill();
+  g.strokeStyle='#2b2b2b'; g.lineWidth=1.6; g.lineCap='round';
+  g.beginPath(); g.arc(3.4,-45.5,3.6,0.25,Math.PI-0.25); g.stroke();
+  g.fillStyle='#e63946';
+  g.beginPath(); g.arc(0,-58,13,Math.PI,0); g.lineTo(13,-56); g.lineTo(-13,-56); g.closePath(); g.fill();
+  rr(g,8,-59.5,14,5,2.5); g.fill();
+  g.fillStyle='rgba(255,255,255,0.18)';
+  g.beginPath(); g.arc(0,-58,13,Math.PI,Math.PI*1.5); g.lineTo(0,-58); g.closePath(); g.fill();
+  // logo de mango en la gorra
+  g.save(); g.translate(1.5,-63);
+  g.fillStyle='#ff9f1c'; elip(g,0,1.5,5.2,4.1); g.fill();
+  g.fillStyle='#e07a00'; elip(g,1.4,2.4,2.4,2.0); g.fill();
+  g.fillStyle='#3fa34d'; g.save(); g.translate(2.2,-2.4); g.rotate(-0.6); elip(g,0,0,3.4,1.7); g.fill(); g.restore();
+  g.restore();
+  // pila de mangos en la espalda
+  for(let i=0;i<4;i++){
+    const yy=-44-i*9.5;
+    g.fillStyle='#e8901d'; circ(g,-7,yy+1.6,7); g.fill();
+    g.fillStyle='#ffc233'; circ(g,-7,yy,6.4); g.fill();
+    g.fillStyle='rgba(255,255,255,0.42)'; circ(g,-9.2,yy-2.2,2); g.fill();
+  }
+  g.restore();
+}
+
+function icono(id){
+  const c=document.getElementById(id), g=c.getContext('2d'), S=c.width;
+  const k=S/192;
+  g.clearRect(0,0,S,S);
+  g.fillStyle='#2f8f3d'; rr(g,0,0,S,S,S*0.22); g.fill();
+  g.save(); rr(g,0,0,S,S,S*0.22); g.clip();
+  g.translate(0,S*0.30); g.scale(k,k);
+  g.fillStyle='#7cc95a'; g.fillRect(0,0,192/k*k*3,192);
+  g.fillStyle='rgba(255,255,255,0.06)';
+  for(let y=0;y<200;y+=22) g.fillRect(0,y,600,11);
+  g.restore();
+  g.save(); rr(g,0,0,S,S,S*0.22); g.clip();
+  arbol(g,S*0.22,S*0.80,k*0.78);
+  arbol(g,S*0.80,S*0.76,k*0.62);
+  kiosa(g,S*0.52,S*0.86,k*1.16);
+  g.restore();
+}
+
+function og(){
+  const c=document.getElementById('cog'), g=c.getContext('2d');
+  const W=1200,H=630;
+  pasto(g,W,H);
+  // camino de tierra
+  g.fillStyle='#d7ac72'; rr(g,0,H-150,W,150,0); g.fill();
+  g.fillStyle='#e2bc86'; rr(g,0,H-132,W,114,0); g.fill();
+  // árboles
+  arbol(g,150,H-150,2.0); arbol(g,340,H-176,1.6);
+  arbol(g,1040,H-150,2.0); arbol(g,880,H-180,1.5);
+  kiosa(g,620,H-118,2.5);
+  // velo para que el texto se lea
+  g.fillStyle='rgba(12,26,14,0.62)'; g.fillRect(0,0,W,250);
+  g.textAlign='center'; g.textBaseline='middle';
+  g.fillStyle='#ffe27a';
+  g.font='800 74px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  g.fillText('Kiosa: el imperio', W/2, 92);
+  g.fillText('de las huertas', W/2, 172);
+  g.fillStyle='#ffffff';
+  g.font='600 30px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  g.fillText('Cosecha · Vende · Mejora · Espanta las plagas', W/2, 226);
+}
+
+function bajar(id,nombre){
+  const c=document.getElementById(id);
+  c.toBlob(b=>{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(b); a.download=nombre;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+  },'image/png');
+}
+
+icono('c192'); icono('c512'); og();
+document.querySelectorAll('button[data-c]').forEach(b=>{
+  b.addEventListener('click',()=>bajar(b.dataset.c,b.dataset.n));
+});
+document.getElementById('todo').addEventListener('click',()=>{
+  bajar('c192','icon-192.png');
+  setTimeout(()=>bajar('c512','icon-512.png'),400);
+  setTimeout(()=>bajar('cog','og.png'),800);
+});
+</script>
+</body>
+</html>

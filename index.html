@@ -4,9 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#2f8f3d">
-<meta name="description" content="Kiosa: el imperio de las huertas — juego arcade idle de cosecha. Desarrollado por PcElectronics.">
-<meta name="author" content="PcElectronics">
-<title>Kiosa: el imperio de las huertas — PcElectronics</title>
+<meta name="description" content="Kiosa: el imperio de las huertas — juego arcade idle de cosecha. Cosecha, vende, mejora tu huerta y espanta las plagas.">
+<title>Kiosa: el imperio de las huertas</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232f8f3d'/%3E%3Cellipse cx='16' cy='19' rx='9' ry='7.5' fill='%23ffc233'/%3E%3Cellipse cx='19' cy='21' rx='4' ry='3.4' fill='%23e8901d'/%3E%3Cellipse cx='20' cy='9' rx='5' ry='2.4' fill='%233fa34d' transform='rotate(-25 20 9)'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Kiosa: el imperio de las huertas">
+<meta property="og:title" content="Kiosa: el imperio de las huertas">
+<meta property="og:description" content="Cosecha, vende y haz crecer tu huerta. Espanta las plagas antes de que se coman tu cosecha.">
+<meta property="og:url" content="https://kiosa7.github.io/kiosa-el-imperio-de-las-huertas/">
+<meta property="og:image" content="https://kiosa7.github.io/kiosa-el-imperio-de-las-huertas/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Kiosa: el imperio de las huertas">
+<meta name="twitter:description" content="Cosecha, vende y haz crecer tu huerta. Espanta las plagas antes de que se coman tu cosecha.">
+<meta name="twitter:image" content="https://kiosa7.github.io/kiosa-el-imperio-de-las-huertas/og.png">
 <style>
   * { box-sizing: border-box; }
   html, body {
@@ -30,26 +44,30 @@
 <script>
 "use strict";
 /* =========================================================================
-   KIOSA: EL IMPERIO DE LAS HUERTAS
-   Desarrollado por PcElectronics
-   Juego arcade idle 2D — HTML5 canvas + JS vanilla, un solo archivo.
-   Secciones: CONFIG · FRUITS · CHALLENGES · Estado · Save · SFX · Entidades
-              (Plant, Player, Helper) · Zonas y círculos · Retos · Partículas
-              · Input · Render · Loop
+   KIOSA: EL IMPERIO DE LAS HUERTAS — v2
+   Arcade idle 2D — HTML5 canvas + JS vanilla, un solo archivo.
+   Secciones: 1 CONFIG · 2 I18N · 3 FRUITS · 4 RETOS · 5 Estado · 6 Save
+              7 SFX · 8 Entidades · 9 Zonas y mejoras · 10 Motor de retos
+              11 Partículas · 12 Hints · 13 Canvas/cámara/rendimiento
+              14 Input · 15 Render · 16 Panel · 17 Loop · 18 API
    ========================================================================= */
 
 /* ============================== 1. CONFIG =============================== */
 const CONFIG = {
   // Mundo y cámara
   WORLD_W: 720,
-  WORLD_H: 1280,
-  VIEW_W: 460,          // ancho lógico deseado de la vista
-  VIEW_H: 900,          // alto lógico deseado de la vista
+  WORLD_H: 1620,
+  VIEW_W: 460,
+  VIEW_H: 900,
   CAM_LERP: 6,
+  CAM_BIAS: 0.58,              // el jugador se encuadra al 58% de la altura
   MAX_DT: 0.05,
+  BANDA_X0: 140,               // banda segura central (440 px de ancho)
+  BANDA_X1: 580,
+  ZONA_MEJORAS_Y: 1330,        // debajo de esto la cámara fija x al centro
 
   // Jugador
-  PLAYER_SPEED: 180,           // px/s
+  PLAYER_SPEED: 180,
   SPEED_PENALTY_PER_FRUIT: 0.01,
   SPEED_MIN_FACTOR: 0.60,
   CAP_START: 10,
@@ -59,103 +77,333 @@ const CONFIG = {
   HARVEST_RADIUS: 60,
   HARVEST_INTERVAL: 0.15,
   PLANT_MAX_FRUIT: 3,
-  PLANT_REGEN: 2.0,
+  REGEN_NIVELES: [2.0, 1.7, 1.45, 1.23, 1.05],
 
   // Venta
   SELL_INTERVAL: 0.12,
 
   // Mejoras
-  PAY_TIME: 1.5,               // segundos para pagar el precio completo
-  ARBOL_COSTO: 50,  ARBOL_MULT: 1.35,
+  PAY_TIME: 1.5,
+  ARBOL_COSTO: 50,   ARBOL_MULT: 1.35,
   MOCHILA_COSTO: 80, MOCHILA_MULT: 1.60, MOCHILA_PASO: 5,
-  AYUDANTE_COSTOS: [250, 500],
-  AYUDANTE_MAX: 2,
+  AYUDANTE_COSTOS: [250, 500, 900], AYUDANTE_MAX: 3,
+  RIEGO_COSTO: 400,  RIEGO_MULT: 2.0,  RIEGO_MAX: 4,
+  ESPANTA_COSTO: 600, ESPANTA_MULT: 1.8, ESPANTA_MAX: 3,
+
+  // Ayudantes
   HELPER_SPEED_FACTOR: 0.70,
   HELPER_CAP: 6,
   HELPER_HARVEST_INTERVAL: 0.30,
   HELPER_SELL_INTERVAL: 0.18,
-  HELPER_COLORS: ['#e0568f', '#7b5cd6'],
+  HELPER_COLORS: ['#e0568f', '#7b5cd6', '#f2a03d'],
+
+  // Plagas
+  PLAGA_INTERVALO_BASE: 18,
+  PLAGA_INTERVALO_MIN: 7,
+  PLAGA_INTERVALO_POR_CAP: 1.5,
+  PLAGA_VEL: 260,
+  PLAGA_GRACIA: 1.2,
+  PLAGA_MORDIDA: 2.5,
+  PLAGA_RADIO_ESPANTO: 70,
+  PLAGA_MARCHITA: 15,
+  PLAGA_MAX_TOPE: 4,
+  ESPANTA_EVITA: 0.70,
+  ESPANTA_AUTO: 6,
+
+  // Rendimiento
+  CONFETI_MAX: 240,
+  CONFETI_MAX_BAJO: 60,
+  MS_MALO: 22,
+  MS_BUENO: 14,
 
   // Guardado
-  SAVE_KEY: 'kiosaImperio.v1',
-  SAVE_VERSION: 1,
+  SAVE_KEY: 'kiosaImperio.v2',
+  SAVE_KEY_V1: 'kiosaImperio.v1',
+  SAVE_VERSION: 2,
   SAVE_INTERVAL: 3.0
 };
 
 const WORLD_W = CONFIG.WORLD_W, WORLD_H = CONFIG.WORLD_H;
 
-// Zona de venta (mostrador + área pisable)
-const SELL = { x: 250, y: 852, w: 220, h: 118, cx: 360, cy: 911 };
-const COUNTER = { x: 258, y: 772, w: 204, h: 66 };
+// Mostrador de venta (dentro de la banda segura)
+const SELL = { x: 250, y: 1170, w: 220, h: 118, cx: 360, cy: 1229 };
+const COUNTER = { x: 258, y: 1090, w: 204, h: 66 };
 
-/* ============================== 2. FRUITS ===============================
-   Para añadir una fruta nueva (papaya, guayaba, piña…) basta con agregar
-   un objeto a este arreglo: nada de lógica cambia. Si `desbloqueadaInicio`
-   es false, se desbloquea cuando un reto la referencie en `desbloquea`.
+/* =============================== 2. I18N ================================
+   Ni una sola cadena visible fuera de aquí. t('clave', {n: 5}) sustituye
+   los marcadores {n}. Idioma detectado de navigator.language.
+   ======================================================================== */
+const I18N = {
+  es: {
+    vender: 'VENDER', lleno: '¡LLENO!', max: 'MÁX', cumpleReto: 'Cumple el reto',
+    modoLibre: '🏆 Modo libre', frutasVendidas: 'Frutas vendidas: {n}',
+    retoCompletado: '¡Reto completado!', imperioCompleto: '¡Imperio completo!',
+    fuera: '¡Fuera!', mitad: 'Vas a la mitad', recompensa: 'Recompensa',
+    reiniciar: '¿Reiniciar el juego? Se borrará todo tu progreso.',
+    enlaceCopiado: 'Enlace copiado',
+    compartirTxt: 'Llevo ${d} y {n} frutas vendidas en Kiosa: el imperio de las huertas',
+    capitulo: 'Cap. {n}', retoDeN: 'Reto {a}/{b}', completado: 'Completado',
+    retos: 'Retos', campana: 'Campaña', opcionales: 'Opcionales', diarios: 'Diarios',
+    sinDiarios: 'Vuelve mañana por retos nuevos.',
+    zMango: 'HUERTA DE MANGOS', zNaranja: 'HUERTA DE NARANJAS', zSandia: 'PARCHE DE SANDÍAS',
+    zPapaya: 'HUERTA DE PAPAYAS', zPina: 'PARCHE DE PIÑAS',
+    cArbol: '+1 PLANTA', cMochila: 'MOCHILA +5', cAyudante: 'AYUDANTE',
+    cRiego: 'RIEGO', cEspanta: 'ESPANTAPÁJAROS',
+    hCaminar: 'Camina hacia los árboles', hVender: 'Lleva la pila a VENDER',
+    hMejorar: 'Párate en un círculo para mejorar', hPlaga: '¡Corre, espanta la plaga!',
+    cap1: 'Primeros brotes', cap2: 'La huerta crece', cap3: 'Defiende la cosecha',
+    cap4: 'Imperio en marcha', cap5: 'El imperio',
+    r_c01: 'Vende {n} mangos', r_c02: 'Espanta {n} plagas', r_c03: 'Gana ${n} en total',
+    r_c04: 'Compra tu primera mejora', r_c05: 'Contrata un ayudante',
+    r_c06: 'Vende {n} frutas en total', r_c07: 'Ten {n} plantas a la vez',
+    r_c08: 'Gana ${n} en total', r_c09: 'Espanta {n} plagas',
+    r_c10: 'Compra un espantapájaros', r_c11: 'Aguanta 3 min sin marchitas',
+    r_c12: 'Vende {n} naranjas', r_c13: 'Contrata el segundo ayudante',
+    r_c14: 'Sube la mochila a {n}', r_c15: 'Gana ${n} en total',
+    r_c16: 'Vende {n} sandías', r_c17: 'Ten {n} plantas a la vez',
+    r_c18: 'Vende {n} papayas', r_c19: 'Espanta {n} plagas',
+    r_c20: 'Vende {n} frutas en total',
+    r_o1: 'Llena la mochila y véndela entera', r_o2: 'Espanta 3 plagas en 10 s',
+    r_o3: 'Ten ${n} de saldo', r_o4: 'Cosecha {n} frutas en total',
+    r_o5: 'Compra {n} plantas', r_o6: 'Mochila al máximo ({n})',
+    r_o7: '2 ayudantes y 15 plantas a la vez', r_o8: 'Desbloquea las {n} huertas',
+    r_d1: 'Vende {n} frutas hoy', r_d2: 'Espanta {n} plagas hoy',
+    r_d3: 'Gana ${n} hoy', r_d4: 'Cosecha {n} frutas hoy',
+    r_d5: 'Vende {n} naranjas hoy', r_d6: 'Compra {n} mejoras hoy',
+    r_d7: 'Vende {n} sandías hoy', r_d8: 'Aguanta 2 min sin marchitas',
+    r_d9: 'Vende {n} papayas hoy', r_d10: 'Llena la mochila {n} veces hoy'
+  },
+  en: {
+    vender: 'SELL', lleno: 'FULL!', max: 'MAX', cumpleReto: 'Complete the goal',
+    modoLibre: '🏆 Free play', frutasVendidas: 'Fruit sold: {n}',
+    retoCompletado: 'Goal complete!', imperioCompleto: 'Empire complete!',
+    fuera: 'Shoo!', mitad: 'Halfway there', recompensa: 'Reward',
+    reiniciar: 'Restart the game? All your progress will be erased.',
+    enlaceCopiado: 'Link copied',
+    compartirTxt: 'I have ${d} and {n} fruit sold in Kiosa: the orchard empire',
+    capitulo: 'Ch. {n}', retoDeN: 'Goal {a}/{b}', completado: 'Complete',
+    retos: 'Goals', campana: 'Campaign', opcionales: 'Optional', diarios: 'Daily',
+    sinDiarios: 'Come back tomorrow for new goals.',
+    zMango: 'MANGO GROVE', zNaranja: 'ORANGE GROVE', zSandia: 'WATERMELON PATCH',
+    zPapaya: 'PAPAYA GROVE', zPina: 'PINEAPPLE PATCH',
+    cArbol: '+1 PLANT', cMochila: 'BACKPACK +5', cAyudante: 'HELPER',
+    cRiego: 'IRRIGATION', cEspanta: 'SCARECROW',
+    hCaminar: 'Walk to the trees', hVender: 'Take the stack to SELL',
+    hMejorar: 'Stand on a circle to upgrade', hPlaga: 'Run, scare the pest away!',
+    cap1: 'First sprouts', cap2: 'The orchard grows', cap3: 'Defend the harvest',
+    cap4: 'Empire rising', cap5: 'The empire',
+    r_c01: 'Sell {n} mangoes', r_c02: 'Scare off {n} pests', r_c03: 'Earn ${n} in total',
+    r_c04: 'Buy your first upgrade', r_c05: 'Hire a helper',
+    r_c06: 'Sell {n} fruit in total', r_c07: 'Have {n} plants at once',
+    r_c08: 'Earn ${n} in total', r_c09: 'Scare off {n} pests',
+    r_c10: 'Buy a scarecrow', r_c11: 'Go 3 min with no wilting',
+    r_c12: 'Sell {n} oranges', r_c13: 'Hire the second helper',
+    r_c14: 'Raise backpack to {n}', r_c15: 'Earn ${n} in total',
+    r_c16: 'Sell {n} watermelons', r_c17: 'Have {n} plants at once',
+    r_c18: 'Sell {n} papayas', r_c19: 'Scare off {n} pests',
+    r_c20: 'Sell {n} fruit in total',
+    r_o1: 'Fill the backpack and sell it all', r_o2: 'Scare 3 pests in 10 s',
+    r_o3: 'Hold ${n} in cash', r_o4: 'Harvest {n} fruit in total',
+    r_o5: 'Buy {n} plants', r_o6: 'Backpack maxed ({n})',
+    r_o7: '2 helpers and 15 plants at once', r_o8: 'Unlock all {n} groves',
+    r_d1: 'Sell {n} fruit today', r_d2: 'Scare {n} pests today',
+    r_d3: 'Earn ${n} today', r_d4: 'Harvest {n} fruit today',
+    r_d5: 'Sell {n} oranges today', r_d6: 'Buy {n} upgrades today',
+    r_d7: 'Sell {n} watermelons today', r_d8: 'Go 2 min with no wilting',
+    r_d9: 'Sell {n} papayas today', r_d10: 'Fill the backpack {n} times today'
+  },
+  pt: {
+    vender: 'VENDER', lleno: 'CHEIO!', max: 'MÁX', cumpleReto: 'Cumpra o desafio',
+    modoLibre: '🏆 Modo livre', frutasVendidas: 'Frutas vendidas: {n}',
+    retoCompletado: 'Desafio completo!', imperioCompleto: 'Império completo!',
+    fuera: 'Xô!', mitad: 'Já vai na metade', recompensa: 'Recompensa',
+    reiniciar: 'Reiniciar o jogo? Todo o seu progresso será apagado.',
+    enlaceCopiado: 'Link copiado',
+    compartirTxt: 'Tenho ${d} e {n} frutas vendidas em Kiosa: o império das hortas',
+    capitulo: 'Cap. {n}', retoDeN: 'Desafio {a}/{b}', completado: 'Completo',
+    retos: 'Desafios', campana: 'Campanha', opcionales: 'Opcionais', diarios: 'Diários',
+    sinDiarios: 'Volte amanhã para novos desafios.',
+    zMango: 'POMAR DE MANGAS', zNaranja: 'POMAR DE LARANJAS', zSandia: 'ROÇA DE MELANCIAS',
+    zPapaya: 'POMAR DE MAMÕES', zPina: 'ROÇA DE ABACAXIS',
+    cArbol: '+1 PLANTA', cMochila: 'MOCHILA +5', cAyudante: 'AJUDANTE',
+    cRiego: 'IRRIGAÇÃO', cEspanta: 'ESPANTALHO',
+    hCaminar: 'Ande até as árvores', hVender: 'Leve a pilha até VENDER',
+    hMejorar: 'Fique num círculo para melhorar', hPlaga: 'Corra, espante a praga!',
+    cap1: 'Primeiros brotos', cap2: 'A horta cresce', cap3: 'Defenda a colheita',
+    cap4: 'Império a caminho', cap5: 'O império',
+    r_c01: 'Venda {n} mangas', r_c02: 'Espante {n} pragas', r_c03: 'Ganhe ${n} no total',
+    r_c04: 'Compre sua primeira melhoria', r_c05: 'Contrate um ajudante',
+    r_c06: 'Venda {n} frutas no total', r_c07: 'Tenha {n} plantas de uma vez',
+    r_c08: 'Ganhe ${n} no total', r_c09: 'Espante {n} pragas',
+    r_c10: 'Compre um espantalho', r_c11: 'Aguente 3 min sem murchar',
+    r_c12: 'Venda {n} laranjas', r_c13: 'Contrate o segundo ajudante',
+    r_c14: 'Suba a mochila para {n}', r_c15: 'Ganhe ${n} no total',
+    r_c16: 'Venda {n} melancias', r_c17: 'Tenha {n} plantas de uma vez',
+    r_c18: 'Venda {n} mamões', r_c19: 'Espante {n} pragas',
+    r_c20: 'Venda {n} frutas no total',
+    r_o1: 'Encha a mochila e venda inteira', r_o2: 'Espante 3 pragas em 10 s',
+    r_o3: 'Tenha ${n} em caixa', r_o4: 'Colha {n} frutas no total',
+    r_o5: 'Compre {n} plantas', r_o6: 'Mochila no máximo ({n})',
+    r_o7: '2 ajudantes e 15 plantas de uma vez', r_o8: 'Desbloqueie as {n} hortas',
+    r_d1: 'Venda {n} frutas hoje', r_d2: 'Espante {n} pragas hoje',
+    r_d3: 'Ganhe ${n} hoje', r_d4: 'Colha {n} frutas hoje',
+    r_d5: 'Venda {n} laranjas hoje', r_d6: 'Compre {n} melhorias hoje',
+    r_d7: 'Venda {n} melancias hoje', r_d8: 'Aguente 2 min sem murchar',
+    r_d9: 'Venda {n} mamões hoje', r_d10: 'Encha a mochila {n} vezes hoje'
+  }
+};
+const IDIOMAS = ['es', 'en', 'pt'];
+let LANG = 'es';
+
+function detectarIdioma() {
+  try {
+    const l = (navigator.language || 'es').slice(0, 2).toLowerCase();
+    return IDIOMAS.indexOf(l) >= 0 ? l : 'es';
+  } catch (e) { return 'es'; }
+}
+
+function t(k, p) {
+  const dic = I18N[LANG] || I18N.es;
+  let s = dic[k];
+  if (s === undefined) s = I18N.es[k];
+  if (s === undefined) return k;
+  if (p) for (const key in p) s = s.split('{' + key + '}').join(p[key]);
+  return s;
+}
+
+/* ============================== 3. FRUITS ===============================
+   Para añadir una fruta nueva basta con agregar un objeto aquí: ninguna
+   lógica cambia. `zona.key` es la clave i18n del rótulo.
    ======================================================================== */
 const FRUITS = [
   {
-    id: 'mango',
-    nombre: 'Mango',
-    plural: 'mangos',
-    precio: 6,
-    tipoPlanta: 'arbol',
-    desbloqueadaInicio: true,
-    colores: {
-      fruta: '#ffc233', frutaSombra: '#e8901d',
-      copa: '#46b05a', copaOscura: '#2f8b41', tronco: '#8a5a2b'
-    },
-    zona: { x: 50, y: 48, w: 620, h: 366, nombre: 'HUERTA DE MANGOS' },
+    id: 'mango', precio: 6, tipoPlanta: 'arbol', desbloqueadaInicio: true,
+    colores: { fruta: '#ffc233', frutaSombra: '#e8901d', copa: '#46b05a', copaOscura: '#2f8b41', tronco: '#8a5a2b' },
+    zona: { x: 50, y: 48, w: 620, h: 366, key: 'zMango' },
     posiciones: [[150,158],[360,124],[572,162],[236,306],[494,312]],
     posicionesExtra: [[84,258],[644,266],[360,252],[136,382],[598,384]]
   },
   {
-    id: 'naranja',
-    nombre: 'Naranja',
-    plural: 'naranjas',
-    precio: 11,
-    tipoPlanta: 'arbol',
-    desbloqueadaInicio: false,
-    colores: {
-      fruta: '#ff8c1a', frutaSombra: '#d96504',
-      copa: '#5cbf5f', copaOscura: '#37974a', tronco: '#7d5327'
-    },
-    zona: { x: 44, y: 440, w: 292, h: 292, nombre: 'HUERTA DE NARANJAS' },
+    id: 'naranja', precio: 11, tipoPlanta: 'arbol', desbloqueadaInicio: false,
+    colores: { fruta: '#ff8c1a', frutaSombra: '#d96504', copa: '#5cbf5f', copaOscura: '#37974a', tronco: '#7d5327' },
+    zona: { x: 44, y: 440, w: 292, h: 292, key: 'zNaranja' },
     posiciones: [[112,534],[268,512],[188,654]],
     posicionesExtra: [[96,694],[300,664],[240,594],[142,474]]
   },
   {
-    id: 'sandia',
-    nombre: 'Sandía',
-    plural: 'sandías',
-    precio: 20,
-    tipoPlanta: 'rastrera',
-    desbloqueadaInicio: false,
-    colores: {
-      fruta: '#4aa53f', frutaSombra: '#2d7a2a',
-      copa: '#3f9d46', copaOscura: '#2c7a34', tronco: '#2c7a34'
-    },
-    zona: { x: 384, y: 440, w: 292, h: 292, nombre: 'PARCHE DE SANDÍAS' },
+    id: 'sandia', precio: 20, tipoPlanta: 'rastrera', desbloqueadaInicio: false,
+    colores: { fruta: '#4aa53f', frutaSombra: '#2d7a2a', copa: '#3f9d46', copaOscura: '#2c7a34', tronco: '#2c7a34' },
+    zona: { x: 384, y: 440, w: 292, h: 292, key: 'zSandia' },
     posiciones: [[452,536],[612,522],[532,656]],
     posicionesExtra: [[424,668],[650,664],[542,472],[470,600]]
+  },
+  {
+    id: 'papaya', precio: 34, tipoPlanta: 'arbol', desbloqueadaInicio: false,
+    colores: { fruta: '#ffa93b', frutaSombra: '#d97a12', copa: '#7cc24f', copaOscura: '#4f9a35', tronco: '#9a7040' },
+    zona: { x: 44, y: 758, w: 292, h: 292, key: 'zPapaya' },
+    posiciones: [[112,852],[268,830],[188,972]],
+    posicionesExtra: [[96,1012],[300,982],[240,912],[142,792]]
+  },
+  {
+    id: 'pina', precio: 55, tipoPlanta: 'rastrera', desbloqueadaInicio: false,
+    colores: { fruta: '#e8bf3c', frutaSombra: '#b8891a', copa: '#4fae52', copaOscura: '#2f7f38', tronco: '#2f7f38' },
+    zona: { x: 384, y: 758, w: 292, h: 292, key: 'zPina' },
+    posiciones: [[452,854],[612,840],[532,974]],
+    posicionesExtra: [[424,986],[650,982],[542,790],[470,918]]
   }
 ];
 const FRUIT_BY_ID = {};
 FRUITS.forEach(f => { FRUIT_BY_ID[f.id] = f; f._fade = 1; });
 
-/* ============================= 3. CHALLENGES ============================ */
-const CHALLENGES = [
-  { id: 'v25mango', texto: 'Vende 25 mangos', meta: 25,
-    progreso: s => s.ventasPorFruta.mango || 0, desbloquea: 'naranja' },
-  { id: 'gana500', texto: 'Gana $500 en total', meta: 500,
-    progreso: s => Math.floor(s.dineroTotal), desbloquea: 'sandia' },
-  { id: 'ayudante', texto: 'Contrata un ayudante', meta: 1,
-    progreso: s => s.ayudantes },
-  { id: 'v150', texto: 'Vende 150 frutas en total', meta: 150,
-    progreso: s => s.ventasTotales, final: true }
+/* =============================== 4. RETOS ===============================
+   Tres carriles: campaña (20 en 5 capítulos), opcionales (8) y diarios
+   (3 al día de un pozo de 10, elegidos según la fecha local).
+   ======================================================================== */
+const CAP_NOMBRES = ['cap1', 'cap2', 'cap3', 'cap4', 'cap5'];
+
+const CAMPANA = [
+  { id:'c01', cap:0, k:'r_c01', meta:25,   prog:s => s.ventasPorFruta.mango || 0,   premio:100,  desbloquea:'naranja' },
+  { id:'c02', cap:0, k:'r_c02', meta:5,    prog:s => s.plagasEspantadas,            premio:100 },
+  { id:'c03', cap:0, k:'r_c03', meta:500,  prog:s => Math.floor(s.dineroTotal),     premio:100,  desbloquea:'sandia' },
+  { id:'c04', cap:0, k:'r_c04', meta:1,    prog:s => totalCompras(),                premio:100 },
+  { id:'c05', cap:1, k:'r_c05', meta:1,    prog:s => s.ayudantes,                   premio:300 },
+  { id:'c06', cap:1, k:'r_c06', meta:150,  prog:s => s.ventasTotales,               premio:300 },
+  { id:'c07', cap:1, k:'r_c07', meta:12,   prog:s => plants.length,                 premio:300 },
+  { id:'c08', cap:1, k:'r_c08', meta:2000, prog:s => Math.floor(s.dineroTotal),     premio:300,  desbloquea:'papaya' },
+  { id:'c09', cap:2, k:'r_c09', meta:25,   prog:s => s.plagasEspantadas,            premio:700 },
+  { id:'c10', cap:2, k:'r_c10', meta:1,    prog:s => s.compras.espanta,             premio:700 },
+  { id:'c11', cap:2, k:'r_c11', meta:180,  prog:s => Math.floor(s.sinMarchita),     premio:700 },
+  { id:'c12', cap:2, k:'r_c12', meta:100,  prog:s => s.ventasPorFruta.naranja || 0, premio:700 },
+  { id:'c13', cap:3, k:'r_c13', meta:2,    prog:s => s.ayudantes,                   premio:1500 },
+  { id:'c14', cap:3, k:'r_c14', meta:25,   prog:s => s.capacidad,                   premio:1500 },
+  { id:'c15', cap:3, k:'r_c15', meta:8000, prog:s => Math.floor(s.dineroTotal),     premio:1500, desbloquea:'pina' },
+  { id:'c16', cap:3, k:'r_c16', meta:60,   prog:s => s.ventasPorFruta.sandia || 0,  premio:1500 },
+  { id:'c17', cap:4, k:'r_c17', meta:20,   prog:s => plants.length,                 premio:3000 },
+  { id:'c18', cap:4, k:'r_c18', meta:40,   prog:s => s.ventasPorFruta.papaya || 0,  premio:3000 },
+  { id:'c19', cap:4, k:'r_c19', meta:60,   prog:s => s.plagasEspantadas,            premio:3000 },
+  { id:'c20', cap:4, k:'r_c20', meta:1000, prog:s => s.ventasTotales,               premio:3000, final:true }
 ];
 
-/* ============================== 4. ESTADO =============================== */
+const OPCIONALES = [
+  { id:'o1', k:'r_o1', meta:1,    prog:s => s.op.mochilaFull,          premio:150 },
+  { id:'o2', k:'r_o2', meta:1,    prog:s => s.op.racha3,               premio:200 },
+  { id:'o3', k:'r_o3', meta:1000, prog:s => Math.floor(s.op.saldoMax), premio:250 },
+  { id:'o4', k:'r_o4', meta:500,  prog:s => s.recolectadas,            premio:300 },
+  { id:'o5', k:'r_o5', meta:10,   prog:s => s.compras.arbol,           premio:400 },
+  { id:'o6', k:'r_o6', meta:40,   prog:s => s.capacidad,               premio:500 },
+  { id:'o7', k:'r_o7', meta:1,    prog:s => (s.ayudantes >= 2 && plants.length >= 15) ? 1 : 0, premio:600 },
+  { id:'o8', k:'r_o8', meta:5,    prog:s => s.desbloqueadas.length,    premio:1000 }
+];
+
+const DIARIOS = [
+  { id:'d1',  k:'r_d1',  meta:60,   prog:s => s.hoy.ventas },
+  { id:'d2',  k:'r_d2',  meta:15,   prog:s => s.hoy.plagas },
+  { id:'d3',  k:'r_d3',  meta:1200, prog:s => Math.floor(s.hoy.dinero) },
+  { id:'d4',  k:'r_d4',  meta:100,  prog:s => s.hoy.cosechas },
+  { id:'d5',  k:'r_d5',  meta:20,   prog:s => s.hoy.porFruta.naranja || 0 },
+  { id:'d6',  k:'r_d6',  meta:2,    prog:s => s.hoy.compras },
+  { id:'d7',  k:'r_d7',  meta:10,   prog:s => s.hoy.porFruta.sandia || 0 },
+  { id:'d8',  k:'r_d8',  meta:120,  prog:s => Math.floor(s.hoy.sinMarchita) },
+  { id:'d9',  k:'r_d9',  meta:5,    prog:s => s.hoy.porFruta.papaya || 0 },
+  { id:'d10', k:'r_d10', meta:5,    prog:s => s.hoy.llenadas }
+];
+const PREMIO_DIARIO = [200, 350, 500];
+
+const RETO_BY_ID = {};
+CAMPANA.concat(OPCIONALES, DIARIOS).forEach(r => { RETO_BY_ID[r.id] = r; });
+
+function textoReto(r) { return t(r.k, { n: r.meta }); }
+
+// Fecha local YYYY-MM-DD, semilla de los diarios
+function fechaHoy() {
+  const d = new Date();
+  const m = ('0' + (d.getMonth() + 1)).slice(-2);
+  const dd = ('0' + d.getDate()).slice(-2);
+  return d.getFullYear() + '-' + m + '-' + dd;
+}
+
+// Tres diarios distintos, deterministas a partir de la fecha
+function diariosDeHoy(fecha) {
+  let h = 2166136261;
+  for (let i = 0; i < fecha.length; i++) {
+    h ^= fecha.charCodeAt(i);
+    h = (h * 16777619) >>> 0;
+  }
+  const pool = DIARIOS.map(d => d.id);
+  const out = [];
+  for (let i = 0; i < 3 && pool.length; i++) {
+    h = (h * 1103515245 + 12345) >>> 0;
+    out.push(pool.splice(h % pool.length, 1)[0]);
+  }
+  return out;
+}
+
+/* ============================== 5. ESTADO =============================== */
+function estadoHoyNuevo() {
+  return { fecha: fechaHoy(), ventas: 0, plagas: 0, dinero: 0, cosechas: 0,
+           porFruta: {}, compras: 0, llenadas: 0, sinMarchita: 0 };
+}
+
 function estadoNuevo() {
   return {
     dinero: 0,
@@ -163,27 +411,49 @@ function estadoNuevo() {
     ventasTotales: 0,
     ventasPorFruta: {},
     recolectadas: 0,
+    plagasEspantadas: 0,
     capacidad: CONFIG.CAP_START,
-    compras: { arbol: 0, mochila: 0 },
-    extras: {},                 // { fruitId: nPlantasExtra }
+    compras: { arbol: 0, mochila: 0, riego: 0, espanta: 0 },
+    extras: {},
+    espantaZonas: [],
     ayudantes: 0,
     retoIdx: 0,
-    pagos: { arbol: 0, mochila: 0, ayudante: 0 },
-    hints: { caminar: false, vender: false, mejorar: false },
+    cumplidos: [],
+    diarios: { fecha: fechaHoy(), ids: diariosDeHoy(fechaHoy()), cobrados: [] },
+    hoy: estadoHoyNuevo(),
+    sinMarchita: 0,
+    op: { mochilaFull: 0, racha3: 0, saldoMax: 0 },
+    pagos: { arbol: 0, mochila: 0, ayudante: 0, riego: 0, espanta: 0 },
+    hints: { caminar: false, vender: false, mejorar: false, plaga: false },
     mute: false,
+    idioma: detectarIdioma(),
+    calidad: 'auto',
     desbloqueadas: FRUITS.filter(f => f.desbloqueadaInicio).map(f => f.id)
   };
 }
 let state = estadoNuevo();
+LANG = state.idioma;
 
 const plants = [];
 const helpers = [];
+const plagas = [];
+const espantas = [];
 const confetti = [];
 const floats = [];
-let bigMsg = null;      // { txt, t }
+const toasts = [];
+let bigMsg = null;
 let saveTimer = 0;
+let plagaTimer = 0;
+let rachaEspanto = [];
 
-/* ============================== 5. SAVE ================================= */
+function num(v, def) { return (typeof v === 'number' && isFinite(v)) ? v : def; }
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+/* =============================== 6. SAVE ================================
+   Clave versionada, saneo de cada campo al cargar y migración desde v1.
+   ======================================================================== */
 const Save = {
   disponible: (function () {
     try {
@@ -194,99 +464,156 @@ const Save = {
     } catch (e) { return false; }
   })(),
 
-  bloqueado: false,   // true durante un reinicio duro: evita que pagehide reescriba el save
-
   guardar() {
-    if (!this.disponible || this.bloqueado) return;
+    if (!this.disponible) return;
     try {
-      const data = {
+      window.localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify({
         v: CONFIG.SAVE_VERSION,
-        dinero: state.dinero,
-        dineroTotal: state.dineroTotal,
-        ventasTotales: state.ventasTotales,
-        ventasPorFruta: state.ventasPorFruta,
-        recolectadas: state.recolectadas,
-        capacidad: state.capacidad,
-        compras: state.compras,
-        extras: state.extras,
-        ayudantes: state.ayudantes,
-        retoIdx: state.retoIdx,
-        pagos: state.pagos,
-        hints: state.hints,
-        mute: state.mute,
+        dinero: state.dinero, dineroTotal: state.dineroTotal,
+        ventasTotales: state.ventasTotales, ventasPorFruta: state.ventasPorFruta,
+        recolectadas: state.recolectadas, plagasEspantadas: state.plagasEspantadas,
+        capacidad: state.capacidad, compras: state.compras, extras: state.extras,
+        espantaZonas: state.espantaZonas, ayudantes: state.ayudantes,
+        retoIdx: state.retoIdx, cumplidos: state.cumplidos,
+        diarios: state.diarios, hoy: state.hoy, sinMarchita: state.sinMarchita,
+        op: state.op, pagos: state.pagos, hints: state.hints,
+        mute: state.mute, idioma: state.idioma, calidad: state.calidad,
         desbloqueadas: state.desbloqueadas
-      };
-      window.localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(data));
-    } catch (e) { /* cuota llena o modo privado: seguimos sin guardar */ }
+      }));
+    } catch (e) {}
   },
 
   cargar() {
     if (!this.disponible) return false;
     let raw = null;
     try { raw = window.localStorage.getItem(CONFIG.SAVE_KEY); } catch (e) { return false; }
-    if (!raw) return false;
+    if (!raw) return this.migrarV1();
     let d = null;
     try { d = JSON.parse(raw); } catch (e) { d = null; }
-    if (!d || typeof d !== 'object' || d.v !== CONFIG.SAVE_VERSION) {
-      this.borrar();
-      return false;
-    }
+    if (!d || typeof d !== 'object' || d.v !== CONFIG.SAVE_VERSION) { this.borrar(); return false; }
     try {
       const s = estadoNuevo();
-      s.dinero = num(d.dinero, 0);
-      s.dineroTotal = num(d.dineroTotal, 0);
-      s.ventasTotales = num(d.ventasTotales, 0) | 0;
-      s.recolectadas = num(d.recolectadas, 0) | 0;
+      s.dinero = Math.max(0, num(d.dinero, 0));
+      s.dineroTotal = Math.max(0, num(d.dineroTotal, 0));
+      s.ventasTotales = Math.max(0, num(d.ventasTotales, 0) | 0);
+      s.recolectadas = Math.max(0, num(d.recolectadas, 0) | 0);
+      s.plagasEspantadas = Math.max(0, num(d.plagasEspantadas, 0) | 0);
       s.capacidad = clamp(num(d.capacidad, CONFIG.CAP_START) | 0, CONFIG.CAP_START, CONFIG.CAP_MAX);
       s.ayudantes = clamp(num(d.ayudantes, 0) | 0, 0, CONFIG.AYUDANTE_MAX);
-      s.retoIdx = clamp(num(d.retoIdx, 0) | 0, 0, CHALLENGES.length);
+      s.retoIdx = clamp(num(d.retoIdx, 0) | 0, 0, CAMPANA.length);
+      s.sinMarchita = Math.max(0, num(d.sinMarchita, 0));
       s.mute = !!d.mute;
+      s.idioma = IDIOMAS.indexOf(d.idioma) >= 0 ? d.idioma : detectarIdioma();
+      s.calidad = ['auto', 'bajo', 'alto'].indexOf(d.calidad) >= 0 ? d.calidad : 'auto';
+
       if (d.ventasPorFruta && typeof d.ventasPorFruta === 'object') {
-        for (const f of FRUITS) s.ventasPorFruta[f.id] = num(d.ventasPorFruta[f.id], 0) | 0;
+        for (const f of FRUITS) s.ventasPorFruta[f.id] = Math.max(0, num(d.ventasPorFruta[f.id], 0) | 0);
       }
       if (d.compras && typeof d.compras === 'object') {
-        s.compras.arbol = num(d.compras.arbol, 0) | 0;
-        s.compras.mochila = num(d.compras.mochila, 0) | 0;
+        s.compras.arbol = Math.max(0, num(d.compras.arbol, 0) | 0);
+        s.compras.mochila = Math.max(0, num(d.compras.mochila, 0) | 0);
+        s.compras.riego = clamp(num(d.compras.riego, 0) | 0, 0, CONFIG.RIEGO_MAX);
+        s.compras.espanta = clamp(num(d.compras.espanta, 0) | 0, 0, CONFIG.ESPANTA_MAX);
       }
       if (d.extras && typeof d.extras === 'object') {
-        for (const f of FRUITS) {
-          s.extras[f.id] = clamp(num(d.extras[f.id], 0) | 0, 0, f.posicionesExtra.length);
-        }
+        for (const f of FRUITS) s.extras[f.id] = clamp(num(d.extras[f.id], 0) | 0, 0, f.posicionesExtra.length);
       }
+      if (Array.isArray(d.espantaZonas)) {
+        s.espantaZonas = d.espantaZonas.filter(id => !!FRUIT_BY_ID[id]).slice(0, CONFIG.ESPANTA_MAX);
+      }
+      if (Array.isArray(d.cumplidos)) s.cumplidos = d.cumplidos.filter(id => !!RETO_BY_ID[id]);
       if (d.pagos && typeof d.pagos === 'object') {
-        s.pagos.arbol = Math.max(0, num(d.pagos.arbol, 0));
-        s.pagos.mochila = Math.max(0, num(d.pagos.mochila, 0));
-        s.pagos.ayudante = Math.max(0, num(d.pagos.ayudante, 0));
+        for (const k in s.pagos) s.pagos[k] = Math.max(0, num(d.pagos[k], 0));
       }
       if (d.hints && typeof d.hints === 'object') {
-        s.hints.caminar = !!d.hints.caminar;
-        s.hints.vender = !!d.hints.vender;
-        s.hints.mejorar = !!d.hints.mejorar;
+        for (const k in s.hints) s.hints[k] = !!d.hints[k];
+      }
+      if (d.op && typeof d.op === 'object') {
+        s.op.mochilaFull = num(d.op.mochilaFull, 0) ? 1 : 0;
+        s.op.racha3 = num(d.op.racha3, 0) ? 1 : 0;
+        s.op.saldoMax = Math.max(0, num(d.op.saldoMax, 0));
       }
       if (Array.isArray(d.desbloqueadas)) {
         const val = d.desbloqueadas.filter(id => !!FRUIT_BY_ID[id]);
         s.desbloqueadas = val.length ? val : estadoNuevo().desbloqueadas;
       }
+      // Diarios y contadores de hoy: se reinician si cambió el día
+      const hoy = fechaHoy();
+      if (d.diarios && typeof d.diarios === 'object' && d.diarios.fecha === hoy && Array.isArray(d.diarios.ids)) {
+        s.diarios = {
+          fecha: hoy,
+          ids: d.diarios.ids.filter(id => !!RETO_BY_ID[id]).slice(0, 3),
+          cobrados: Array.isArray(d.diarios.cobrados) ? d.diarios.cobrados.filter(id => !!RETO_BY_ID[id]) : []
+        };
+        if (s.diarios.ids.length < 3) s.diarios.ids = diariosDeHoy(hoy);
+      } else {
+        s.diarios = { fecha: hoy, ids: diariosDeHoy(hoy), cobrados: [] };
+      }
+      if (d.hoy && typeof d.hoy === 'object' && d.hoy.fecha === hoy) {
+        s.hoy = estadoHoyNuevo();
+        s.hoy.ventas = Math.max(0, num(d.hoy.ventas, 0) | 0);
+        s.hoy.plagas = Math.max(0, num(d.hoy.plagas, 0) | 0);
+        s.hoy.dinero = Math.max(0, num(d.hoy.dinero, 0));
+        s.hoy.cosechas = Math.max(0, num(d.hoy.cosechas, 0) | 0);
+        s.hoy.compras = Math.max(0, num(d.hoy.compras, 0) | 0);
+        s.hoy.llenadas = Math.max(0, num(d.hoy.llenadas, 0) | 0);
+        s.hoy.sinMarchita = Math.max(0, num(d.hoy.sinMarchita, 0));
+        if (d.hoy.porFruta && typeof d.hoy.porFruta === 'object') {
+          for (const f of FRUITS) s.hoy.porFruta[f.id] = Math.max(0, num(d.hoy.porFruta[f.id], 0) | 0);
+        }
+      }
       state = s;
+      LANG = s.idioma;
       return true;
-    } catch (e) {
-      this.borrar();
-      return false;
-    }
+    } catch (e) { this.borrar(); return false; }
+  },
+
+  // Rescata el progreso de quien ya jugó la v1
+  migrarV1() {
+    let raw = null;
+    try { raw = window.localStorage.getItem(CONFIG.SAVE_KEY_V1); } catch (e) { return false; }
+    if (!raw) return false;
+    let d = null;
+    try { d = JSON.parse(raw); } catch (e) { d = null; }
+    if (!d || typeof d !== 'object') { try { window.localStorage.removeItem(CONFIG.SAVE_KEY_V1); } catch (e) {} return false; }
+    try {
+      const s = estadoNuevo();
+      s.dinero = Math.max(0, num(d.dinero, 0));
+      s.dineroTotal = Math.max(0, num(d.dineroTotal, 0));
+      s.ventasTotales = Math.max(0, num(d.ventasTotales, 0) | 0);
+      s.recolectadas = Math.max(0, num(d.recolectadas, 0) | 0);
+      s.capacidad = clamp(num(d.capacidad, CONFIG.CAP_START) | 0, CONFIG.CAP_START, CONFIG.CAP_MAX);
+      s.ayudantes = clamp(num(d.ayudantes, 0) | 0, 0, CONFIG.AYUDANTE_MAX);
+      if (d.ventasPorFruta && typeof d.ventasPorFruta === 'object') {
+        for (const f of FRUITS) s.ventasPorFruta[f.id] = Math.max(0, num(d.ventasPorFruta[f.id], 0) | 0);
+      }
+      if (d.compras && typeof d.compras === 'object') {
+        s.compras.arbol = Math.max(0, num(d.compras.arbol, 0) | 0);
+        s.compras.mochila = Math.max(0, num(d.compras.mochila, 0) | 0);
+      }
+      if (d.extras && typeof d.extras === 'object') {
+        for (const f of FRUITS) s.extras[f.id] = clamp(num(d.extras[f.id], 0) | 0, 0, f.posicionesExtra.length);
+      }
+      if (Array.isArray(d.desbloqueadas)) {
+        const val = d.desbloqueadas.filter(id => !!FRUIT_BY_ID[id]);
+        if (val.length) s.desbloqueadas = val;
+      }
+      state = s;
+      LANG = s.idioma;
+      try { window.localStorage.removeItem(CONFIG.SAVE_KEY_V1); } catch (e) {}
+      this.guardar();
+      return true;
+    } catch (e) { return false; }
   },
 
   borrar() {
     if (!this.disponible) return;
     try { window.localStorage.removeItem(CONFIG.SAVE_KEY); } catch (e) {}
+    try { window.localStorage.removeItem(CONFIG.SAVE_KEY_V1); } catch (e) {}
   }
 };
 
-function num(v, def) { return (typeof v === 'number' && isFinite(v)) ? v : def; }
-function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
-function lerp(a, b, t) { return a + (b - a) * t; }
-function rand(a, b) { return a + Math.random() * (b - a); }
-
-/* =============================== 6. SFX ================================= */
+/* =============================== 7. SFX ================================= */
 const SFX = {
   ac: null,
   init() {
@@ -298,9 +625,7 @@ const SFX = {
   },
   resume() {
     this.init();
-    if (this.ac && this.ac.state === 'suspended') {
-      try { this.ac.resume(); } catch (e) {}
-    }
+    if (this.ac && this.ac.state === 'suspended') { try { this.ac.resume(); } catch (e) {} }
   },
   tono(freq, dur, tipo, vol, delay) {
     if (!this.ac || state.mute) return;
@@ -324,23 +649,35 @@ const SFX = {
   },
   fanfarria() {
     [523, 659, 784, 1047].forEach((f, i) => this.tono(f, 0.24, 'triangle', 0.13, i * 0.095));
-  }
+  },
+  alerta() {                     // plaga aterrizando: dos notas descendentes
+    this.tono(392, 0.10, 'sawtooth', 0.07);
+    this.tono(294, 0.16, 'sawtooth', 0.07, 0.09);
+  },
+  aleteo() { this.tono(180 + Math.random() * 60, 0.13, 'sawtooth', 0.06); }
 };
 
-/* ============================ 7. ENTIDADES ============================== */
+/* ============================ 8. ENTIDADES ============================== */
 class Plant {
   constructor(fruit, x, y, popInicial) {
     this.fruit = fruit;
     this.x = x; this.y = y;
     this.frutas = CONFIG.PLANT_MAX_FRUIT;
     this.regen = 0;
+    this.marchita = 0;
     this.pop = popInicial ? 1 : 0;
     this.seed = Math.random() * Math.PI * 2;
   }
+  get regenTiempo() {
+    return CONFIG.REGEN_NIVELES[clamp(state.compras.riego, 0, CONFIG.REGEN_NIVELES.length - 1)];
+  }
   update(dt) {
-    if (this.frutas < CONFIG.PLANT_MAX_FRUIT) {
+    if (this.marchita > 0) {
+      this.marchita = Math.max(0, this.marchita - dt);
+      this.regen = 0;
+    } else if (this.frutas < CONFIG.PLANT_MAX_FRUIT) {
       this.regen += dt;
-      if (this.regen >= CONFIG.PLANT_REGEN) { this.regen = 0; this.frutas++; this.pop = 0.6; }
+      if (this.regen >= this.regenTiempo) { this.regen = 0; this.frutas++; this.pop = 0.6; }
     } else this.regen = 0;
     if (this.pop > 0) this.pop = Math.max(0, this.pop - dt * 3.2);
   }
@@ -354,7 +691,7 @@ class Plant {
 
 class Player {
   constructor() {
-    this.x = 360; this.y = 700;
+    this.x = 360; this.y = 360;
     this.carga = [];
     this.facing = 1;
     this.phase = 0;
@@ -362,11 +699,11 @@ class Player {
     this.harvestT = 0;
     this.sellT = 0;
     this.swayT = 0;
-    this.fullT = 0;
+    this.fullRun = false;
+    this.eraLleno = false;
   }
   get factorVel() {
-    return Math.max(CONFIG.SPEED_MIN_FACTOR,
-      1 - CONFIG.SPEED_PENALTY_PER_FRUIT * this.carga.length);
+    return Math.max(CONFIG.SPEED_MIN_FACTOR, 1 - CONFIG.SPEED_PENALTY_PER_FRUIT * this.carga.length);
   }
   update(dt, ix, iy) {
     const mag = Math.hypot(ix, iy);
@@ -388,7 +725,6 @@ class Player {
 
     // ---- Cosecha por proximidad ----
     if (this.carga.length < state.capacidad) {
-      this.fullT = 0;
       this.harvestT += dt;
       if (this.harvestT >= CONFIG.HARVEST_INTERVAL) {
         const p = plantaCercanaConFruta(this.x, this.y, CONFIG.HARVEST_RADIUS);
@@ -398,17 +734,19 @@ class Player {
           if (id) {
             this.carga.push(id);
             state.recolectadas++;
+            state.hoy.cosechas++;
             state.hints.caminar = true;
+            this.fullRun = false;
             SFX.pop();
           }
-        } else {
-          this.harvestT = CONFIG.HARVEST_INTERVAL;
-        }
+        } else this.harvestT = CONFIG.HARVEST_INTERVAL;
       }
-    } else {
-      this.harvestT = 0;
-      this.fullT += dt;
-    }
+    } else this.harvestT = 0;
+
+    // Mochila llena: cuenta el llenado una sola vez por ciclo
+    const lleno = this.carga.length >= state.capacidad;
+    if (lleno && !this.eraLleno) { state.hoy.llenadas++; this.fullRun = true; }
+    this.eraLleno = lleno;
 
     // ---- Venta por proximidad ----
     if (enVenta(this.x, this.y) && this.carga.length > 0) {
@@ -416,6 +754,7 @@ class Player {
       while (this.sellT >= CONFIG.SELL_INTERVAL && this.carga.length > 0) {
         this.sellT -= CONFIG.SELL_INTERVAL;
         venderUna(this.carga.pop(), this.x, this.y - 10);
+        if (this.carga.length === 0 && this.fullRun) { state.op.mochilaFull = 1; this.fullRun = false; }
       }
     } else this.sellT = 0;
   }
@@ -425,7 +764,7 @@ class Helper {
   constructor(idx) {
     this.idx = idx;
     this.color = CONFIG.HELPER_COLORS[idx % CONFIG.HELPER_COLORS.length];
-    this.x = SELL.cx + (idx === 0 ? -56 : 56);
+    this.x = SELL.cx + (idx - 1) * 56;
     this.y = SELL.cy + 30;
     this.carga = [];
     this.modo = 'cosechar';
@@ -467,7 +806,7 @@ class Helper {
         if (this.t >= CONFIG.HELPER_HARVEST_INTERVAL) {
           this.t = 0;
           const id = this.target.tomar();
-          if (id) { this.carga.push(id); SFX.pop(); }
+          if (id) { this.carga.push(id); state.recolectadas++; state.hoy.cosechas++; SFX.pop(); }
           else this.target = null;
         }
       }
@@ -487,18 +826,114 @@ class Helper {
   }
 }
 
+/* ------------------------------- Plagas ---------------------------------- */
+class Plaga {
+  constructor(target) {
+    this.target = target;
+    // entra desde el borde más cercano a su objetivo
+    const lado = (Math.random() * 4) | 0;
+    if (lado === 0)      { this.x = rand(40, WORLD_W - 40); this.y = -40; }
+    else if (lado === 1) { this.x = WORLD_W + 40; this.y = rand(40, WORLD_H - 40); }
+    else if (lado === 2) { this.x = rand(40, WORLD_W - 40); this.y = WORLD_H + 40; }
+    else                 { this.x = -40; this.y = rand(40, WORLD_H - 40); }
+    this.estado = 'volando';
+    this.t = 0;
+    this.enZona = 0;
+    this.ala = Math.random() * 6.28;
+    this.muerta = false;
+    this.facing = 1;
+  }
+  mover(tx, ty, dt) {
+    const dx = tx - this.x, dy = ty - this.y;
+    const d = Math.hypot(dx, dy) || 1;
+    const paso = Math.min(CONFIG.PLAGA_VEL * dt, d);
+    this.x += dx / d * paso;
+    this.y += dy / d * paso;
+    if (Math.abs(dx) > 1) this.facing = dx > 0 ? 1 : -1;
+    return d;
+  }
+  huir() {
+    if (this.estado === 'huyendo') return;
+    this.estado = 'huyendo';
+    this.target = null;
+  }
+  espantada() {                  // solo cuenta si la espanta el jugador o un ayudante
+    if (this.estado === 'huyendo') return;
+    this.huir();
+    state.plagasEspantadas++;
+    state.hoy.plagas++;
+    state.hints.plaga = true;
+    floats.push({ x: this.x, y: this.y, t: 0, txt: t('fuera'), color: '#ffd166' });
+    rachaEspanto.push(tiempo);
+    rachaEspanto = rachaEspanto.filter(x => tiempo - x <= 10);
+    if (rachaEspanto.length >= 3) state.op.racha3 = 1;
+    plumas(this.x, this.y);
+    SFX.aleteo();
+  }
+  update(dt) {
+    this.ala += dt * (this.estado === 'comiendo' ? 4 : 16);
+
+    // Espantar por proximidad del jugador o de un ayudante
+    if (this.estado !== 'huyendo') {
+      if (Math.hypot(player.x - this.x, player.y - this.y) <= CONFIG.PLAGA_RADIO_ESPANTO) {
+        this.espantada(); return;
+      }
+      for (const h of helpers) {
+        if (Math.hypot(h.x - this.x, h.y - this.y) <= CONFIG.PLAGA_RADIO_ESPANTO) {
+          this.espantada(); return;
+        }
+      }
+    }
+
+    if (this.estado === 'volando') {
+      if (!this.target || this.target.frutas <= 0 || plants.indexOf(this.target) < 0) {
+        this.target = elegirObjetivoPlaga();
+        if (!this.target) { this.huir(); return; }
+      }
+      const d = this.mover(this.target.x, this.target.y - 30, dt);
+      if (d < 8) { this.estado = 'comiendo'; this.t = 0; this.enZona = 0; SFX.alerta(); }
+
+    } else if (this.estado === 'comiendo') {
+      const p = this.target;
+      if (!p || plants.indexOf(p) < 0) { this.huir(); return; }
+      this.x = p.x; this.y = p.y - 30;
+      this.t += dt;
+      this.enZona += dt;
+      // el espantapájaros de la zona la echa sola (no cuenta como espantada)
+      if (zonaProtegida(p.fruit.id) && this.enZona >= CONFIG.ESPANTA_AUTO) { this.huir(); return; }
+      if (this.t >= CONFIG.PLAGA_GRACIA + CONFIG.PLAGA_MORDIDA) {
+        this.t = CONFIG.PLAGA_GRACIA;
+        if (p.frutas > 0) {
+          p.frutas--;
+          p.pop = 1;
+          if (p.frutas === 0) { marchitar(p); this.huir(); return; }
+        } else { this.huir(); return; }
+      }
+
+    } else {
+      // huyendo: sale por el borde más cercano
+      const bx = this.x < WORLD_W / 2 ? -80 : WORLD_W + 80;
+      this.mover(bx, this.y - 160, dt);
+      if (this.x < -60 || this.x > WORLD_W + 60 || this.y < -60) this.muerta = true;
+    }
+  }
+}
+
+class Espantapajaros {
+  constructor(fruitId) {
+    const z = FRUIT_BY_ID[fruitId].zona;
+    this.fruitId = fruitId;
+    this.x = z.x + z.w / 2;
+    this.y = z.y + z.h - 26;
+    this.phase = Math.random() * 6.28;
+  }
+}
+
 const player = new Player();
 
-/* ====================== 8. ZONAS, PLANTAS Y COMPRAS ===================== */
+/* ====================== 9. ZONAS, PLANTAS Y MEJORAS ===================== */
 function desbloqueada(id) { return state.desbloqueadas.indexOf(id) >= 0; }
-
-function frutaReciente() {
-  for (let i = state.desbloqueadas.length - 1; i >= 0; i--) {
-    const f = FRUIT_BY_ID[state.desbloqueadas[i]];
-    if (f) return f;
-  }
-  return null;
-}
+function zonaProtegida(fruitId) { return state.espantaZonas.indexOf(fruitId) >= 0; }
 
 function agregarPlantasZona(f, conPop) {
   const extras = clamp(state.extras[f.id] || 0, 0, f.posicionesExtra.length);
@@ -514,6 +949,9 @@ function reconstruirMundo() {
   }
   helpers.length = 0;
   for (let i = 0; i < state.ayudantes; i++) helpers.push(new Helper(i));
+  espantas.length = 0;
+  for (const id of state.espantaZonas) if (FRUIT_BY_ID[id]) espantas.push(new Espantapajaros(id));
+  plagas.length = 0;
 }
 
 function plantaCercanaConFruta(x, y, radio) {
@@ -535,6 +973,23 @@ function plantaCercana(x, y) {
   return best;
 }
 
+// Objetivo de una plaga: evita las zonas con espantapájaros el 70% de las veces
+function elegirObjetivoPlaga() {
+  const cand = [];
+  for (const p of plants) if (p.frutas > 0 && p.marchita <= 0) cand.push(p);
+  if (!cand.length) return null;
+  const libres = cand.filter(p => !zonaProtegida(p.fruit.id) || Math.random() > CONFIG.ESPANTA_EVITA);
+  const lista = libres.length ? libres : cand;
+  return lista[(Math.random() * lista.length) | 0];
+}
+
+function marchitar(p) {
+  p.marchita = CONFIG.PLAGA_MARCHITA;
+  state.sinMarchita = 0;
+  state.hoy.sinMarchita = 0;
+  cam.shake = Math.max(cam.shake, 0.22);
+}
+
 function enVenta(x, y) {
   return x > SELL.x && x < SELL.x + SELL.w && y > SELL.y && y < SELL.y + SELL.h;
 }
@@ -544,29 +999,50 @@ function venderUna(id, x, y) {
   if (!f) return;
   state.dinero += f.precio;
   state.dineroTotal += f.precio;
+  state.hoy.dinero += f.precio;
   state.ventasTotales++;
+  state.hoy.ventas++;
   state.ventasPorFruta[id] = (state.ventasPorFruta[id] || 0) + 1;
+  state.hoy.porFruta[id] = (state.hoy.porFruta[id] || 0) + 1;
   state.hints.vender = true;
-  floats.push({ x: x + rand(-14, 14), y: y - 20, t: 0, txt: '+$' + f.precio });
+  floats.push({ x: x + rand(-14, 14), y: y - 20, t: 0, txt: '+$' + f.precio, color: '#2ecc55' });
   SFX.chaching();
 }
 
+// Huerta donde plantar: la desbloqueada con cupos libres que tenga menos plantas.
+// Así ningún cupo se pierde al desbloquear una zona nueva.
+function zonaParaNuevaPlanta() {
+  let best = null, bn = Infinity;
+  for (const id of state.desbloqueadas) {
+    const f = FRUIT_BY_ID[id];
+    if (!f) continue;
+    const usados = clamp(state.extras[f.id] || 0, 0, f.posicionesExtra.length);
+    if (usados >= f.posicionesExtra.length) continue;
+    const n = f.posiciones.length + usados;
+    if (n < bn) { bn = n; best = f; }
+  }
+  return best;
+}
+
+function zonaParaEspantapajaros() {
+  for (let i = state.desbloqueadas.length - 1; i >= 0; i--) {
+    const id = state.desbloqueadas[i];
+    if (FRUIT_BY_ID[id] && !zonaProtegida(id)) return id;
+  }
+  return null;
+}
+
 /* --------------------------- Círculos de mejora ------------------------- */
+const CIRCLE_R = 52;
 const circles = [
   {
-    id: 'arbol', icono: '🌳', titulo: '+1 ÁRBOL',
-    x: 128, y: 1132, r: 58,
+    id: 'arbol', icono: '🌳', k: 'cArbol', x: 195, y: 1380, r: CIRCLE_R,
     precio() { return Math.round(CONFIG.ARBOL_COSTO * Math.pow(CONFIG.ARBOL_MULT, state.compras.arbol)); },
-    max() {
-      const f = frutaReciente();
-      if (!f) return true;
-      return (state.extras[f.id] || 0) >= f.posicionesExtra.length;
-    },
+    max() { return !zonaParaNuevaPlanta(); },
     comprar() {
-      const f = frutaReciente();
+      const f = zonaParaNuevaPlanta();
       if (!f) return;
-      const n = (state.extras[f.id] || 0);
-      if (n >= f.posicionesExtra.length) return;
+      const n = clamp(state.extras[f.id] || 0, 0, f.posicionesExtra.length);
       state.extras[f.id] = n + 1;
       state.compras.arbol++;
       const p = f.posicionesExtra[n];
@@ -575,8 +1051,7 @@ const circles = [
     }
   },
   {
-    id: 'mochila', icono: '🎒', titulo: 'MOCHILA +5',
-    x: 360, y: 1132, r: 58,
+    id: 'mochila', icono: '🎒', k: 'cMochila', x: 360, y: 1380, r: CIRCLE_R,
     precio() { return Math.round(CONFIG.MOCHILA_COSTO * Math.pow(CONFIG.MOCHILA_MULT, state.compras.mochila)); },
     max() { return state.capacidad >= CONFIG.CAP_MAX; },
     comprar() {
@@ -585,19 +1060,36 @@ const circles = [
     }
   },
   {
-    id: 'ayudante', icono: '🧑‍🌾', titulo: 'AYUDANTE',
-    x: 592, y: 1132, r: 58,
+    id: 'ayudante', icono: '🧑‍🌾', k: 'cAyudante', x: 525, y: 1380, r: CIRCLE_R,
     precio() { return CONFIG.AYUDANTE_COSTOS[Math.min(state.ayudantes, CONFIG.AYUDANTE_COSTOS.length - 1)]; },
     max() { return state.ayudantes >= CONFIG.AYUDANTE_MAX; },
+    comprar() { helpers.push(new Helper(state.ayudantes)); state.ayudantes++; }
+  },
+  {
+    id: 'riego', icono: '💧', k: 'cRiego', x: 277, y: 1520, r: CIRCLE_R,
+    precio() { return Math.round(CONFIG.RIEGO_COSTO * Math.pow(CONFIG.RIEGO_MULT, state.compras.riego)); },
+    max() { return state.compras.riego >= CONFIG.RIEGO_MAX; },
+    comprar() { state.compras.riego = Math.min(CONFIG.RIEGO_MAX, state.compras.riego + 1); }
+  },
+  {
+    id: 'espanta', icono: '🪧', k: 'cEspanta', x: 443, y: 1520, r: CIRCLE_R,
+    precio() { return Math.round(CONFIG.ESPANTA_COSTO * Math.pow(CONFIG.ESPANTA_MULT, state.compras.espanta)); },
+    max() { return state.compras.espanta >= CONFIG.ESPANTA_MAX || !zonaParaEspantapajaros(); },
     comprar() {
-      helpers.push(new Helper(state.ayudantes));
-      state.ayudantes++;
+      const id = zonaParaEspantapajaros();
+      if (!id) return;
+      state.espantaZonas.push(id);
+      state.compras.espanta++;
+      espantas.push(new Espantapajaros(id));
+      const z = FRUIT_BY_ID[id].zona;
+      lanzarConfeti(z.x + z.w / 2, z.y + z.h / 2, 30);
     }
   }
 ];
 
 function totalCompras() {
-  return state.compras.arbol + state.compras.mochila + state.ayudantes;
+  return state.compras.arbol + state.compras.mochila + state.ayudantes +
+         state.compras.riego + state.compras.espanta;
 }
 
 function actualizarCirculos(dt) {
@@ -609,15 +1101,12 @@ function actualizarCirculos(dt) {
     const precio = c.precio();
     const falta = precio - state.pagos[c.id];
     if (falta <= 0) continue;
-    const rate = precio / CONFIG.PAY_TIME;
-    const cobro = Math.min(rate * dt, falta, state.dinero);
-    if (cobro > 0) {
-      state.dinero -= cobro;
-      state.pagos[c.id] += cobro;
-    }
+    const cobro = Math.min(precio / CONFIG.PAY_TIME * dt, falta, state.dinero);
+    if (cobro > 0) { state.dinero -= cobro; state.pagos[c.id] += cobro; }
     if (state.pagos[c.id] >= precio - 0.001) {
       state.pagos[c.id] = 0;
       c.comprar();
+      state.hoy.compras++;
       state.hints.mejorar = true;
       lanzarConfeti(c.x, c.y - 20, 34);
       SFX.fanfarria();
@@ -626,9 +1115,50 @@ function actualizarCirculos(dt) {
   }
 }
 
-/* ============================== 9. RETOS ================================ */
-function retoActual() {
-  return state.retoIdx < CHALLENGES.length ? CHALLENGES[state.retoIdx] : null;
+/* --------------------------------- Plagas -------------------------------- */
+function capituloActual() {
+  const r = state.retoIdx < CAMPANA.length ? CAMPANA[state.retoIdx] : null;
+  return r ? r.cap : CAP_NOMBRES.length - 1;
+}
+function intervaloPlaga() {
+  return Math.max(CONFIG.PLAGA_INTERVALO_MIN,
+    CONFIG.PLAGA_INTERVALO_BASE - CONFIG.PLAGA_INTERVALO_POR_CAP * capituloActual());
+}
+function maxPlagas() { return Math.min(CONFIG.PLAGA_MAX_TOPE, 1 + capituloActual()); }
+// No hay plagas hasta completar el primer reto: el tutorial no se pisa.
+function plagasActivas() { return state.retoIdx >= 1; }
+
+function actualizarPlagas(dt) {
+  for (let i = plagas.length - 1; i >= 0; i--) {
+    plagas[i].update(dt);
+    if (plagas[i].muerta) plagas.splice(i, 1);
+  }
+  if (!plagasActivas()) { plagaTimer = 0; return; }
+  plagaTimer += dt;
+  if (plagaTimer >= intervaloPlaga()) {
+    plagaTimer = 0;
+    let vivas = 0;
+    for (const p of plagas) if (p.estado !== 'huyendo') vivas++;
+    if (vivas < maxPlagas()) {
+      const obj = elegirObjetivoPlaga();
+      if (obj) plagas.push(new Plaga(obj));
+    }
+  }
+}
+function hayPlagaComiendo() {
+  for (const p of plagas) if (p.estado === 'comiendo') return true;
+  return false;
+}
+
+/* =========================== 10. MOTOR DE RETOS ========================== */
+function retoActual() { return state.retoIdx < CAMPANA.length ? CAMPANA[state.retoIdx] : null; }
+function cumplido(id) { return state.cumplidos.indexOf(id) >= 0; }
+function diarioCobrado(id) { return state.diarios.cobrados.indexOf(id) >= 0; }
+
+function pagarPremio(n) {
+  state.dinero += n;
+  state.dineroTotal += n;
+  state.hoy.dinero += n;
 }
 
 function desbloquearZona(fruitId, conFiesta) {
@@ -638,52 +1168,132 @@ function desbloquearZona(fruitId, conFiesta) {
   agregarPlantasZona(f, true);
   if (conFiesta) {
     const z = f.zona;
-    for (let i = 0; i < 46; i++) {
-      lanzarConfeti(z.x + rand(30, z.w - 30), z.y + rand(30, z.h - 30), 1);
-    }
+    for (let i = 0; i < 46; i++) lanzarConfeti(z.x + rand(30, z.w - 30), z.y + rand(30, z.h - 30), 1);
+  } else f._fade = 0;
+}
+
+function festejarReto(r, premio) {
+  SFX.fanfarria();
+  cam.shake = 0.45;
+  toast(textoReto(r), '+$' + (premio === undefined ? r.premio : premio));
+  if (r.final) {
+    bigMsg = { txt: t('imperioCompleto'), t: 0 };
+    for (let i = 0; i < 160; i++) lanzarConfeti(rand(40, WORLD_W - 40), rand(cam.y + 60, cam.y + view.h - 120), 1);
   } else {
-    f._fade = 0;
+    bigMsg = { txt: t('retoCompletado'), t: 0 };
+    for (let i = 0; i < 50; i++) lanzarConfeti(player.x + rand(-90, 90), player.y + rand(-90, 30), 1);
   }
 }
 
 function actualizarRetos(conFiesta) {
+  // --- Campaña: secuencial, encadena varios si un solo evento cumple más de uno
   let guard = 0;
-  while (state.retoIdx < CHALLENGES.length && guard++ < 10) {
-    const r = CHALLENGES[state.retoIdx];
-    if (r.progreso(state) < r.meta) break;
+  while (state.retoIdx < CAMPANA.length && guard++ < 12) {
+    const r = CAMPANA[state.retoIdx];
+    if (r.prog(state) < r.meta) break;
     state.retoIdx++;
+    if (!cumplido(r.id)) state.cumplidos.push(r.id);
+    pagarPremio(r.premio);
     if (r.desbloquea) desbloquearZona(r.desbloquea, conFiesta);
-    if (conFiesta) {
-      SFX.fanfarria();
-      cam.shake = 0.45;
-      if (r.final) {
-        bigMsg = { txt: '¡Huerta completa!', t: 0 };
-        for (let i = 0; i < 160; i++) {
-          lanzarConfeti(rand(40, WORLD_W - 40), rand(cam.y + 60, cam.y + view.h - 120), 1);
-        }
-      } else {
-        bigMsg = { txt: '¡Reto completado!', t: 0 };
-        for (let i = 0; i < 50; i++) lanzarConfeti(player.x + rand(-90, 90), player.y + rand(-90, 30), 1);
-      }
-    }
+    if (conFiesta) festejarReto(r);
+    Save.guardar();
+  }
+  // --- Opcionales: sin orden, se pagan una sola vez
+  for (const r of OPCIONALES) {
+    if (cumplido(r.id) || r.prog(state) < r.meta) continue;
+    state.cumplidos.push(r.id);
+    pagarPremio(r.premio);
+    if (conFiesta) festejarReto(r);
+    Save.guardar();
+  }
+  // --- Diarios: premio según la ranura
+  for (let i = 0; i < state.diarios.ids.length; i++) {
+    const r = RETO_BY_ID[state.diarios.ids[i]];
+    if (!r || diarioCobrado(r.id) || r.prog(state) < r.meta) continue;
+    const premio = PREMIO_DIARIO[i] || PREMIO_DIARIO[0];
+    state.diarios.cobrados.push(r.id);
+    pagarPremio(premio);
+    if (conFiesta) festejarReto(r, premio);
     Save.guardar();
   }
 }
 
-/* ============================ 10. PARTÍCULAS ============================ */
+// Cambio de día en caliente (la pestaña quedó abierta pasada la medianoche)
+function revisarDia() {
+  const hoy = fechaHoy();
+  if (state.diarios.fecha === hoy && state.hoy.fecha === hoy) return;
+  state.diarios = { fecha: hoy, ids: diariosDeHoy(hoy), cobrados: [] };
+  state.hoy = estadoHoyNuevo();
+  Save.guardar();
+}
+
+// Aviso a mitad de camino, una vez por reto y por sesión
+const mitadAvisada = Object.create(null);
+function revisarMitad() {
+  const lista = [];
+  const rc = retoActual();
+  if (rc) lista.push(rc);
+  for (const id of state.diarios.ids) { const r = RETO_BY_ID[id]; if (r && !diarioCobrado(id)) lista.push(r); }
+  for (const r of lista) {
+    if (mitadAvisada[r.id]) continue;
+    const p = r.prog(state) / r.meta;
+    if (p >= 0.5 && p < 1) { mitadAvisada[r.id] = true; toast(textoReto(r), t('mitad')); }
+  }
+}
+
+// Las tres filas que se ven siempre en pantalla
+function retosVisibles() {
+  const out = [];
+  const rc = retoActual();
+  if (rc) out.push({ r: rc, tipo: 'c' });
+  let mejorOp = null, mejorP = -1;
+  for (const r of OPCIONALES) {
+    if (cumplido(r.id)) continue;
+    const p = clamp(r.prog(state) / r.meta, 0, 1);
+    if (p > mejorP) { mejorP = p; mejorOp = r; }
+  }
+  if (mejorOp) out.push({ r: mejorOp, tipo: 'o' });
+  let mejorD = null, mejorDP = -1, mejorDI = 0;
+  for (let i = 0; i < state.diarios.ids.length; i++) {
+    const r = RETO_BY_ID[state.diarios.ids[i]];
+    if (!r || diarioCobrado(r.id)) continue;
+    const p = clamp(r.prog(state) / r.meta, 0, 1);
+    if (p > mejorDP) { mejorDP = p; mejorD = r; mejorDI = i; }
+  }
+  if (mejorD) out.push({ r: mejorD, tipo: 'd', premio: PREMIO_DIARIO[mejorDI] });
+  return out.slice(0, 3);
+}
+
+/* ============================ 11. PARTÍCULAS ============================ */
 const CONFETI_COLORES = ['#ff5d5d', '#ffd166', '#4ecdc4', '#8affc1', '#ff9f1c', '#c77dff', '#ffffff'];
+function maxConfeti() { return calidadBaja() ? CONFIG.CONFETI_MAX_BAJO : CONFIG.CONFETI_MAX; }
+
 function lanzarConfeti(x, y, n) {
-  for (let i = 0; i < n; i++) {
+  const cap = maxConfeti();
+  for (let i = 0; i < n && confetti.length < cap; i++) {
     confetti.push({
-      x: x, y: y,
-      vx: rand(-140, 140), vy: rand(-260, -70),
-      rot: rand(0, 6.28), vr: rand(-9, 9),
-      w: rand(5, 10), h: rand(7, 13),
+      x: x, y: y, vx: rand(-140, 140), vy: rand(-260, -70),
+      rot: rand(0, 6.28), vr: rand(-9, 9), w: rand(5, 10), h: rand(7, 13),
       c: CONFETI_COLORES[(Math.random() * CONFETI_COLORES.length) | 0],
       t: 0, vida: rand(0.9, 1.7)
     });
   }
 }
+
+function plumas(x, y) {
+  const cap = maxConfeti();
+  for (let i = 0; i < 10 && confetti.length < cap; i++) {
+    confetti.push({
+      x: x, y: y, vx: rand(-90, 90), vy: rand(-150, -30),
+      rot: rand(0, 6.28), vr: rand(-6, 6), w: rand(4, 7), h: rand(6, 10),
+      c: ['#ffffff', '#e9e2d5', '#8a6b4a'][(Math.random() * 3) | 0],
+      t: 0, vida: rand(0.5, 1.0)
+    });
+  }
+}
+
+function toast(txt, sub) { toasts.push({ txt: txt, sub: sub || '', t: 0 }); if (toasts.length > 3) toasts.shift(); }
+
 function actualizarParticulas(dt) {
   for (let i = confetti.length - 1; i >= 0; i--) {
     const p = confetti[i];
@@ -691,7 +1301,7 @@ function actualizarParticulas(dt) {
     p.vy += 620 * dt;
     p.x += p.vx * dt; p.y += p.vy * dt;
     p.rot += p.vr * dt;
-    if (p.t >= p.vida) confetti.splice(i, 1);
+    if (p.t >= p.vida || p.y > cam.y + view.h + 80) confetti.splice(i, 1);
   }
   for (let i = floats.length - 1; i >= 0; i--) {
     const f = floats[i];
@@ -699,23 +1309,32 @@ function actualizarParticulas(dt) {
     f.y -= 46 * dt;
     if (f.t >= 1.0) floats.splice(i, 1);
   }
+  for (let i = toasts.length - 1; i >= 0; i--) {
+    toasts[i].t += dt;
+    if (toasts[i].t >= 2.4) toasts.splice(i, 1);
+  }
   if (bigMsg) { bigMsg.t += dt; if (bigMsg.t > 2.6) bigMsg = null; }
 }
 
-/* ============================== 11. HINTS =============================== */
+/* ============================== 12. HINTS =============================== */
 const HINTS = [
   {
-    id: 'caminar', texto: 'Camina hacia los árboles',
+    id: 'caminar', k: 'hCaminar',
     activo() { return !state.hints.caminar; },
     objetivo() { return plantaCercanaConFruta(player.x, player.y, Infinity) || plantaCercana(player.x, player.y); }
   },
   {
-    id: 'vender', texto: 'Lleva la pila a VENDER',
+    id: 'plaga', k: 'hPlaga',
+    activo() { return !state.hints.plaga && plagas.some(p => p.estado !== 'huyendo'); },
+    objetivo() { return plagas.find(p => p.estado !== 'huyendo') || null; }
+  },
+  {
+    id: 'vender', k: 'hVender',
     activo() { return state.hints.caminar && !state.hints.vender && player.carga.length > 0; },
     objetivo() { return { x: SELL.cx, y: SELL.cy }; }
   },
   {
-    id: 'mejorar', texto: 'Párate en un círculo para mejorar',
+    id: 'mejorar', k: 'hMejorar',
     activo() { return state.hints.vender && !state.hints.mejorar && state.dinero >= CONFIG.ARBOL_COSTO; },
     objetivo() { return circles[0]; }
   }
@@ -725,15 +1344,94 @@ function hintActivo() {
   return null;
 }
 
-/* =============================== 12. CANVAS ============================= */
+/* ================== 13. CANVAS, CÁMARA Y RENDIMIENTO ==================== */
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 let cw = 320, ch = 640, dpr = 1;
 const view = { scale: 1, w: CONFIG.VIEW_W, h: CONFIG.VIEW_H };
 const cam = { x: 0, y: 0, shake: 0 };
 
+// --- Calidad adaptativa -------------------------------------------------
+const perf = { acc: 0, n: 0, ms: 16, bajo: false, cooldown: 0, buenas: 0 };
+function calidadBaja() {
+  if (state.calidad === 'bajo') return true;
+  if (state.calidad === 'alto') return false;
+  return perf.bajo;
+}
+function medirPerf(ms) {
+  perf.acc += ms; perf.n++;
+  if (perf.cooldown > 0) perf.cooldown -= ms / 1000;
+  if (perf.n < 90) return;
+  perf.ms = perf.acc / perf.n;
+  perf.acc = 0; perf.n = 0;
+  if (state.calidad !== 'auto' || perf.cooldown > 0) return;
+  if (!perf.bajo && perf.ms > CONFIG.MS_MALO) {
+    perf.bajo = true; perf.cooldown = 5; perf.buenas = 0; resize();
+  } else if (perf.bajo && perf.ms < CONFIG.MS_BUENO) {
+    perf.buenas++;
+    if (perf.buenas >= 2) { perf.bajo = false; perf.buenas = 0; perf.cooldown = 5; resize(); }
+  } else perf.buenas = 0;
+}
+
+// --- Fondo pre-renderizado ----------------------------------------------
+// Pasto, caminos y bases de zona se dibujan UNA vez a un canvas del tamaño
+// del mundo; en cada frame solo se hace drawImage. Los rótulos, cercas y
+// candados van dinámicos porque cambian con el idioma y el desbloqueo.
+let fondo = null;
+function construirFondo() {
+  fondo = document.createElement('canvas');
+  fondo.width = WORLD_W; fondo.height = WORLD_H;
+  const g = fondo.getContext('2d');
+
+  g.fillStyle = '#7cc95a';
+  g.fillRect(0, 0, WORLD_W, WORLD_H);
+  g.fillStyle = 'rgba(255,255,255,0.045)';
+  for (let y = 0; y < WORLD_H; y += 76) g.fillRect(0, y, WORLD_W, 38);
+  g.fillStyle = 'rgba(0,0,0,0.05)';
+  for (let y = 24; y < WORLD_H; y += 152) {
+    for (let x = 18; x < WORLD_W; x += 96) g.fillRect(x + ((y / 152 | 0) % 2) * 40, y, 12, 4);
+  }
+
+  const rrg = (x, y, w, h, r) => {
+    r = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+    g.beginPath();
+    g.moveTo(x + r, y);
+    g.lineTo(x + w - r, y); g.arcTo(x + w, y, x + w, y + r, r);
+    g.lineTo(x + w, y + h - r); g.arcTo(x + w, y + h, x + w - r, y + h, r);
+    g.lineTo(x + r, y + h); g.arcTo(x, y + h, x, y + h - r, r);
+    g.lineTo(x, y + r); g.arcTo(x, y, x + r, y, r);
+    g.closePath();
+  };
+
+  // Caminos: espina vertical + tres travesaños
+  g.fillStyle = '#d7ac72';
+  rrg(316, 372, 88, 1080, 30); g.fill();
+  rrg(96, 568, 528, 62, 26); g.fill();
+  rrg(96, 886, 528, 62, 26); g.fill();
+  rrg(120, 1336, 480, 236, 44); g.fill();
+  g.fillStyle = '#e2bc86';
+  rrg(328, 384, 64, 1056, 24); g.fill();
+  rrg(108, 578, 504, 42, 18); g.fill();
+  rrg(108, 896, 504, 42, 18); g.fill();
+  rrg(132, 1348, 456, 212, 38); g.fill();
+  g.fillStyle = 'rgba(150,110,60,0.25)';
+  for (let i = 0; i < 90; i++) {
+    const a = (i * 977) % 1000 / 1000, b = (i * 613) % 1000 / 1000;
+    g.fillRect(330 + a * 60, 390 + b * 1040, 5, 3);
+  }
+
+  // Bases de zona (el mismo verde claro para todas, bloqueadas o no)
+  for (const f of FRUITS) {
+    const z = f.zona;
+    g.fillStyle = '#8ad168';
+    rrg(z.x, z.y, z.w, z.h, 18); g.fill();
+    g.fillStyle = 'rgba(0,0,0,0.04)';
+    for (let y = z.y + 10; y < z.y + z.h; y += 40) g.fillRect(z.x + 8, y, z.w - 16, 14);
+  }
+}
+
 function resize() {
-  dpr = Math.min(2, window.devicePixelRatio || 1);
+  dpr = calidadBaja() ? 1 : Math.min(2, window.devicePixelRatio || 1);
   const winW = Math.max(240, window.innerWidth);
   const winH = Math.max(320, window.innerHeight);
   ch = winH;
@@ -743,134 +1441,150 @@ function resize() {
   canvas.width = Math.round(cw * dpr);
   canvas.height = Math.round(ch * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  view.scale = Math.max(cw / CONFIG.VIEW_W, ch / CONFIG.VIEW_H);
+  // Cover, pero nunca tanto que la banda segura de 440 px deje de caber
+  const banda = CONFIG.BANDA_X1 - CONFIG.BANDA_X0;
+  view.scale = Math.min(Math.max(cw / CONFIG.VIEW_W, ch / CONFIG.VIEW_H), cw / banda);
   view.w = cw / view.scale;
   view.h = ch / view.scale;
+  anchosCache = Object.create(null);
   layoutHUD();
+  layoutPanel();
 }
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => setTimeout(resize, 120));
 
-function actualizarCamara(dt) {
+function objetivoCamara() {
   let tx, ty;
   if (view.w >= WORLD_W) tx = (WORLD_W - view.w) / 2;
+  else if (player.y > CONFIG.ZONA_MEJORAS_Y) tx = clamp(WORLD_W / 2 - view.w / 2, 0, WORLD_W - view.w);
   else tx = clamp(player.x - view.w / 2, 0, WORLD_W - view.w);
   if (view.h >= WORLD_H) ty = (WORLD_H - view.h) / 2;
-  else ty = clamp(player.y - view.h / 2, 0, WORLD_H - view.h);
+  else ty = clamp(player.y - view.h * CONFIG.CAM_BIAS, 0, WORLD_H - view.h);
+  return { x: tx, y: ty };
+}
+
+function actualizarCamara(dt) {
+  const o = objetivoCamara();
   const k = Math.min(1, dt * CONFIG.CAM_LERP);
-  cam.x = lerp(cam.x, tx, k);
-  cam.y = lerp(cam.y, ty, k);
+  cam.x = lerp(cam.x, o.x, k);
+  cam.y = lerp(cam.y, o.y, k);
   if (cam.shake > 0) cam.shake = Math.max(0, cam.shake - dt);
 }
 
-/* =============================== 13. INPUT ============================== */
+function mundoAPantalla(x, y) {
+  return { x: (x - cam.x) * view.scale, y: (y - cam.y) * view.scale };
+}
+
+/* =============================== 14. INPUT ============================== */
 const keys = Object.create(null);
 const joy = { activo: false, id: null, bx: 0, by: 0, kx: 0, ky: 0, dx: 0, dy: 0 };
-const HUD_BTN = { mute: { x: 0, y: 0, s: 38 }, reset: { x: 0, y: 0, s: 38 } };
+const HUD = { k: 1, top: 14, h: 40, btn: {}, filas: [], banner: null, lista: null };
+const panel = { abierto: false, tab: 0, scroll: 0, maxScroll: 0, dragId: null, dragY: 0, movido: false };
+let anchosCache = Object.create(null);
 
 function layoutHUD() {
-  const top = 14;
-  HUD_BTN.mute.x = cw - 48; HUD_BTN.mute.y = top + 52;
-  HUD_BTN.reset.x = cw - 48; HUD_BTN.reset.y = top + 98;
-  layoutDialogo();
+  const k = ch < 700 ? 0.85 : 1;
+  HUD.k = k;
+  HUD.top = Math.round(14 * k);
+  HUD.h = Math.round(40 * k);
+  const bs = Math.round(38 * k);
+  const bx = cw - 12 - bs;
+  let by = HUD.top + HUD.h + Math.round(10 * k);
+  const paso = bs + Math.round(6 * k);
+  HUD.btn.mute   = { x: bx, y: by, s: bs }; by += paso;
+  HUD.btn.idioma = { x: bx, y: by, s: bs }; by += paso;
+  HUD.btn.share  = { x: bx, y: by, s: bs }; by += paso;
+  HUD.btn.reset  = { x: bx, y: by, s: bs };
+  const lw = cw - 24 - bs - 10;
+  const by0 = HUD.top + HUD.h + Math.round(10 * k);
+  HUD.banner = { x: 12, y: by0, w: lw, h: Math.round(26 * k) };
+  const fh = Math.round(30 * k), gap = Math.round(4 * k);
+  HUD.filas = [];
+  for (let i = 0; i < 3; i++) {
+    HUD.filas.push({ x: 12, y: HUD.banner.y + HUD.banner.h + gap + i * (fh + gap), w: lw, h: fh });
+  }
+  HUD.lista = { x: 12, y: HUD.banner.y, w: lw, h: HUD.banner.h + gap + 3 * (fh + gap) };
 }
 
-function puntoEnBtn(b, x, y) {
-  return x >= b.x && x <= b.x + b.s && y >= b.y && y <= b.y + b.s;
-}
-function puntoEnRect(r, x, y) {
-  return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
-}
-
-/* --------------------- Diálogo de confirmación (canvas) ------------------ */
-const DLG = {
-  visible: false,
-  x: 0, y: 0, w: 0, h: 0,
-  si: { x: 0, y: 0, w: 0, h: 0 },
-  no: { x: 0, y: 0, w: 0, h: 0 }
-};
-
-function layoutDialogo() {
-  const w = Math.min(310, Math.max(220, cw - 44));
-  const h = 176;
-  DLG.w = w; DLG.h = h;
-  DLG.x = Math.round((cw - w) / 2);
-  DLG.y = Math.round((ch - h) / 2);
-  const bw = (w - 3 * 16) / 2, bh = 46;
-  const by = DLG.y + h - bh - 16;
-  DLG.no.x = DLG.x + 16; DLG.no.y = by; DLG.no.w = bw; DLG.no.h = bh;
-  DLG.si.x = DLG.x + w - 16 - bw; DLG.si.y = by; DLG.si.w = bw; DLG.si.h = bh;
+function layoutPanel() {
+  panel.x = 16; panel.y = 54; panel.w = cw - 32; panel.h = ch - 108;
+  panel.tabsY = panel.y + 46;
+  panel.tabH = 34;
+  panel.contY = panel.tabsY + panel.tabH + 10;
+  panel.contH = panel.y + panel.h - panel.contY - 12;
+  panel.cerrar = { x: panel.x + panel.w - 44, y: panel.y + 8, s: 34 };
 }
 
-function abrirDialogoReinicio() {
-  layoutDialogo();
-  DLG.visible = true;
-  soltarJoystick(null);
-  for (const k in keys) keys[k] = false;
-}
-
-/* Reinicio en caliente: sin recargar la página (una recarga dispara
-   'pagehide' y volvía a guardar la partida vieja, así que no reiniciaba). */
-function reiniciarJuego() {
-  const mute = state.mute;
-  Save.borrar();
-  state = estadoNuevo();
-  state.mute = mute;
-
-  player.x = 360; player.y = 700;
-  player.carga.length = 0;
-  player.facing = 1; player.phase = 0; player.moving = false;
-  player.harvestT = 0; player.sellT = 0; player.swayT = 0; player.fullT = 0;
-
-  reconstruirMundo();
-  reconstruirFades();
-  for (const c of circles) c._hover = false;
-
-  confetti.length = 0;
-  floats.length = 0;
-  bigMsg = null;
-  saveTimer = 0;
-  cam.shake = 0;
-  soltarJoystick(null);
-  for (const k in keys) keys[k] = false;
-
-  cam.x = view.w >= WORLD_W ? (WORLD_W - view.w) / 2 : clamp(player.x - view.w / 2, 0, WORLD_W - view.w);
-  cam.y = view.h >= WORLD_H ? (WORLD_H - view.h) / 2 : clamp(player.y - view.h / 2, 0, WORLD_H - view.h);
-
-  Save.guardar();
-  if (!state.mute) SFX.pop();
-}
-
+function puntoEnRect(r, x, y) { return x >= r.x && x <= r.x + (r.w || r.s) && y >= r.y && y <= r.y + (r.h || r.s); }
 function posCanvas(e) {
   const r = canvas.getBoundingClientRect();
   return { x: e.clientX - r.left, y: e.clientY - r.top };
 }
 
+function ciclarIdioma() {
+  LANG = IDIOMAS[(IDIOMAS.indexOf(LANG) + 1) % IDIOMAS.length];
+  state.idioma = LANG;
+  anchosCache = Object.create(null);
+  Object.keys(mitadAvisada).forEach(k => delete mitadAvisada[k]);
+  Save.guardar();
+}
+
+function compartir() {
+  const txt = t('compartirTxt', { d: Math.floor(state.dineroTotal), n: state.ventasTotales });
+  const url = location.href.split('#')[0];
+  try {
+    if (navigator.share) { navigator.share({ title: 'Kiosa', text: txt, url: url }).catch(() => {}); return; }
+  } catch (e) {}
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt + ' ' + url)
+        .then(() => toast(t('enlaceCopiado'), ''))
+        .catch(() => toast(url, ''));
+      return;
+    }
+  } catch (e) {}
+  toast(url, '');
+}
+
+function tocarPanel(p) {
+  if (puntoEnRect(panel.cerrar, p.x, p.y)) { panel.abierto = false; return true; }
+  const tw = panel.w / 3;
+  if (p.y >= panel.tabsY && p.y <= panel.tabsY + panel.tabH && p.x >= panel.x && p.x <= panel.x + panel.w) {
+    panel.tab = clamp(Math.floor((p.x - panel.x) / tw), 0, 2);
+    panel.scroll = 0;
+    return true;
+  }
+  if (p.x < panel.x || p.x > panel.x + panel.w || p.y < panel.y || p.y > panel.y + panel.h) {
+    panel.abierto = false;                   // toque fuera de la tarjeta
+    return true;
+  }
+  return false;
+}
+
 canvas.addEventListener('pointerdown', e => {
   SFX.resume();
   const p = posCanvas(e);
-  if (DLG.visible) {
-    if (puntoEnRect(DLG.si, p.x, p.y)) {
-      DLG.visible = false;
-      reiniciarJuego();
-    } else if (puntoEnRect(DLG.no, p.x, p.y) ||
-               !puntoEnRect({ x: DLG.x, y: DLG.y, w: DLG.w, h: DLG.h }, p.x, p.y)) {
-      DLG.visible = false;
-    }
+
+  if (panel.abierto) {
+    if (!tocarPanel(p)) { panel.dragId = e.pointerId; panel.dragY = p.y; panel.movido = false; }
     e.preventDefault();
     return;
   }
-  if (puntoEnBtn(HUD_BTN.mute, p.x, p.y)) {
+  if (puntoEnRect(HUD.btn.mute, p.x, p.y)) {
     state.mute = !state.mute;
     if (!state.mute) SFX.pop();
-    Save.guardar();
-    return;
+    Save.guardar(); e.preventDefault(); return;
   }
-  if (puntoEnBtn(HUD_BTN.reset, p.x, p.y)) {
-    abrirDialogoReinicio();
-    e.preventDefault();
-    return;
+  if (puntoEnRect(HUD.btn.idioma, p.x, p.y)) { ciclarIdioma(); e.preventDefault(); return; }
+  if (puntoEnRect(HUD.btn.share, p.x, p.y)) { compartir(); e.preventDefault(); return; }
+  if (puntoEnRect(HUD.btn.reset, p.x, p.y)) {
+    if (window.confirm(t('reiniciar'))) { Save.borrar(); window.location.reload(); }
+    e.preventDefault(); return;
   }
+  if (puntoEnRect(HUD.lista, p.x, p.y)) {
+    panel.abierto = true; panel.scroll = 0; e.preventDefault(); return;
+  }
+
   if (joy.activo) return;
   joy.activo = true; joy.id = e.pointerId;
   joy.bx = p.x; joy.by = p.y; joy.kx = p.x; joy.ky = p.y;
@@ -880,8 +1594,17 @@ canvas.addEventListener('pointerdown', e => {
 }, { passive: false });
 
 canvas.addEventListener('pointermove', e => {
-  if (!joy.activo || e.pointerId !== joy.id) return;
   const p = posCanvas(e);
+  if (panel.abierto) {
+    if (panel.dragId === e.pointerId) {
+      panel.scroll = clamp(panel.scroll - (p.y - panel.dragY), 0, panel.maxScroll);
+      if (Math.abs(p.y - panel.dragY) > 3) panel.movido = true;
+      panel.dragY = p.y;
+    }
+    e.preventDefault();
+    return;
+  }
+  if (!joy.activo || e.pointerId !== joy.id) return;
   let dx = p.x - joy.bx, dy = p.y - joy.by;
   const d = Math.hypot(dx, dy);
   const R = 52;
@@ -894,6 +1617,7 @@ canvas.addEventListener('pointermove', e => {
 }, { passive: false });
 
 function soltarJoystick(e) {
+  if (panel.dragId !== null && (!e || e.pointerId === panel.dragId)) panel.dragId = null;
   if (!joy.activo || (e && e.pointerId !== joy.id)) return;
   joy.activo = false; joy.id = null; joy.dx = 0; joy.dy = 0;
 }
@@ -901,24 +1625,26 @@ canvas.addEventListener('pointerup', soltarJoystick);
 canvas.addEventListener('pointercancel', soltarJoystick);
 canvas.addEventListener('lostpointercapture', soltarJoystick);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('wheel', e => {
+  if (!panel.abierto) return;
+  panel.scroll = clamp(panel.scroll + e.deltaY, 0, panel.maxScroll);
+  e.preventDefault();
+}, { passive: false });
 
 window.addEventListener('keydown', e => {
   if (!e.key) return;
   const k = e.key.toLowerCase();
-  SFX.resume();
-  if (DLG.visible) {
-    if (k === 'escape') DLG.visible = false;
-    else if (k === 'enter') { DLG.visible = false; reiniciarJuego(); }
-    e.preventDefault();
-    return;
-  }
   keys[k] = true;
+  SFX.resume();
+  if (k === 'escape' && panel.abierto) panel.abierto = false;
+  if (k === 'tab') { panel.abierto = !panel.abierto; e.preventDefault(); }
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].indexOf(k) >= 0) e.preventDefault();
 }, { passive: false });
 window.addEventListener('keyup', e => { if (e.key) keys[e.key.toLowerCase()] = false; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; soltarJoystick(null); });
 
 function inputVector() {
+  if (panel.abierto) return { x: 0, y: 0 };
   let ix = 0, iy = 0;
   if (keys['a'] || keys['arrowleft']) ix -= 1;
   if (keys['d'] || keys['arrowright']) ix += 1;
@@ -932,7 +1658,7 @@ function inputVector() {
   return { x: 0, y: 0 };
 }
 
-/* ============================== 14. RENDER ============================== */
+/* ============================== 15. RENDER ============================== */
 function rr(x, y, w, h, r) {
   r = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
   ctx.beginPath();
@@ -946,121 +1672,105 @@ function rr(x, y, w, h, r) {
 function circulo(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, 6.2832); ctx.closePath(); }
 function elipse(x, y, rx, ry) { ctx.beginPath(); ctx.ellipse(x, y, rx, ry, 0, 0, 6.2832); ctx.closePath(); }
 
+function fuente(size, bold) {
+  return (bold ? '700 ' : '600 ') + size + 'px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+}
+function anchoTexto(txt, size, bold) {
+  const f = fuente(size, bold);
+  const key = f + '|' + txt;
+  let w = anchosCache[key];
+  if (w === undefined) { ctx.font = f; w = ctx.measureText(txt).width; anchosCache[key] = w; }
+  return w;
+}
 function texto(txt, x, y, size, color, align, bold, outline, outlineColor) {
-  ctx.font = (bold ? '700 ' : '600 ') + size + 'px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  ctx.font = fuente(size, bold);
   ctx.textAlign = align || 'center';
   ctx.textBaseline = 'middle';
   if (outline) {
-    ctx.lineWidth = outline;
-    ctx.lineJoin = 'round';
+    ctx.lineWidth = outline; ctx.lineJoin = 'round';
     ctx.strokeStyle = outlineColor || '#ffffff';
     ctx.strokeText(txt, x, y);
   }
   ctx.fillStyle = color;
   ctx.fillText(txt, x, y);
 }
-
-/* ---------------------------- Fondo del mundo --------------------------- */
-function dibujarPasto() {
-  ctx.fillStyle = '#7cc95a';
-  ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-  ctx.fillStyle = 'rgba(255,255,255,0.045)';
-  for (let y = 0; y < WORLD_H; y += 76) ctx.fillRect(0, y, WORLD_W, 38);
-  ctx.fillStyle = 'rgba(0,0,0,0.05)';
-  for (let y = 24; y < WORLD_H; y += 152) {
-    for (let x = 18; x < WORLD_W; x += 96) {
-      ctx.fillRect(x + ((y / 152 | 0) % 2) * 40, y, 12, 4);
-    }
-  }
+// Recorta con "…" si no cabe
+function textoCorto(txt, max, size, bold) {
+  if (anchoTexto(txt, size, bold) <= max) return txt;
+  let s = txt;
+  while (s.length > 2 && anchoTexto(s + '…', size, bold) > max) s = s.slice(0, -1);
+  return s + '…';
+}
+function emoji(e, x, y, size, align) {
+  ctx.font = size + 'px system-ui, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+  ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(e, x, y);
+}
+function mezclaGris(hex, t) {
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  const m = c => Math.round(lerp(c, 130, t));
+  return 'rgb(' + m(r) + ',' + m(g) + ',' + m(b) + ')';
 }
 
-function dibujarCaminos() {
-  ctx.fillStyle = '#d7ac72';
-  rr(316, 372, 88, 810, 30); ctx.fill();
-  rr(96, 568, 528, 62, 26); ctx.fill();
-  rr(84, 1088, 556, 92, 40); ctx.fill();
-  ctx.fillStyle = 'rgba(0,0,0,0.055)';
-  rr(316, 372, 88, 810, 30); ctx.fill();
-  ctx.fillStyle = '#e2bc86';
-  rr(328, 384, 64, 786, 24); ctx.fill();
-  rr(108, 578, 504, 42, 18); ctx.fill();
-  rr(96, 1100, 532, 70, 32); ctx.fill();
-  ctx.fillStyle = 'rgba(150,110,60,0.25)';
-  for (let i = 0; i < 70; i++) {
-    const a = (i * 977) % 1000 / 1000, b = (i * 613) % 1000 / 1000;
-    const x = 330 + a * 60, y = 390 + b * 780;
-    ctx.fillRect(x, y, 5, 3);
-  }
-}
-
-function dibujarCerca(x, y, w, h, color, alpha) {
+/* ------------------------------ Zonas ----------------------------------- */
+function dibujarCerca(x, y, w, h, color) {
   ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.strokeStyle = color;
-  ctx.lineCap = 'round';
-  ctx.lineWidth = 5;
+  ctx.strokeStyle = color; ctx.lineCap = 'round'; ctx.lineWidth = 5;
   rr(x, y, w, h, 18); ctx.stroke();
   ctx.lineWidth = 4;
   rr(x + 7, y + 7, w - 14, h - 14, 14); ctx.stroke();
   ctx.fillStyle = color;
-  const paso = 62;
-  for (let px = x; px <= x + w + 1; px += paso) {
-    const cx = Math.min(px, x + w);
-    ctx.fillRect(cx - 4, y - 9, 8, 24);
-    ctx.fillRect(cx - 4, y + h - 15, 8, 24);
+  for (let px = x; px <= x + w + 1; px += 62) {
+    const cx2 = Math.min(px, x + w);
+    ctx.fillRect(cx2 - 4, y - 9, 8, 24);
+    ctx.fillRect(cx2 - 4, y + h - 15, 8, 24);
   }
-  for (let py = y + paso; py < y + h - 10; py += paso) {
+  for (let py = y + 62; py < y + h - 10; py += 62) {
     ctx.fillRect(x - 4, py - 10, 8, 24);
     ctx.fillRect(x + w - 4, py - 10, 8, 24);
   }
   ctx.restore();
 }
 
+// Solo la zona que abre el reto en curso lleva candado y letrero; las demás
+// se quedan en gris para no convertir la pantalla en un muro de candados.
+function zonaProximaDesbloquear() {
+  for (let i = state.retoIdx; i < CAMPANA.length; i++) {
+    const d = CAMPANA[i].desbloquea;
+    if (d && !desbloqueada(d)) return d;
+  }
+  return null;
+}
+
 function dibujarZona(f) {
   const z = f.zona;
   const bloqueada = f._fade > 0.001;
-  ctx.save();
-  ctx.fillStyle = '#8ad168';
-  rr(z.x, z.y, z.w, z.h, 18); ctx.fill();
-  ctx.fillStyle = 'rgba(0,0,0,0.04)';
-  for (let y = z.y + 10; y < z.y + z.h; y += 40) {
-    ctx.fillRect(z.x + 8, y, z.w - 16, 14);
-  }
   if (bloqueada) {
-    ctx.globalAlpha = f._fade;
-    ctx.fillStyle = '#9aa39c';
+    ctx.save();
+    ctx.globalAlpha = f._fade * 0.86;
+    ctx.fillStyle = '#9aa89a';
     rr(z.x, z.y, z.w, z.h, 18); ctx.fill();
     ctx.fillStyle = 'rgba(0,0,0,0.10)';
     for (let y = z.y + 10; y < z.y + z.h; y += 40) ctx.fillRect(z.x + 8, y, z.w - 16, 14);
-    ctx.globalAlpha = 1;
-  }
-  ctx.restore();
-  const colorCerca = bloqueada ? mezclaGris('#8a5a2b', f._fade) : '#8a5a2b';
-  dibujarCerca(z.x, z.y, z.w, z.h, colorCerca, 1);
-  // Rótulo de la zona
-  ctx.save();
-  ctx.globalAlpha = 0.55;
-  texto(z.nombre, z.x + z.w / 2, z.y + 16, 15, '#2f5b28', 'center', true);
-  ctx.restore();
-  if (bloqueada) {
-    ctx.save();
-    ctx.globalAlpha = f._fade;
-    const cx = z.x + z.w / 2, cy = z.y + z.h / 2;
-    ctx.font = '58px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('🔒', cx, cy - 16);
-    ctx.fillStyle = 'rgba(20,24,20,0.72)';
-    rr(cx - 92, cy + 26, 184, 34, 17); ctx.fill();
-    texto('Cumple el reto', cx, cy + 43, 16, '#ffffff', 'center', true);
     ctx.restore();
   }
-}
-
-function mezclaGris(hex, t) {
-  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
-  const gr = 130;
-  const m = (c) => Math.round(lerp(c, gr, t));
-  return 'rgb(' + m(r) + ',' + m(g) + ',' + m(b) + ')';
+  dibujarCerca(z.x, z.y, z.w, z.h, bloqueada ? mezclaGris('#8a5a2b', f._fade) : '#8a5a2b');
+  ctx.save();
+  ctx.globalAlpha = 0.55;
+  texto(t(z.key), z.x + z.w / 2, z.y + 16, 15, '#2f5b28', 'center', true);
+  ctx.restore();
+  if (bloqueada && f.id === zonaProximaDesbloquear()) {
+    ctx.save();
+    ctx.globalAlpha = f._fade;
+    const cx2 = z.x + z.w / 2, cy2 = z.y + z.h / 2;
+    emoji('🔒', cx2, cy2 - 16, 58);
+    const txt = t('cumpleReto');
+    const w = anchoTexto(txt, 16, true) + 34;
+    ctx.fillStyle = 'rgba(20,24,20,0.72)';
+    rr(cx2 - w / 2, cy2 + 26, w, 34, 17); ctx.fill();
+    texto(txt, cx2, cy2 + 43, 16, '#ffffff', 'center', true);
+    ctx.restore();
+  }
 }
 
 /* ------------------------------- Plantas -------------------------------- */
@@ -1074,21 +1784,26 @@ function dibujarPlanta(p) {
 
 function dibujarArbol(p) {
   const c = p.fruit.colores;
+  const marchita = p.marchita > 0;
+  const g = marchita ? clamp(p.marchita / CONFIG.PLAGA_MARCHITA, 0, 1) * 0.75 : 0;
+  const copa = marchita ? mezclaGris(c.copa, g) : c.copa;
+  const copaO = marchita ? mezclaGris(c.copaOscura, g) : c.copaOscura;
   const s = 1 + p.pop * 0.20;
   ctx.save();
   ctx.fillStyle = 'rgba(0,0,0,0.16)';
   elipse(p.x, p.y + 4, 28, 10); ctx.fill();
-  ctx.fillStyle = c.tronco;
+  ctx.fillStyle = marchita ? mezclaGris(c.tronco, g) : c.tronco;
   rr(p.x - 7, p.y - 40, 14, 44, 5); ctx.fill();
   ctx.fillStyle = 'rgba(0,0,0,0.12)';
   rr(p.x + 1, p.y - 40, 6, 44, 3); ctx.fill();
   ctx.translate(p.x, p.y - 58);
-  ctx.scale(s, s);
-  ctx.fillStyle = c.copaOscura;
+  if (marchita) ctx.rotate(Math.sin(tiempo * 1.4 + p.seed) * 0.05 - 0.06);
+  ctx.scale(s, marchita ? s * 0.86 : s);
+  ctx.fillStyle = copaO;
   circulo(-16, 2, 28); ctx.fill();
   circulo(18, 4, 26); ctx.fill();
   circulo(0, -16, 30); ctx.fill();
-  ctx.fillStyle = c.copa;
+  ctx.fillStyle = copa;
   circulo(-12, -4, 24); ctx.fill();
   circulo(14, -6, 22); ctx.fill();
   circulo(0, -22, 24); ctx.fill();
@@ -1108,15 +1823,17 @@ function dibujarArbol(p) {
 
 function dibujarRastrera(p) {
   const c = p.fruit.colores;
+  const marchita = p.marchita > 0;
+  const g = marchita ? clamp(p.marchita / CONFIG.PLAGA_MARCHITA, 0, 1) * 0.75 : 0;
   const s = 1 + p.pop * 0.14;
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.scale(s, s);
   ctx.fillStyle = 'rgba(0,0,0,0.12)';
   elipse(0, 6, 42, 18); ctx.fill();
-  ctx.fillStyle = '#2f8b3a';
+  ctx.fillStyle = marchita ? mezclaGris('#2f8b3a', g) : '#2f8b3a';
   elipse(0, 0, 40, 20); ctx.fill();
-  ctx.fillStyle = '#3fa34d';
+  ctx.fillStyle = marchita ? mezclaGris('#3fa34d', g) : '#3fa34d';
   for (let i = 0; i < 6; i++) {
     const a = i * 1.047 + p.seed;
     elipse(Math.cos(a) * 24, Math.sin(a) * 12, 13, 9); ctx.fill();
@@ -1132,36 +1849,53 @@ function dibujarRastrera(p) {
     circulo(o[0], o[1], 12); ctx.fill();
     ctx.fillStyle = c.fruta;
     circulo(o[0], o[1] - 1, 11); ctx.fill();
-    ctx.strokeStyle = 'rgba(20,80,20,0.75)'; ctx.lineWidth = 2;
-    for (let k = -1; k <= 1; k++) {
-      ctx.beginPath();
-      ctx.moveTo(o[0] + k * 5, o[1] - 11);
-      ctx.quadraticCurveTo(o[0] + k * 7.5, o[1] - 1, o[0] + k * 5, o[1] + 9);
-      ctx.stroke();
+    if (p.fruit.id === 'pina') {
+      ctx.strokeStyle = 'rgba(120,80,10,0.55)'; ctx.lineWidth = 1.4;
+      for (let k = -1; k <= 1; k++) {
+        ctx.beginPath(); ctx.moveTo(o[0] - 8, o[1] - 1 + k * 4); ctx.lineTo(o[0] + 8, o[1] - 5 + k * 4); ctx.stroke();
+      }
+      ctx.fillStyle = '#3fa34d';
+      for (let k = -1; k <= 1; k++) {
+        ctx.beginPath();
+        ctx.moveTo(o[0] + k * 4, o[1] - 10);
+        ctx.lineTo(o[0] + k * 6, o[1] - 22);
+        ctx.lineTo(o[0] + k * 4 + 4, o[1] - 10);
+        ctx.closePath(); ctx.fill();
+      }
+    } else {
+      ctx.strokeStyle = 'rgba(20,80,20,0.75)'; ctx.lineWidth = 2;
+      for (let k = -1; k <= 1; k++) {
+        ctx.beginPath();
+        ctx.moveTo(o[0] + k * 5, o[1] - 11);
+        ctx.quadraticCurveTo(o[0] + k * 7.5, o[1] - 1, o[0] + k * 5, o[1] + 9);
+        ctx.stroke();
+      }
     }
     ctx.fillStyle = 'rgba(255,255,255,0.35)';
     elipse(o[0] - 4, o[1] - 6, 3.4, 2.2); ctx.fill();
   }
   ctx.restore();
+  if (marchita) {
+    ctx.save(); ctx.globalAlpha = 0.5;
+    emoji('💤', p.x + 26, p.y - 26, 18);
+    ctx.restore();
+  }
 }
 
-/* ------------------------- Mostrador de venta ---------------------------- */
+/* ------------------------- Mostrador y mejoras --------------------------- */
 function dibujarVenta() {
   const activo = enVenta(player.x, player.y);
   const pulso = 0.5 + 0.5 * Math.sin(tiempo * 3.2);
   ctx.save();
-  // Área pisable
   ctx.fillStyle = activo ? 'rgba(255,236,140,0.55)' : 'rgba(255,255,255,0.20)';
   rr(SELL.x, SELL.y, SELL.w, SELL.h, 22); ctx.fill();
-  ctx.setLineDash([12, 9]);
-  ctx.lineWidth = 4;
+  ctx.setLineDash([12, 9]); ctx.lineWidth = 4;
   ctx.strokeStyle = activo ? '#ffd54a' : 'rgba(255,255,255,0.75)';
   rr(SELL.x, SELL.y, SELL.w, SELL.h, 22); ctx.stroke();
   ctx.setLineDash([]);
   ctx.globalAlpha = 0.85;
   texto('$', SELL.cx, SELL.cy + 10, 40, activo ? '#3aa14a' : 'rgba(255,255,255,0.9)', 'center', true);
   ctx.globalAlpha = 1;
-  // Mostrador de madera
   ctx.fillStyle = 'rgba(0,0,0,0.18)';
   rr(COUNTER.x + 6, COUNTER.y + COUNTER.h - 6, COUNTER.w, 16, 8); ctx.fill();
   ctx.fillStyle = '#a9702f';
@@ -1175,15 +1909,17 @@ function dibujarVenta() {
     ctx.lineTo(COUNTER.x + i * (COUNTER.w / 5), COUNTER.y + COUNTER.h - 14);
     ctx.stroke();
   }
-  // Letrero
   const sx = COUNTER.x + COUNTER.w / 2, sy = COUNTER.y - 46;
   ctx.fillStyle = '#8a5a2b';
   ctx.fillRect(sx - 5, sy + 8, 10, 42);
+  const etq = t('vender');
+  const w = Math.max(156, anchoTexto(etq, 26, true) + 40);
   ctx.fillStyle = '#ffd166';
-  rr(sx - 78, sy - 26, 156, 44, 10); ctx.fill();
+  rr(sx - w / 2, sy - 26, w, 44, 10); ctx.fill();
   ctx.strokeStyle = '#b8860b'; ctx.lineWidth = 4;
-  rr(sx - 78, sy - 26, 156, 44, 10); ctx.stroke();
-  texto('VENDER', sx, sy - 3, 26, '#7a4a10', 'center', true);
+  rr(sx - w / 2, sy - 26, w, 44, 10); ctx.stroke();
+  texto(etq, sx, sy - 3, 26, '#7a4a10', 'center', true);
+  SIGNOS.push({ x: sx - w / 2, y: sy - 26, w: w, h: 44 });
   if (activo) {
     ctx.globalAlpha = 0.25 + 0.25 * pulso;
     ctx.fillStyle = '#fff7c2';
@@ -1192,7 +1928,6 @@ function dibujarVenta() {
   ctx.restore();
 }
 
-/* --------------------------- Círculos de mejora -------------------------- */
 function dibujarCirculo(c) {
   const max = c.max();
   const precio = c.precio();
@@ -1206,87 +1941,120 @@ function dibujarCirculo(c) {
   ctx.lineWidth = 6;
   ctx.strokeStyle = max ? '#7d857d' : '#3aa14a';
   circulo(c.x, c.y, c.r); ctx.stroke();
-  // Anillo de progreso
   if (!max && prog > 0) {
-    ctx.lineWidth = 9;
-    ctx.lineCap = 'round';
+    ctx.lineWidth = 9; ctx.lineCap = 'round';
     ctx.strokeStyle = '#ffb01f';
     ctx.beginPath();
     ctx.arc(c.x, c.y, c.r + 7, -Math.PI / 2, -Math.PI / 2 + prog * 6.2832);
     ctx.stroke();
   }
-  ctx.font = '34px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(c.icono, c.x, c.y - 16);
-  texto(c.titulo, c.x, c.y + 14, 14, '#264a22', 'center', true);
-  if (max) {
-    texto('MÁX', c.x, c.y + 36, 17, '#5a625a', 'center', true);
-  } else {
+  emoji(c.icono, c.x, c.y - 18, 30);
+  texto(textoCorto(t(c.k), c.r * 2 - 6, 12, true), c.x, c.y + 12, 12, '#264a22', 'center', true);
+  if (max) texto(t('max'), c.x, c.y + 32, 16, '#5a625a', 'center', true);
+  else {
     ctx.fillStyle = 'rgba(20,30,20,0.82)';
-    rr(c.x - 42, c.y + 26, 84, 24, 12); ctx.fill();
-    texto('$' + precio, c.x, c.y + 38, 16, alcanza ? '#ffe27a' : '#ff9a9a', 'center', true);
+    rr(c.x - 40, c.y + 22, 80, 23, 11); ctx.fill();
+    texto('$' + precio, c.x, c.y + 34, 15, alcanza ? '#ffe27a' : '#ff9a9a', 'center', true);
   }
   ctx.restore();
+  SIGNOS.push({ x: c.x - c.r, y: c.y - c.r, w: c.r * 2, h: c.r * 2 + 26 });
+}
+
+function dibujarEspantapajaros(e) {
+  const sw = Math.sin(tiempo * 1.6 + e.phase) * 0.06;
+  ctx.save();
+  ctx.translate(e.x, e.y);
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  elipse(0, 2, 14, 5); ctx.fill();
+  ctx.rotate(sw);
+  ctx.fillStyle = '#8a5a2b';
+  ctx.fillRect(-3, -46, 6, 46);
+  ctx.fillRect(-20, -34, 40, 5);
+  ctx.fillStyle = '#e2683f';
+  rr(-13, -40, 26, 22, 6); ctx.fill();
+  ctx.fillStyle = '#f2d7a0';
+  circulo(0, -50, 10); ctx.fill();
+  ctx.fillStyle = '#2b2b2b';
+  circulo(-3.5, -51, 1.6); ctx.fill();
+  circulo(3.5, -51, 1.6); ctx.fill();
+  ctx.fillStyle = '#c9a227';
+  ctx.beginPath();
+  ctx.moveTo(-15, -57); ctx.lineTo(15, -57); ctx.lineTo(9, -63); ctx.lineTo(-9, -63);
+  ctx.closePath(); ctx.fill();
+  ctx.fillRect(-16, -58, 32, 4);
+  ctx.restore();
+}
+
+/* -------------------------------- Plagas --------------------------------- */
+function dibujarPlaga(p) {
+  const flap = Math.sin(p.ala) * (p.estado === 'comiendo' ? 0.25 : 1);
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.16)';
+  elipse(p.x, p.y + 34, 12, 5); ctx.fill();
+  ctx.translate(p.x, p.y);
+  ctx.scale(p.facing, 1);
+  ctx.fillStyle = '#4a4a55';
+  elipse(0, 0, 14, 10); ctx.fill();
+  ctx.fillStyle = '#3a3a44';
+  ctx.save();
+  ctx.rotate(flap * 0.6);
+  elipse(-2, -6, 11, 5); ctx.fill();
+  ctx.restore();
+  ctx.fillStyle = '#5b5b68';
+  ctx.beginPath();
+  ctx.moveTo(-12, 0); ctx.lineTo(-24, -6 + flap * 3); ctx.lineTo(-13, 5);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#4a4a55';
+  circulo(11, -6, 7); ctx.fill();
+  ctx.fillStyle = '#ffb01f';
+  ctx.beginPath();
+  ctx.moveTo(17, -6); ctx.lineTo(25, -4); ctx.lineTo(17, -2);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  circulo(13, -8, 2.4); ctx.fill();
+  ctx.fillStyle = '#1b1b1b';
+  circulo(13.6, -8, 1.3); ctx.fill();
+  ctx.restore();
+  if (p.estado === 'comiendo') {
+    const bob = Math.abs(Math.sin(tiempo * 5)) * 4;
+    ctx.save();
+    ctx.fillStyle = 'rgba(220,50,50,0.92)';
+    circulo(p.x + 20, p.y - 26 - bob, 12); ctx.fill();
+    texto('!', p.x + 20, p.y - 26 - bob, 20, '#ffffff', 'center', true);
+    ctx.restore();
+  }
 }
 
 /* -------------------------------- Kiosa ---------------------------------- */
 function dibujarPersonaje(e, opts) {
-  const camisa = opts.camisa;
-  const gorra = opts.gorra;
-  const conLogo = opts.logo;
-  const nombre = opts.nombre;      // texto estampado en la camisa
+  const camisa = opts.camisa, gorra = opts.gorra;
   const paso = Math.sin(e.phase) * (e.moving ? 1 : 0);
   ctx.save();
   ctx.translate(e.x, e.y);
-  // sombra
   ctx.fillStyle = 'rgba(0,0,0,0.20)';
   elipse(0, 3, 17, 7); ctx.fill();
   const bob = e.moving ? Math.abs(Math.sin(e.phase)) * 2 : 0;
   ctx.translate(0, -bob);
-  // piernas
   ctx.fillStyle = '#3a5fa8';
   rr(-9, -16, 8, 17 + paso * 3, 4); ctx.fill();
   rr(1, -16, 8, 17 - paso * 3, 4); ctx.fill();
   ctx.fillStyle = '#5a3d1e';
   rr(-10, -1 + Math.max(0, paso * 3), 10, 5, 2.5); ctx.fill();
   rr(0, -1 + Math.max(0, -paso * 3), 10, 5, 2.5); ctx.fill();
-  // cuerpo
   ctx.fillStyle = camisa;
   rr(-13, -40, 26, 26, 9); ctx.fill();
   ctx.fillStyle = 'rgba(0,0,0,0.10)';
   rr(3, -40, 10, 26, 8); ctx.fill();
-  // nombre estampado en la camisa
-  if (nombre) {
-    ctx.save();
-    ctx.fillStyle = 'rgba(255,255,255,0.14)';
-    rr(-11.5, -32.5, 23, 11, 4); ctx.fill();
-    ctx.font = '800 8px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    // se condensa si hace falta para no salirse de la camisa
-    const anchoTxt = ctx.measureText(nombre).width || 1;
-    const escala = Math.min(1, 21 / anchoTxt);
-    ctx.translate(0, -26.8);
-    ctx.scale(escala, 1);
-    ctx.lineWidth = 2.2 / escala; ctx.lineJoin = 'round';
-    ctx.strokeStyle = 'rgba(12,42,62,0.55)';
-    ctx.strokeText(nombre, 0, 0);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(nombre, 0, 0);
-    ctx.restore();
-  }
-  // brazos
   ctx.fillStyle = camisa;
   rr(-19, -38 + paso * 2.5, 7, 18, 3.5); ctx.fill();
   rr(12, -38 - paso * 2.5, 7, 18, 3.5); ctx.fill();
   ctx.fillStyle = '#f2c08a';
   circulo(-15.5, -21 + paso * 2.5, 4); ctx.fill();
   circulo(15.5, -21 - paso * 2.5, 4); ctx.fill();
-  // cabeza
   ctx.fillStyle = '#f2c08a';
   circulo(0, -50, 12.5); ctx.fill();
   ctx.fillStyle = 'rgba(0,0,0,0.07)';
   circulo(3, -50, 11); ctx.fill();
-  // ojos + sonrisa
   ctx.fillStyle = '#2b2b2b';
   circulo(e.facing * 4.2 - 2.4, -50.5, 1.8); ctx.fill();
   circulo(e.facing * 4.2 + 2.6, -50.5, 1.8); ctx.fill();
@@ -1294,20 +2062,17 @@ function dibujarPersonaje(e, opts) {
   ctx.beginPath();
   ctx.arc(e.facing * 3.4, -45.5, 3.6, 0.25, Math.PI - 0.25);
   ctx.stroke();
-  // gorra
   ctx.fillStyle = gorra;
   ctx.beginPath();
   ctx.arc(0, -58, 13, Math.PI, 0);
   ctx.lineTo(13, -56); ctx.lineTo(-13, -56);
   ctx.closePath(); ctx.fill();
-  ctx.fillStyle = gorra;
   rr(e.facing > 0 ? 8 : -22, -59.5, 14, 5, 2.5); ctx.fill();
   ctx.fillStyle = 'rgba(255,255,255,0.18)';
   ctx.beginPath();
   ctx.arc(0, -58, 13, Math.PI, Math.PI * 1.5);
   ctx.lineTo(0, -58); ctx.closePath(); ctx.fill();
-  if (conLogo) {
-    // logotipo de mango: óvalo naranja + hojita verde
+  if (opts.logo) {
     ctx.save();
     ctx.translate(e.facing * 1.5, -63);
     ctx.fillStyle = '#ff9f1c';
@@ -1321,7 +2086,6 @@ function dibujarPersonaje(e, opts) {
     ctx.restore();
     ctx.restore();
   }
-  // pila de frutas sobre la espalda
   const n = e.carga.length;
   if (n > 0) {
     const bx = -e.facing * 7;
@@ -1344,15 +2108,18 @@ function dibujarPersonaje(e, opts) {
 }
 
 function dibujarJugador() {
-  dibujarPersonaje(player, { camisa: '#3fb0e8', gorra: '#e63946', logo: true, nombre: 'KIOSA' });
+  dibujarPersonaje(player, { camisa: '#3fb0e8', gorra: '#e63946', logo: true });
   if (player.carga.length >= state.capacidad) {
     const yy = player.y - 66 - Math.min(player.carga.length, 12) * 9.5;
     const bob = Math.sin(tiempo * 6) * 2;
+    const txt = t('lleno');
+    const w = anchoTexto(txt, 17, true) + 30;
     ctx.save();
     ctx.fillStyle = 'rgba(214,40,40,0.92)';
-    rr(player.x - 42, yy + bob - 15, 84, 28, 13); ctx.fill();
-    texto('¡LLENO!', player.x, yy + bob - 1, 17, '#fff', 'center', true);
+    rr(player.x - w / 2, yy + bob - 15, w, 28, 13); ctx.fill();
+    texto(txt, player.x, yy + bob - 1, 17, '#fff', 'center', true);
     ctx.restore();
+    SIGNOS.push({ x: player.x - w / 2, y: yy + bob - 15, w: w, h: 28 });
   }
 }
 
@@ -1375,12 +2142,14 @@ function dibujarParticulas() {
     const s = 1 + Math.max(0, 0.25 - f.t) * 1.2;
     ctx.translate(f.x, f.y);
     ctx.scale(s, s);
-    texto(f.txt, 0, 0, 22, '#2ecc55', 'center', true, 5, '#ffffff');
+    texto(f.txt, 0, 0, 22, f.color || '#2ecc55', 'center', true, 5, '#ffffff');
     ctx.restore();
   }
 }
 
 /* --------------------------------- Hints --------------------------------- */
+const SIGNOS = [];   // rectángulos de letreros del mundo, para no encimar globos
+
 function dibujarHint() {
   const h = hintActivo();
   if (!h) return;
@@ -1392,12 +2161,11 @@ function dibujarHint() {
       const ux = dx / d, uy = dy / d;
       const pulso = (Math.sin(tiempo * 4) + 1) * 0.5;
       const dist = 52 + pulso * 12;
-      const ax = player.x + ux * dist, ay = player.y - 34 + uy * dist;
       ctx.save();
-      ctx.translate(ax, ay);
+      ctx.translate(player.x + ux * dist, player.y - 34 + uy * dist);
       ctx.rotate(Math.atan2(uy, ux));
       ctx.globalAlpha = 0.85;
-      ctx.fillStyle = '#ffd166';
+      ctx.fillStyle = h.id === 'plaga' ? '#ff6b6b' : '#ffd166';
       ctx.strokeStyle = '#8a5a10';
       ctx.lineWidth = 3; ctx.lineJoin = 'round';
       ctx.beginPath();
@@ -1406,14 +2174,27 @@ function dibujarHint() {
       ctx.restore();
     }
   }
+  const txt = t(h.k);
+  const w = anchoTexto(txt, 17, true) + 30;
+  let y = player.y - 92 - Math.min(player.carga.length, 12) * 9.5;
+  const x0 = player.x - w / 2;
+  // 1) no encimar letreros del mundo
+  for (let i = 0; i < 4; i++) {
+    let choca = false;
+    for (const s of SIGNOS) {
+      if (x0 < s.x + s.w && x0 + w > s.x && y - 16 < s.y + s.h && y + 16 > s.y) { choca = true; break; }
+    }
+    if (!choca) break;
+    y -= 40;
+  }
+  // 2) no quedar debajo del HUD: si sube demasiado, va bajo los pies
+  const hudAbajo = HUD.lista.y + HUD.lista.h + 12;
+  if ((y - 16 - cam.y) * view.scale < hudAbajo) y = player.y + 52;
   ctx.save();
-  const y = player.y - 92 - Math.min(player.carga.length, 12) * 9.5;
-  ctx.font = '700 17px system-ui, sans-serif';
-  const w = ctx.measureText(h.texto).width + 30;
   ctx.globalAlpha = 0.92;
   ctx.fillStyle = 'rgba(20,28,20,0.82)';
-  rr(player.x - w / 2, y - 16, w, 32, 15); ctx.fill();
-  texto(h.texto, player.x, y + 1, 17, '#ffffff', 'center', true);
+  rr(x0, y - 16, w, 32, 15); ctx.fill();
+  texto(txt, player.x, y + 1, 17, '#ffffff', 'center', true);
   ctx.restore();
 }
 
@@ -1426,153 +2207,305 @@ function pill(x, y, w, h, r, alpha) {
   rr(x, y, w, h, r); ctx.stroke();
 }
 
+function botonHUD(b, icono) {
+  pill(b.x, b.y, b.s, b.s, 12, 0.66);
+  emoji(icono, b.x + b.s / 2, b.y + b.s / 2 + 1, Math.round(b.s * 0.5));
+}
+
+function dibujarFilaReto(fila, item) {
+  const k = HUD.k, r = item.r;
+  const val = r.prog(state);
+  const prog = clamp(val / r.meta, 0, 1);
+  const casi = prog >= 0.9 && prog < 1;
+  pill(fila.x, fila.y, fila.w, fila.h, 10 * k, 0.7);
+  const icono = item.tipo === 'c' ? '🎯' : (item.tipo === 'o' ? '⭐' : '📅');
+  emoji(icono, fila.x + 15 * k, fila.y + fila.h / 2, 13 * k);
+  const cnt = Math.min(Math.floor(val), r.meta) + '/' + r.meta;
+  const wCnt = anchoTexto(cnt, 11 * k, true);
+  const bx = fila.x + 27 * k;
+  const bw = fila.w - 27 * k - wCnt - 16 * k;
+  texto(textoCorto(textoReto(r), bw, 12 * k, true), bx, fila.y + fila.h * 0.33, 12 * k, '#ffffff', 'left', true);
+  const by = fila.y + fila.h * 0.72, bh = 7 * k;
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  rr(bx, by - bh / 2, bw, bh, bh / 2); ctx.fill();
+  ctx.fillStyle = (casi && Math.sin(tiempo * 8) > 0) ? '#c9ffc4' : '#5ee06a';
+  rr(bx, by - bh / 2, Math.max(4, bw * prog), bh, bh / 2); ctx.fill();
+  texto(cnt, fila.x + fila.w - 8 * k, fila.y + fila.h / 2, 11 * k, 'rgba(255,255,255,0.92)', 'right', true);
+}
+
 function dibujarHUD() {
-  const top = 14;
-  const H = 40;
+  const k = HUD.k, top = HUD.top, H = HUD.h;
+
   // Dinero
   const txtDinero = '$' + Math.floor(state.dinero);
-  ctx.font = '700 20px system-ui, sans-serif';
-  const wD = Math.max(104, ctx.measureText(txtDinero).width + 58);
-  pill(12, top, wD, H, 20);
-  ctx.font = '20px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillText('💰', 22, top + H / 2 + 1);
-  texto(txtDinero, 50, top + H / 2, 20, '#ffe27a', 'left', true);
+  const wD = Math.max(100 * k, anchoTexto(txtDinero, 20 * k, true) + 56 * k);
+  pill(12, top, wD, H, 20 * k);
+  emoji('💰', 22, top + H / 2 + 1, 20 * k, 'left');
+  texto(txtDinero, 48 * k, top + H / 2, 20 * k, '#ffe27a', 'left', true);
 
   // Carga
   const txtBag = player.carga.length + '/' + state.capacidad;
-  ctx.font = '700 20px system-ui, sans-serif';
-  const wB = Math.max(96, ctx.measureText(txtBag).width + 56);
-  pill(cw - 12 - wB, top, wB, H, 20);
-  ctx.font = '20px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillText('🎒', cw - 12 - wB + 12, top + H / 2 + 1);
+  const wB = Math.max(92 * k, anchoTexto(txtBag, 20 * k, true) + 54 * k);
+  pill(cw - 12 - wB, top, wB, H, 20 * k);
+  emoji('🎒', cw - 12 - wB + 12, top + H / 2 + 1, 20 * k, 'left');
   const lleno = player.carga.length >= state.capacidad;
-  texto(txtBag, cw - 12 - wB + 40, top + H / 2, 20, lleno ? '#ff8a8a' : '#ffffff', 'left', true);
+  texto(txtBag, cw - 12 - wB + 38 * k, top + H / 2, 20 * k, lleno ? '#ff8a8a' : '#ffffff', 'left', true);
 
-  // Banner de reto
-  const bw = Math.min(cw - 130, 300);
-  const bx = (cw - bw) / 2, by = top + H + 10, bh = 52;
-  pill(bx, by, bw, bh, 16, 0.78);
+  // Banner de capítulo (tocarlo abre el panel)
+  const b = HUD.banner;
+  pill(b.x, b.y, b.w, b.h, 9 * k, 0.72);
   const r = retoActual();
-  if (r) {
-    const prog = clamp(r.progreso(state) / r.meta, 0, 1);
-    texto('🎯 ' + r.texto, bx + bw / 2, by + 16, 15, '#ffffff', 'center', true);
-    const barX = bx + 14, barY = by + 30, barW = bw - 28, barH = 14;
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    rr(barX, barY, barW, barH, 7); ctx.fill();
-    ctx.fillStyle = '#5ee06a';
-    rr(barX, barY, Math.max(6, barW * prog), barH, 7); ctx.fill();
-    texto(Math.min(r.progreso(state), r.meta) + ' / ' + r.meta, bx + bw / 2, barY + barH / 2 + 0.5, 11, '#123c16', 'center', true);
-  } else {
-    texto('🏆 Modo libre', bx + bw / 2, by + 16, 16, '#ffe27a', 'center', true);
-    texto('Frutas vendidas: ' + state.ventasTotales, bx + bw / 2, by + 33, 12, 'rgba(255,255,255,0.85)', 'center', true);
-  }
+  const cap = r ? t('capitulo', { n: r.cap + 1 }) + ' · ' + t(CAP_NOMBRES[r.cap]) : t('modoLibre');
+  const der = r ? t('retoDeN', { a: state.retoIdx + 1, b: CAMPANA.length })
+                : t('frutasVendidas', { n: state.ventasTotales });
+  const wDer = anchoTexto(der, 11 * k, true);
+  texto(textoCorto(cap, b.w - wDer - 34 * k, 12 * k, true), b.x + 10 * k, b.y + b.h / 2, 12 * k, '#ffe27a', 'left', true);
+  texto(der, b.x + b.w - 20 * k, b.y + b.h / 2, 11 * k, 'rgba(255,255,255,0.8)', 'right', true);
+  texto('▾', b.x + b.w - 9 * k, b.y + b.h / 2, 12 * k, 'rgba(255,255,255,0.8)', 'center', true);
+
+  // Tres filas de retos
+  const vis = retosVisibles();
+  for (let i = 0; i < vis.length && i < HUD.filas.length; i++) dibujarFilaReto(HUD.filas[i], vis[i]);
 
   // Botones
-  botonHUD(HUD_BTN.mute, state.mute ? '🔇' : '🔊');
-  botonHUD(HUD_BTN.reset, '↺');
+  botonHUD(HUD.btn.mute, state.mute ? '🔇' : '🔊');
+  botonHUD(HUD.btn.idioma, '🌐');
+  botonHUD(HUD.btn.share, '📤');
+  botonHUD(HUD.btn.reset, '↺');
+  texto(LANG.toUpperCase(), HUD.btn.idioma.x + HUD.btn.idioma.s / 2, HUD.btn.idioma.y + HUD.btn.idioma.s - 4,
+        9 * k, 'rgba(255,255,255,0.85)', 'center', true);
+
+  // Marco rojo mientras una plaga esté comiendo
+  if (hayPlagaComiendo()) {
+    const a = 0.16 + 0.14 * (0.5 + 0.5 * Math.sin(tiempo * 5));
+    ctx.save();
+    ctx.strokeStyle = 'rgba(232,64,64,' + a.toFixed(3) + ')';
+    ctx.lineWidth = 10;
+    ctx.strokeRect(5, 5, cw - 10, ch - 10);
+    ctx.restore();
+  }
+
+  dibujarMarcadoresPlaga();
 
   // Joystick
-  if (joy.activo) {
+  if (joy.activo && !panel.abierto) {
     ctx.save();
-    ctx.globalAlpha = 0.28;
-    ctx.fillStyle = '#ffffff';
+    ctx.globalAlpha = 0.28; ctx.fillStyle = '#ffffff';
     ctx.beginPath(); ctx.arc(joy.bx, joy.by, 52, 0, 6.2832); ctx.fill();
-    ctx.globalAlpha = 0.5;
-    ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff';
+    ctx.globalAlpha = 0.5; ctx.lineWidth = 3; ctx.strokeStyle = '#ffffff';
     ctx.beginPath(); ctx.arc(joy.bx, joy.by, 52, 0, 6.2832); ctx.stroke();
     ctx.globalAlpha = 0.6;
     ctx.beginPath(); ctx.arc(joy.kx, joy.ky, 24, 0, 6.2832); ctx.fill();
     ctx.restore();
   }
 
-  // Mensaje grande
-  if (bigMsg) {
-    const t = bigMsg.t;
-    const a = t < 0.25 ? t / 0.25 : (t > 2.1 ? clamp((2.6 - t) / 0.5, 0, 1) : 1);
-    const s = t < 0.35 ? 0.6 + (t / 0.35) * 0.45 : 1 + Math.sin(Math.min(t, 1.4) * 6) * 0.015;
+  // Toasts: justo debajo de la lista de retos, nunca sobre las mejoras
+  const toastY0 = HUD.lista.y + HUD.lista.h + 6;
+  for (let i = 0; i < toasts.length; i++) {
+    const to = toasts[i];
+    const a = to.t < 0.2 ? to.t / 0.2 : (to.t > 1.9 ? clamp((2.4 - to.t) / 0.5, 0, 1) : 1);
+    const w = Math.min(cw - 40, Math.max(anchoTexto(to.txt, 14, true), anchoTexto(to.sub, 13, true)) + 44);
+    const y = toastY0 + i * 50;
     ctx.save();
     ctx.globalAlpha = a;
-    ctx.translate(cw / 2, ch * 0.36);
-    ctx.scale(s, s);
-    ctx.fillStyle = 'rgba(16,26,18,0.82)';
-    ctx.font = '800 34px system-ui, sans-serif';
-    const w = ctx.measureText(bigMsg.txt).width + 56;
-    rr(-w / 2, -34, w, 68, 20); ctx.fill();
-    texto(bigMsg.txt, 0, 0, 34, '#ffe27a', 'center', true, 6, 'rgba(0,0,0,0.35)');
+    pill((cw - w) / 2, y, w, 44, 14, 0.86);
+    texto(textoCorto(to.txt, w - 24, 14, true), cw / 2, y + (to.sub ? 15 : 22), 14, '#ffffff', 'center', true);
+    if (to.sub) texto(to.sub, cw / 2, y + 32, 13, '#7dffa0', 'center', true);
     ctx.restore();
   }
 
-  dibujarCredito();
-  dibujarDialogo();
+  // Mensaje grande
+  if (bigMsg) {
+    const tt = bigMsg.t;
+    const a = tt < 0.25 ? tt / 0.25 : (tt > 2.1 ? clamp((2.6 - tt) / 0.5, 0, 1) : 1);
+    const s = tt < 0.35 ? 0.6 + (tt / 0.35) * 0.45 : 1 + Math.sin(Math.min(tt, 1.4) * 6) * 0.015;
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.translate(cw / 2, ch * 0.42);
+    ctx.scale(s, s);
+    const w = Math.min(cw - 20, anchoTexto(bigMsg.txt, 32, true) + 56);
+    ctx.fillStyle = 'rgba(16,26,18,0.82)';
+    rr(-w / 2, -34, w, 68, 20); ctx.fill();
+    texto(bigMsg.txt, 0, 0, 32, '#ffe27a', 'center', true, 6, 'rgba(0,0,0,0.35)');
+    ctx.restore();
+  }
 }
 
-/* ------------------------------- Crédito -------------------------------- */
-function dibujarCredito() {
-  ctx.save();
-  ctx.globalAlpha = 0.5;
-  texto('Desarrollado por PcElectronics', cw / 2, ch - 14, 11, '#ffffff', 'center', false,
-        3, 'rgba(0,0,0,0.45)');
-  ctx.restore();
+// Flechas en el borde apuntando a plagas fuera de pantalla
+function dibujarMarcadoresPlaga() {
+  const m = 30;
+  for (const p of plagas) {
+    if (p.estado === 'huyendo') continue;
+    const s = mundoAPantalla(p.x, p.y);
+    if (s.x >= 0 && s.x <= cw && s.y >= 0 && s.y <= ch) continue;
+    const cx2 = cw / 2, cy2 = ch / 2;
+    let dx = s.x - cx2, dy = s.y - cy2;
+    const d = Math.hypot(dx, dy) || 1;
+    dx /= d; dy /= d;
+    const tx = Math.abs(dx) < 1e-4 ? Infinity : Math.abs((cw / 2 - m) / dx);
+    const ty = Math.abs(dy) < 1e-4 ? Infinity : Math.abs((ch / 2 - m) / dy);
+    const tt = Math.min(tx, ty);
+    const ax = cx2 + dx * tt, ay = cy2 + dy * tt;
+    const pulso = 0.5 + 0.5 * Math.sin(tiempo * 6);
+    ctx.save();
+    ctx.translate(ax, ay);
+    ctx.globalAlpha = 0.75 + 0.25 * pulso;
+    ctx.fillStyle = 'rgba(20,20,24,0.7)';
+    circulo(0, 0, 19); ctx.fill();
+    ctx.save();
+    ctx.rotate(Math.atan2(dy, dx));
+    ctx.fillStyle = '#ff5a5a';
+    ctx.beginPath();
+    ctx.moveTo(24, 0); ctx.lineTo(12, -9); ctx.lineTo(12, 9);
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+    emoji('🐦', 0, 1, 20);
+    ctx.restore();
+  }
 }
 
-/* -------------------------- Diálogo de reinicio -------------------------- */
-function dibujarDialogo() {
-  if (!DLG.visible) return;
+/* ============================== 16. PANEL =============================== */
+const CARD_H = 58, CAP_H = 30, NOTA_H = 34;
+
+function itemsPanel() {
+  const out = [];
+  if (panel.tab === 0) {
+    let capAct = -1;
+    for (let i = 0; i < CAMPANA.length; i++) {
+      const r = CAMPANA[i];
+      if (r.cap !== capAct) {
+        capAct = r.cap;
+        out.push({ tipo: 'cap', txt: t('capitulo', { n: r.cap + 1 }) + ' · ' + t(CAP_NOMBRES[r.cap]) });
+      }
+      out.push({ tipo: 'reto', r: r, hecho: i < state.retoIdx, actual: i === state.retoIdx, premio: r.premio });
+    }
+  } else if (panel.tab === 1) {
+    for (const r of OPCIONALES) out.push({ tipo: 'reto', r: r, hecho: cumplido(r.id), premio: r.premio });
+  } else {
+    out.push({ tipo: 'cap', txt: state.diarios.fecha });
+    for (let i = 0; i < state.diarios.ids.length; i++) {
+      const r = RETO_BY_ID[state.diarios.ids[i]];
+      if (r) out.push({ tipo: 'reto', r: r, hecho: diarioCobrado(r.id), premio: PREMIO_DIARIO[i] });
+    }
+    out.push({ tipo: 'nota', txt: t('sinDiarios') });
+  }
+  return out;
+}
+
+function dibujarPanel() {
   ctx.save();
-  ctx.fillStyle = 'rgba(6,12,8,0.62)';
+  ctx.fillStyle = 'rgba(0,0,0,0.62)';
   ctx.fillRect(0, 0, cw, ch);
 
-  pill(DLG.x, DLG.y, DLG.w, DLG.h, 20, 0.94);
-  texto('↺  ¿Reiniciar el juego?', DLG.x + DLG.w / 2, DLG.y + 40, 19, '#ffe27a', 'center', true);
-  texto('Se borrará todo tu progreso', DLG.x + DLG.w / 2, DLG.y + 70, 13, 'rgba(255,255,255,0.85)', 'center', false);
-  texto('y volverás a empezar de cero.', DLG.x + DLG.w / 2, DLG.y + 90, 13, 'rgba(255,255,255,0.85)', 'center', false);
+  ctx.fillStyle = 'rgba(22,34,24,0.98)';
+  rr(panel.x, panel.y, panel.w, panel.h, 20); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.16)'; ctx.lineWidth = 2;
+  rr(panel.x, panel.y, panel.w, panel.h, 20); ctx.stroke();
 
-  botonDialogo(DLG.no, 'Cancelar', '#3a5a3f', '#ffffff');
-  botonDialogo(DLG.si, 'Sí, reiniciar', '#c9453e', '#ffffff');
+  texto(t('retos'), panel.x + 18, panel.y + 26, 19, '#ffe27a', 'left', true);
+  pill(panel.cerrar.x, panel.cerrar.y, panel.cerrar.s, panel.cerrar.s, 10, 0.5);
+  texto('✕', panel.cerrar.x + panel.cerrar.s / 2, panel.cerrar.y + panel.cerrar.s / 2, 17, '#ffffff', 'center', true);
+
+  // Pestañas
+  const tw = panel.w / 3;
+  const nombres = [t('campana'), t('opcionales'), t('diarios')];
+  for (let i = 0; i < 3; i++) {
+    const tx = panel.x + i * tw;
+    const act = panel.tab === i;
+    ctx.fillStyle = act ? 'rgba(94,224,106,0.22)' : 'rgba(255,255,255,0.05)';
+    rr(tx + 3, panel.tabsY, tw - 6, panel.tabH, 10); ctx.fill();
+    if (act) {
+      ctx.strokeStyle = '#5ee06a'; ctx.lineWidth = 2;
+      rr(tx + 3, panel.tabsY, tw - 6, panel.tabH, 10); ctx.stroke();
+    }
+    texto(textoCorto(nombres[i], tw - 14, 13, true), tx + tw / 2, panel.tabsY + panel.tabH / 2,
+          13, act ? '#ffffff' : 'rgba(255,255,255,0.6)', 'center', true);
+  }
+
+  // Contenido con recorte y scroll
+  const items = itemsPanel();
+  let total = 0;
+  for (const it of items) total += it.tipo === 'cap' ? CAP_H : (it.tipo === 'nota' ? NOTA_H : CARD_H + 6);
+  panel.maxScroll = Math.max(0, total - panel.contH);
+  panel.scroll = clamp(panel.scroll, 0, panel.maxScroll);
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(panel.x + 6, panel.contY, panel.w - 12, panel.contH);
+  ctx.clip();
+  let y = panel.contY - panel.scroll;
+  const x = panel.x + 12, w = panel.w - 24;
+  for (const it of items) {
+    if (it.tipo === 'cap') {
+      if (y + CAP_H > panel.contY - 20 && y < panel.contY + panel.contH + 20) {
+        texto(it.txt, x + 2, y + CAP_H / 2 + 2, 13, '#8fe39a', 'left', true);
+      }
+      y += CAP_H;
+    } else if (it.tipo === 'nota') {
+      if (y + NOTA_H > panel.contY - 20 && y < panel.contY + panel.contH + 20) {
+        texto(it.txt, x + 2, y + NOTA_H / 2, 12, 'rgba(255,255,255,0.55)', 'left', false);
+      }
+      y += NOTA_H;
+    } else {
+      if (y + CARD_H > panel.contY - 20 && y < panel.contY + panel.contH + 20) dibujarTarjeta(it, x, y, w);
+      y += CARD_H + 6;
+    }
+  }
+  ctx.restore();
+
+  // Barra de scroll
+  if (panel.maxScroll > 0) {
+    const trackH = panel.contH;
+    const h = Math.max(28, trackH * (panel.contH / (panel.contH + panel.maxScroll)));
+    const yy = panel.contY + (trackH - h) * (panel.scroll / panel.maxScroll);
+    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    rr(panel.x + panel.w - 9, yy, 4, h, 2); ctx.fill();
+  }
   ctx.restore();
 }
 
-function botonDialogo(b, txt, fondo, color) {
-  ctx.fillStyle = fondo;
-  rr(b.x, b.y, b.w, b.h, 12); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
-  ctx.lineWidth = 2;
-  rr(b.x, b.y, b.w, b.h, 12); ctx.stroke();
-  texto(txt, b.x + b.w / 2, b.y + b.h / 2, 14, color, 'center', true);
+function dibujarTarjeta(it, x, y, w) {
+  const r = it.r;
+  const val = r.prog(state);
+  const prog = it.hecho ? 1 : clamp(val / r.meta, 0, 1);
+  ctx.fillStyle = it.hecho ? 'rgba(94,224,106,0.14)' : 'rgba(255,255,255,0.06)';
+  rr(x, y, w, CARD_H, 12); ctx.fill();
+  if (it.actual) {
+    ctx.strokeStyle = 'rgba(255,226,122,0.75)'; ctx.lineWidth = 2;
+    rr(x, y, w, CARD_H, 12); ctx.stroke();
+  }
+  const wPremio = anchoTexto('+$' + it.premio, 13, true) + 8;
+  texto(textoCorto(textoReto(r), w - 30 - wPremio, 13, true), x + 12, y + 17, 13,
+        it.hecho ? 'rgba(255,255,255,0.65)' : '#ffffff', 'left', true);
+  texto('+$' + it.premio, x + w - 12, y + 17, 13, '#ffe27a', 'right', true);
+  const bx = x + 12, bw = w - 24, by = y + 38, bh = 8;
+  ctx.fillStyle = 'rgba(255,255,255,0.14)';
+  rr(bx, by, bw, bh, 4); ctx.fill();
+  ctx.fillStyle = it.hecho ? '#5ee06a' : '#4bb7e0';
+  rr(bx, by, Math.max(5, bw * prog), bh, 4); ctx.fill();
+  const etq = it.hecho ? '✓ ' + t('completado') : Math.min(Math.floor(val), r.meta) + ' / ' + r.meta;
+  texto(etq, x + w - 12, y + 50, 11, it.hecho ? '#8fe39a' : 'rgba(255,255,255,0.75)', 'right', true);
 }
 
-function botonHUD(b, icono) {
-  pill(b.x, b.y, b.s, b.s, 12, 0.66);
-  ctx.font = '19px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(icono, b.x + b.s / 2, b.y + b.s / 2 + 1);
-}
-
-/* ------------------------------ Render total ----------------------------- */
+/* ---------------------------- Render completo ---------------------------- */
 function render() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = '#16241a';
   ctx.fillRect(0, 0, cw, ch);
+  SIGNOS.length = 0;
 
   ctx.save();
   ctx.scale(view.scale, view.scale);
   let sx = 0, sy = 0;
-  if (cam.shake > 0) {
-    const m = cam.shake * 14;
-    sx = rand(-m, m); sy = rand(-m, m);
-  }
+  if (cam.shake > 0) { const m = cam.shake * 14; sx = rand(-m, m); sy = rand(-m, m); }
   ctx.translate(-cam.x + sx, -cam.y + sy);
 
-  dibujarPasto();
-  dibujarCaminos();
+  if (fondo) ctx.drawImage(fondo, 0, 0);
   for (const f of FRUITS) dibujarZona(f);
   dibujarVenta();
   for (const c of circles) dibujarCirculo(c);
+  for (const e of espantas) dibujarEspantapajaros(e);
 
-  // Orden por profundidad
   const drawables = [];
   for (const p of plants) drawables.push({ y: p.y, d: 0, o: p });
   for (const h of helpers) drawables.push({ y: h.y, d: 1, o: h });
@@ -1583,32 +2516,44 @@ function render() {
     else if (it.d === 1) dibujarPersonaje(it.o, { camisa: it.o.color, gorra: '#e63946', logo: true });
     else dibujarJugador();
   }
+  for (const p of plagas) dibujarPlaga(p);
 
   dibujarParticulas();
   dibujarHint();
   ctx.restore();
 
   dibujarHUD();
+  if (panel.abierto) dibujarPanel();
 }
 
-/* =============================== 15. LOOP =============================== */
+/* =============================== 17. LOOP =============================== */
 let tiempo = 0;
 let last = 0;
 
 function paso(ts) {
   if (!last) last = ts;
-  let dt = (ts - last) / 1000;
+  const msFrame = ts - last;
+  let dt = msFrame / 1000;
   last = ts;
   if (!isFinite(dt) || dt < 0) dt = 0;
   dt = Math.min(dt, CONFIG.MAX_DT);
   tiempo += dt;
+  medirPerf(isFinite(msFrame) && msFrame > 0 ? Math.min(msFrame, 200) : 16);
 
-  const inp = DLG.visible ? { x: 0, y: 0 } : inputVector();
+  revisarDia();
+  const inp = inputVector();
   player.update(dt, inp.x, inp.y);
   for (const p of plants) p.update(dt);
   for (const h of helpers) h.update(dt);
+  actualizarPlagas(dt);
   actualizarCirculos(dt);
+
+  state.sinMarchita += dt;
+  state.hoy.sinMarchita += dt;
+  if (state.dinero > state.op.saldoMax) state.op.saldoMax = state.dinero;
+
   actualizarRetos(true);
+  revisarMitad();
   actualizarParticulas(dt);
   actualizarCamara(dt);
 
@@ -1623,21 +2568,27 @@ function paso(ts) {
   window.requestAnimationFrame(paso);
 }
 
-/* ============================== 16. ARRANQUE ============================= */
-function iniciar() {
-  Save.cargar();
-  reconstruirMundo();
-  actualizarRetos(false);   // por si el save quedó con retos ya cumplidos
-  reconstruirFades();
-  resize();
-  // Cámara sin salto inicial
-  cam.x = view.w >= WORLD_W ? (WORLD_W - view.w) / 2 : clamp(player.x - view.w / 2, 0, WORLD_W - view.w);
-  cam.y = view.h >= WORLD_H ? (WORLD_H - view.h) / 2 : clamp(player.y - view.h / 2, 0, WORLD_H - view.h);
-  window.requestAnimationFrame(paso);
+/* ============================= 18. ARRANQUE ============================= */
+function registrarSW() {
+  try {
+    if (location.protocol === 'https:' && navigator.serviceWorker) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+  } catch (e) {}
 }
 
-function reconstruirFades() {
+function iniciar() {
+  Save.cargar();
+  LANG = state.idioma;
+  construirFondo();
+  reconstruirMundo();
+  actualizarRetos(false);          // reconcilia saves viejos sin fiesta
   for (const f of FRUITS) f._fade = desbloqueada(f.id) ? 0 : 1;
+  resize();
+  const o = objetivoCamara();
+  cam.x = o.x; cam.y = o.y;
+  registrarSW();
+  window.requestAnimationFrame(paso);
 }
 
 document.addEventListener('visibilitychange', () => {
@@ -1646,30 +2597,41 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('pagehide', () => Save.guardar());
 window.addEventListener('pointerdown', () => SFX.resume(), { once: true });
 
-/* ============================ 17. API DE CONSOLA ========================= */
+/* ============================ 19. API DE CONSOLA ======================== */
 const game = {
   get state() { return state; },
   get player() { return player; },
   get plants() { return plants; },
   get helpers() { return helpers; },
-  CONFIG, FRUITS, CHALLENGES, circles,
+  get plagas() { return plagas; },
+  CONFIG, FRUITS, CAMPANA, OPCIONALES, DIARIOS, circles, I18N, t,
   dinero(n) {
     const v = Number(n) || 0;
     state.dinero += v;
-    if (v > 0) state.dineroTotal += v;
+    if (v > 0) { state.dineroTotal += v; state.hoy.dinero += v; }
     Save.guardar();
     return Math.floor(state.dinero);
   },
   desbloquear(id) { desbloquearZona(id, true); Save.guardar(); },
+  spawnPlaga() {
+    const o = elegirObjetivoPlaga();
+    if (o) { plagas.push(new Plaga(o)); return true; }
+    return false;
+  },
+  completarReto(id) {
+    const r = RETO_BY_ID[id];
+    if (!r) return false;
+    const i = CAMPANA.indexOf(r);
+    if (i >= 0) { state.retoIdx = Math.max(state.retoIdx, i); }
+    if (!cumplido(id)) state.cumplidos.push(id);
+    Save.guardar();
+    return true;
+  },
+  idioma(l) { if (IDIOMAS.indexOf(l) >= 0) { LANG = l; state.idioma = l; anchosCache = Object.create(null); Save.guardar(); } return LANG; },
+  calidad(c) { if (['auto', 'bajo', 'alto'].indexOf(c) >= 0) { state.calidad = c; resize(); Save.guardar(); } return state.calidad; },
+  fps() { return Math.round(1000 / Math.max(1, perf.ms)); },
   guardar() { Save.guardar(); },
-  reiniciar() { DLG.visible = false; reiniciarJuego(); return 'Partida reiniciada.'; },
-  // Reinicio duro (recarga la página): bloquea el guardado para que los
-  // handlers de 'pagehide'/'visibilitychange' no reescriban el save borrado.
-  reiniciarDuro() {
-    Save.borrar();
-    Save.bloqueado = true;
-    window.location.reload();
-  }
+  reiniciar() { Save.borrar(); window.location.reload(); }
 };
 window.game = game;
 
