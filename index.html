@@ -114,6 +114,10 @@ const CONFIG = {
 
   // Jugador
   PLAYER_SPEED: 180,
+  PLAYER_ACEL: 1500,           // px/s² al arrancar: sin esto la velocidad salta de 0 a tope
+  PLAYER_FRENO: 2100,          // px/s² al soltar
+  PASO_LARGO: 23,              // px por medio ciclo de piernas; si no, los pies patinan
+  INCLINA_MAX: 0.11,           // radianes que se inclina al correr
   SPEED_PENALTY_PER_FRUIT: 0.01,
   SPEED_MIN_FACTOR: 0.60,
   CAP_START: 10,
@@ -288,7 +292,7 @@ const I18N = {
     tropiezo: '¡Se te cayó!', robo: '¡Te robaron todo!', caminoCambio: 'El camino cambió',
     r6t: 'Cuidado en el camino', r6d: 'Los baches te tiran la fruta y los animales se la llevan; corre al puesto, ahí no entran',
     r1t: 'Cosecha', r1d: 'Acércate a los árboles y se llena tu mochila sola',
-    r2t: 'Surte el puesto', r2d: 'Párate en VENDER para pasar la fruta al estante',
+    r2t: 'Surte el puesto', r2d: 'Párate en VENDER: cada fruta va a su propia bandeja',
     r3t: 'Atiende a los clientes', r3d: 'Compran del estante; si lo hallan vacío se van enojados',
     r4t: 'Espanta las plagas', r4d: 'Corre hacia los pájaros antes de que sequen la planta',
     r5t: 'Mejora tu huerta', r5d: 'Párate en los círculos de abajo para comprar mejoras',
@@ -350,7 +354,7 @@ const I18N = {
     tropiezo: 'You dropped it!', robo: 'It took everything!', caminoCambio: 'The road shifted',
     r6t: 'Watch the road', r6d: 'Potholes drop your fruit and animals take it; run to the stall, they will not enter',
     r1t: 'Harvest', r1d: 'Walk up to the trees and your backpack fills by itself',
-    r2t: 'Restock the stall', r2d: 'Stand on SELL to move fruit onto the shelf',
+    r2t: 'Restock the stall', r2d: 'Stand on SELL: each fruit goes into its own tray',
     r3t: 'Serve the customers', r3d: 'They buy from the shelf; find it empty and they leave angry',
     r4t: 'Scare the pests', r4d: 'Run at the birds before they dry out the plant',
     r5t: 'Upgrade the orchard', r5d: 'Stand on the circles below to buy upgrades',
@@ -412,7 +416,7 @@ const I18N = {
     tropiezo: 'Você derrubou!', robo: 'Levou tudo!', caminoCambio: 'O caminho mudou',
     r6t: 'Cuidado no caminho', r6d: 'Os buracos derrubam a fruta e os animais levam; corra ao posto, ali eles não entram',
     r1t: 'Colha', r1d: 'Chegue perto das árvores e a mochila enche sozinha',
-    r2t: 'Abasteça o posto', r2d: 'Fique em VENDER para passar a fruta à prateleira',
+    r2t: 'Abasteça o posto', r2d: 'Fique em VENDER: cada fruta vai para sua própria bandeja',
     r3t: 'Atenda os clientes', r3d: 'Compram da prateleira; se estiver vazia vão embora bravos',
     r4t: 'Espante as pragas', r4d: 'Corra até os pássaros antes que sequem a planta',
     r5t: 'Melhore a horta', r5d: 'Fique nos círculos de baixo para comprar melhorias',
@@ -480,36 +484,36 @@ const FRUITS = [
     id: 'mango', precio: 6, tipoPlanta: 'arbol', desbloqueadaInicio: true,
     colores: { fruta: '#ffc233', frutaSombra: '#e8901d', copa: '#46b05a', copaOscura: '#2f8b41', tronco: '#8a5a2b' },
     zona: { x: 50, y: 48, w: 620, h: 366, key: 'zMango' },
-    posiciones: [[150,158],[360,124],[572,162],[236,306],[494,312]],
-    posicionesExtra: [[84,258],[644,266],[360,252],[136,382],[598,384]]
+    posiciones: [[146,144],[360,112],[574,144],[230,292],[490,292]],
+    posicionesExtra: [[80,246],[640,246],[360,238],[148,378],[572,378]]
   },
   {
     id: 'naranja', precio: 11, tipoPlanta: 'arbol', desbloqueadaInicio: false,
     colores: { fruta: '#ff8c1a', frutaSombra: '#d96504', copa: '#5cbf5f', copaOscura: '#37974a', tronco: '#7d5327' },
     zona: { x: 44, y: 440, w: 292, h: 292, key: 'zNaranja' },
-    posiciones: [[112,534],[268,512],[188,654]],
-    posicionesExtra: [[96,694],[300,664],[240,594],[142,474]]
+    posiciones: [[114,530],[254,520],[184,660]],
+    posicionesExtra: [[84,620],[294,640],[194,480],[234,700]]
   },
   {
     id: 'sandia', precio: 20, tipoPlanta: 'rastrera', desbloqueadaInicio: false,
     colores: { fruta: '#4aa53f', frutaSombra: '#2d7a2a', copa: '#3f9d46', copaOscura: '#2c7a34', tronco: '#2c7a34' },
     zona: { x: 384, y: 440, w: 292, h: 292, key: 'zSandia' },
-    posiciones: [[452,536],[612,522],[532,656]],
-    posicionesExtra: [[424,668],[650,664],[542,472],[470,600]]
+    posiciones: [[454,530],[594,520],[524,660]],
+    posicionesExtra: [[424,650],[634,640],[534,480],[574,700]]
   },
   {
     id: 'papaya', precio: 34, tipoPlanta: 'arbol', desbloqueadaInicio: false,
     colores: { fruta: '#ffa93b', frutaSombra: '#d97a12', copa: '#7cc24f', copaOscura: '#4f9a35', tronco: '#9a7040' },
     zona: { x: 44, y: 758, w: 292, h: 292, key: 'zPapaya' },
-    posiciones: [[112,852],[268,830],[188,972]],
-    posicionesExtra: [[96,1012],[300,982],[240,912],[142,792]]
+    posiciones: [[114,848],[254,838],[184,978]],
+    posicionesExtra: [[84,938],[294,958],[194,798],[234,1018]]
   },
   {
     id: 'pina', precio: 55, tipoPlanta: 'rastrera', desbloqueadaInicio: false,
     colores: { fruta: '#e8bf3c', frutaSombra: '#b8891a', copa: '#4fae52', copaOscura: '#2f7f38', tronco: '#2f7f38' },
     zona: { x: 384, y: 758, w: 292, h: 292, key: 'zPina' },
-    posiciones: [[452,854],[612,840],[532,974]],
-    posicionesExtra: [[424,986],[650,982],[542,790],[470,918]]
+    posiciones: [[454,848],[594,838],[524,978]],
+    posicionesExtra: [[424,968],[634,958],[534,798],[574,1018]]
   }
 ];
 const FRUIT_BY_ID = {};
@@ -613,7 +617,7 @@ function estadoNuevo() {
     recolectadas: 0,
     plagasEspantadas: 0,
     curadas: 0,
-    estante: [],
+    estanteTrays: FRUITS.reduce((o, f) => { o[f.id] = 0; return o; }, {}),
     reputacion: CONFIG.REP_INICIAL,
     servidos: 0,
     enojados: 0,
@@ -688,6 +692,13 @@ function num(v, def) { return (typeof v === 'number' && isFinite(v)) ? v : def; 
 function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
 function lerp(a, b, t) { return a + (b - a) * t; }
 function rand(a, b) { return a + Math.random() * (b - a); }
+function hacia(v, obj, paso) { return v < obj ? Math.min(obj, v + paso) : Math.max(obj, v - paso); }
+
+// El ciclo de piernas avanza con la DISTANCIA recorrida, no con el reloj:
+// así el pie coincide con el suelo y el personaje deja de patinar.
+function avanzarPaso(e, dist, largo) {
+  e.phase += dist / (largo || CONFIG.PASO_LARGO) * Math.PI;
+}
 
 /* =============================== 6. SAVE ================================
    Clave versionada, saneo de cada campo al cargar y migración desde v1.
@@ -714,7 +725,7 @@ const Save = {
         espantaZonas: state.espantaZonas, ayudantes: state.ayudantes,
         retoIdx: state.retoIdx, cumplidos: state.cumplidos,
         oleadasHechas: state.oleadasHechas, curadas: state.curadas,
-        estante: state.estante, reputacion: state.reputacion,
+        estanteTrays: state.estanteTrays, reputacion: state.reputacion,
         servidos: state.servidos, enojados: state.enojados, terminado: state.terminado,
         tropiezos: state.tropiezos, robadas: state.robadas, recogidas: state.recogidas,
         diarios: state.diarios, hoy: state.hoy, sinMarchita: state.sinMarchita,
@@ -779,9 +790,6 @@ const Save = {
       s.recogidas = Math.max(0, num(d.recogidas, 0) | 0);
       s.terminado = !!d.terminado;
       s.reputacion = clamp(num(d.reputacion, CONFIG.REP_INICIAL), 0, CONFIG.REP_MAX);
-      if (Array.isArray(d.estante)) {
-        s.estante = d.estante.filter(id => !!FRUIT_BY_ID[id]).slice(0, CONFIG.PUESTO_CAP_BASE + CONFIG.PUESTO_PASO * CONFIG.PUESTO_MAX);
-      }
       if (d.pagos && typeof d.pagos === 'object') {
         for (const k in s.pagos) s.pagos[k] = Math.max(0, num(d.pagos[k], 0));
       }
@@ -796,6 +804,14 @@ const Save = {
       if (Array.isArray(d.desbloqueadas)) {
         const val = d.desbloqueadas.filter(id => !!FRUIT_BY_ID[id]);
         s.desbloqueadas = val.length ? val : estadoNuevo().desbloqueadas;
+      }
+      // Bandejas: si viene un save viejo (array plano), se reparte por fruta;
+      // si no, se sanea contra el cupo real de cada bandeja en esta partida.
+      state = s;                      // trayCap() lee de `state`, hace falta apuntar ya
+      if (Array.isArray(d.estante)) {
+        d.estante.forEach(id => { if (FRUIT_BY_ID[id]) s.estanteTrays[id] = Math.min(trayCap(id), (s.estanteTrays[id] || 0) + 1); });
+      } else if (d.estanteTrays && typeof d.estanteTrays === 'object') {
+        for (const f of FRUITS) s.estanteTrays[f.id] = clamp(num(d.estanteTrays[f.id], 0) | 0, 0, trayCap(f.id));
       }
       // Diarios y contadores de hoy: se reinician si cambió el día
       const hoy = fechaHoy();
@@ -971,6 +987,7 @@ class Player {
     this.curando = null;
     this.aturdido = 0;
     this.bacheActual = null;
+    this.vx = 0; this.vy = 0; this.vel = 0; this.inclina = 0;
   }
   get factorVel() {
     return Math.max(CONFIG.SPEED_MIN_FACTOR, 1 - CONFIG.SPEED_PENALTY_PER_FRUIT * this.carga.length);
@@ -978,21 +995,39 @@ class Player {
   update(dt, ix, iy) {
     if (this.aturdido > 0) { this.aturdido = Math.max(0, this.aturdido - dt); ix = 0; iy = 0; }
     const mag = Math.hypot(ix, iy);
-    this.moving = mag > 0.06;
+    const hayInput = mag > 0.06;
+    const spMax = CONFIG.PLAYER_SPEED * this.factorVel;
+    let tx = 0, ty = 0;
+    if (hayInput) {
+      const f = spMax * Math.min(1, mag);
+      tx = ix / mag * f; ty = iy / mag * f;
+    }
+    // Arranca y frena con inercia; cargado pesa más y tarda más en responder
+    const lastre = 0.55 + 0.45 * this.factorVel;
+    const acel = (hayInput ? CONFIG.PLAYER_ACEL * lastre : CONFIG.PLAYER_FRENO) * dt;
+    this.vx = hacia(this.vx, tx, acel);
+    this.vy = hacia(this.vy, ty, acel);
+    const dx = this.vx * dt, dy = this.vy * dt;
+    this.x += dx;
+    this.y += dy;
+    this.vel = Math.hypot(this.vx, this.vy);
+    this.moving = this.vel > 8;
+    if (Math.abs(this.vx) > 14) this.facing = this.vx > 0 ? 1 : -1;
     if (this.moving) {
-      const nx = ix / mag, ny = iy / mag;
-      const sp = CONFIG.PLAYER_SPEED * this.factorVel * Math.min(1, mag);
-      this.x += nx * sp * dt;
-      this.y += ny * sp * dt;
-      if (Math.abs(nx) > 0.15) this.facing = nx > 0 ? 1 : -1;
-      this.phase += dt * (7 + sp * 0.03);
-      this.swayT += dt * 6;
+      avanzarPaso(this, Math.hypot(dx, dy));
+      this.swayT += dt * (2 + this.vel * 0.035);
     } else {
-      this.phase = lerp(this.phase, Math.round(this.phase / Math.PI) * Math.PI, Math.min(1, dt * 10));
+      this.phase = lerp(this.phase, Math.round(this.phase / Math.PI) * Math.PI, Math.min(1, dt * 12));
       this.swayT += dt * 2;
     }
+    // se inclina hacia donde corre
+    this.inclina = lerp(this.inclina, clamp(this.vx / Math.max(1, spMax), -1, 1) * CONFIG.INCLINA_MAX,
+                        Math.min(1, dt * 8));
+    const px = this.x, py = this.y;
     this.x = clamp(this.x, 22, WORLD_W - 22);
     this.y = clamp(this.y, 30, WORLD_H - 24);
+    if (this.x !== px) this.vx = 0;          // pegado al borde no se sigue "empujando"
+    if (this.y !== py) this.vy = 0;
 
     // ---- Baches: cruzarlos cargado te tira la fruta ----
     const b = bacheEn(this.x, this.y);
@@ -1060,11 +1095,18 @@ class Player {
     this.eraLleno = lleno;
 
     // ---- Surtir el puesto por proximidad (ya no vendes tú) ----
+    // Cada fruta va a SU bandeja: si la tuya está llena, se busca en la pila
+    // la siguiente que sí quepa en vez de bloquear todo el descargue.
     if (enVenta(this.x, this.y) && this.carga.length > 0 && !estanteLleno()) {
       this.sellT += dt;
-      while (this.sellT >= CONFIG.SELL_INTERVAL && this.carga.length > 0 && !estanteLleno()) {
+      while (this.sellT >= CONFIG.SELL_INTERVAL && this.carga.length > 0) {
+        let idx = -1;
+        for (let i = this.carga.length - 1; i >= 0; i--) {
+          if (!trayLleno(this.carga[i])) { idx = i; break; }
+        }
+        if (idx < 0) break;
         this.sellT -= CONFIG.SELL_INTERVAL;
-        depositar(this.carga.pop());
+        depositar(this.carga.splice(idx, 1)[0]);
         SFX.pop();
         if (this.carga.length === 0 && this.fullRun) { state.op.mochilaFull = 1; this.fullRun = false; }
       }
@@ -1093,11 +1135,16 @@ class Helper {
     const sp = CONFIG.PLAYER_SPEED * CONFIG.HELPER_SPEED_FACTOR;
     if (d > 3) {
       const f = Math.min(1, sp * dt / d);
-      this.x += dx * f; this.y += dy * f;
+      const mx = dx * f, my = dy * f;
+      this.x += mx; this.y += my;
       if (Math.abs(dx) > 0.6) this.facing = dx > 0 ? 1 : -1;
-      this.phase += dt * 8;
+      avanzarPaso(this, Math.hypot(mx, my));
+      this.inclina = lerp(this.inclina || 0, (dx > 0 ? 1 : -1) * CONFIG.INCLINA_MAX * 0.7, Math.min(1, dt * 6));
       this.moving = true;
-    } else this.moving = false;
+    } else {
+      this.moving = false;
+      this.inclina = lerp(this.inclina || 0, 0, Math.min(1, dt * 8));
+    }
     return d;
   }
   update(dt) {
@@ -1106,7 +1153,11 @@ class Helper {
     if (this.modo === 'cosechar') {
       if (this.carga.length >= CONFIG.HELPER_CAP) { this.modo = 'vender'; this.t = 0; return; }
       if (!this.target || this.target.frutas <= 0 || plants.indexOf(this.target) < 0) {
-        this.target = plantaCercanaConFruta(this.x, this.y, Infinity);
+        // Prioriza la fruta con la bandeja más vacía; si no hay ninguna lista
+        // de esa (regenerando), va por cualquier otra en vez de quedarse quieto.
+        const necesaria = frutaMasNecesitada();
+        this.target = (necesaria && plantaCercanaDeFruta(this.x, this.y, necesaria))
+                    || plantaCercanaConFruta(this.x, this.y, Infinity);
       }
       if (!this.target) {
         this.moving = false;
@@ -1130,11 +1181,12 @@ class Helper {
         this.t += dt;
         if (this.t >= CONFIG.HELPER_SELL_INTERVAL) {
           this.t = 0;
-          if (!estanteLleno()) {                  // los ayudantes ahora reponen
-            const id = this.carga.pop();
-            if (id) depositar(id);
+          let idx = -1;
+          for (let i = this.carga.length - 1; i >= 0; i--) {
+            if (!trayLleno(this.carga[i])) { idx = i; break; }
           }
-          if (this.carga.length === 0) { this.modo = 'cosechar'; this.target = null; }
+          if (idx >= 0) depositar(this.carga.splice(idx, 1)[0]);
+          if (this.carga.length === 0 || idx < 0) { this.modo = 'cosechar'; this.target = null; }
         }
       }
     }
@@ -1267,11 +1319,16 @@ class Cliente {
     const d = Math.hypot(dx, dy);
     if (d > 3) {
       const f = Math.min(1, CONFIG.CLIENTE_VEL * dt / d);
-      this.x += dx * f; this.y += dy * f;
+      const mx = dx * f, my = dy * f;
+      this.x += mx; this.y += my;
       if (Math.abs(dx) > 0.6) this.facing = dx > 0 ? 1 : -1;
-      this.phase += dt * 8;
+      avanzarPaso(this, Math.hypot(mx, my));
+      this.inclina = lerp(this.inclina || 0, (dx > 0 ? 1 : -1) * CONFIG.INCLINA_MAX * 0.6, Math.min(1, dt * 6));
       this.moving = true;
-    } else this.moving = false;
+    } else {
+      this.moving = false;
+      this.inclina = lerp(this.inclina || 0, 0, Math.min(1, dt * 8));
+    }
     return d;
   }
   salir(completo) {
@@ -1358,7 +1415,7 @@ class Mapache {
     this.x += dx / d * paso;
     this.y += dy / d * paso;
     if (Math.abs(dx) > 1) this.facing = dx > 0 ? 1 : -1;
-    this.phase += dt * 14;
+    avanzarPaso(this, paso, CONFIG.PASO_LARGO * 0.45);   // patas cortas, paso corto
     return d;
   }
   huir() { if (this.estado !== 'huyendo') this.estado = 'huyendo'; }
@@ -1461,6 +1518,17 @@ function plantaCercanaConFruta(x, y, radio) {
   }
   return best;
 }
+// Como la anterior, pero solo entre plantas de UNA fruta: así el ayudante
+// puede ir a buscar específicamente lo que le falta al puesto.
+function plantaCercanaDeFruta(x, y, fruitId) {
+  let best = null, bd = Infinity;
+  for (const p of plants) {
+    if (p.fruit.id !== fruitId || p.frutas <= 0) continue;
+    const dx = p.x - x, dy = p.y - y, d = dx * dx + dy * dy;
+    if (d < bd) { bd = d; best = p; }
+  }
+  return best;
+}
 function plantaCercana(x, y) {
   let best = null, bd = Infinity;
   for (const p of plants) {
@@ -1522,12 +1590,39 @@ function enVenta(x, y) {
 /* --------------------- Puesto, clientes y reputación --------------------- */
 function puestoCap() { return CONFIG.PUESTO_CAP_BASE + CONFIG.PUESTO_PASO * state.compras.puesto; }
 function nivelPuesto() { return clamp(state.compras.puesto, 0, CONFIG.PUESTO_MAX); }
-function estanteLleno() { return state.estante.length >= puestoCap(); }
 
-// Surtir: la fruta pasa de tu espalda al estante. Aquí NO entra dinero.
+/* Bandejas por fruta: el estante ya no es un montón mezclado. El total del
+   puesto se reparte entre las frutas desbloqueadas, y cada bandeja SOLO
+   admite la suya — surtir de más de una no le quita cupo a las demás. */
+function trayCap(id) {
+  const n = state.desbloqueadas.length;
+  if (!n || state.desbloqueadas.indexOf(id) < 0) return 0;
+  const total = puestoCap();
+  const base = Math.floor(total / n), resto = total % n;
+  return base + (state.desbloqueadas.indexOf(id) < resto ? 1 : 0);
+}
+function trayCount(id) { return state.estanteTrays[id] || 0; }
+function trayLleno(id) { return trayCount(id) >= trayCap(id); }
+// Todo lleno = ninguna bandeja desbloqueada tiene sitio; solo entonces
+// deja de tener sentido que el jugador o el ayudante sigan intentando surtir.
+function estanteLleno() { return state.desbloqueadas.every(id => trayLleno(id)); }
+function estanteTotal() { return state.desbloqueadas.reduce((n, id) => n + trayCount(id), 0); }
+// La fruta con la bandeja más vacía en proporción: lo que hace falta reponer.
+function frutaMasNecesitada() {
+  let mejor = null, peor = Infinity;
+  for (const id of state.desbloqueadas) {
+    const cap = trayCap(id);
+    if (cap <= 0) continue;
+    const frac = trayCount(id) / cap;
+    if (frac < peor) { peor = frac; mejor = id; }
+  }
+  return mejor;
+}
+
+// Surtir: la fruta pasa de tu espalda a SU bandeja. Aquí NO entra dinero.
 function depositar(id) {
-  if (!FRUIT_BY_ID[id] || estanteLleno()) return false;
-  state.estante.push(id);
+  if (!FRUIT_BY_ID[id] || trayLleno(id)) return false;
+  state.estanteTrays[id] = trayCount(id) + 1;
   state.hints.vender = true;
   return true;
 }
@@ -1547,20 +1642,14 @@ function intervaloCliente() {
 }
 function ajustarRep(d) { state.reputacion = clamp(state.reputacion + d, 0, CONFIG.REP_MAX); }
 
-function hayEnEstante(fruitId) { return state.estante.indexOf(fruitId) >= 0; }
+function hayEnEstante(fruitId) { return trayCount(fruitId) > 0; }
 
-// El dinero entra AQUÍ: cuando un cliente se lleva una fruta del estante.
-// Si pide una fruta concreta, solo se lleva esa: hay que surtir variado.
+// El dinero entra AQUÍ: cuando un cliente se lleva una fruta de SU bandeja.
 function comprarDelEstante(x, y, fruitId) {
-  if (!state.estante.length) return null;
-  let i = 0;
-  if (fruitId) {
-    i = state.estante.indexOf(fruitId);
-    if (i < 0) return null;
-  }
-  const id = state.estante.splice(i, 1)[0];
-  const f = FRUIT_BY_ID[id];
-  if (!f) return null;
+  const f = FRUIT_BY_ID[fruitId];
+  if (!f || trayCount(fruitId) <= 0) return null;
+  state.estanteTrays[fruitId] = trayCount(fruitId) - 1;
+  const id = fruitId;
   const mult = comboMult();
   const ganado = Math.max(1, Math.round(f.precio * repFactorPrecio() * mult));
   state.dinero += ganado;
@@ -1644,6 +1733,7 @@ function tropezar(p) {
     soltarAlSuelo(id, p.x + rand(-54, 54), p.y + rand(-34, 46));
   }
   p.aturdido = CONFIG.BACHE_ATURDIDO;
+  p.vx = 0; p.vy = 0;
   cam.shake = Math.max(cam.shake, 0.32);
   floats.push({ x: p.x, y: p.y - 42, t: 0, txt: t('tropiezo'), color: '#ffa96b' });
   state.tropiezos++;
@@ -2352,6 +2442,7 @@ function abrirModal(cfg) {
   modal.festejo = !!cfg.festejo;
   modal.stats = cfg.stats || null;
   modal.onSi = cfg.onSi || null;
+  modal.onNo = cfg.onNo || null;   // si viene, el botón "no" actúa sin cerrar (p.ej. compartir)
   modal.hover = null;
   layoutModal();
   SFX.resume();
@@ -2367,6 +2458,8 @@ function abrirFinal() {
     tit: t('imperioCompleto'),
     txt: t('finalTxt'),
     si: t('btnSeguir'),
+    no: t('compartir'),
+    onNo: function () { compartir(); },   // no cierra: puede compartir y luego seguir
     festejo: true,
     stats: [
       [t('sDinero'), '$' + Math.floor(state.dineroTotal)],
@@ -2394,7 +2487,7 @@ function comenzarJuego() {
   SFX.fanfarria();
 }
 
-function cerrarModal() { modal.abierto = false; modal.onSi = null; modal.hover = null; }
+function cerrarModal() { modal.abierto = false; modal.onSi = null; modal.onNo = null; modal.hover = null; }
 
 function confirmarModal() {
   const fn = modal.onSi;
@@ -2527,7 +2620,10 @@ canvas.addEventListener('pointerdown', e => {
   }
   if (modal.abierto) {
     if (puntoEnRect(modal.btnSi, p.x, p.y)) { SFX.pop(); confirmarModal(); }
-    else if (modal.no && puntoEnRect(modal.btnNo, p.x, p.y)) { SFX.pop(); cerrarModal(); }
+    else if (modal.no && puntoEnRect(modal.btnNo, p.x, p.y)) {
+      SFX.pop();
+      if (modal.onNo) modal.onNo(); else cerrarModal();
+    }
     else if (p.x < modal.x || p.x > modal.x + modal.w || p.y < modal.y || p.y > modal.y + modal.h) cerrarModal();
     e.preventDefault();
     return;
@@ -3009,24 +3105,53 @@ function dibujarVenta() {
         'center', true, 5, 'rgba(0,0,0,0.2)');
   ctx.globalAlpha = 1;
   dibujarEstructuraPuesto();
-  // Existencias del estante sobre el mostrador (3 filas, se ensancha al mejorar)
-  const n = state.estante.length;
+  // Bandejas: una franja por fruta desbloqueada, cada una con SU cupo propio.
+  // Ninguna fruta puede ocupar el hueco de otra, así que una bandeja vacía
+  // se ve vacía aunque el resto del puesto esté lleno.
   const ext = nivelPuesto() * 9;
-  const cols = 7 + nivelPuesto();
-  const paso = (COUNTER.w + ext * 2 - 26) / cols;
-  const vis = Math.min(n, cols * 3);
-  for (let i = 0; i < vis; i++) {
-    const f = FRUIT_BY_ID[state.estante[i]];
-    if (!f) continue;
-    const fila = (i / cols) | 0, col = i % cols;
-    const fx = COUNTER.x - ext + 17 + col * paso, fy = COUNTER.y + 16 + fila * 17;
-    ctx.fillStyle = 'rgba(0,0,0,0.18)';
-    elipse(fx, fy + 8, 8, 3); ctx.fill();
-    ctx.fillStyle = f.colores.frutaSombra; circulo(fx, fy + 1.5, 8); ctx.fill();
-    ctx.fillStyle = f.colores.fruta; circulo(fx, fy, 7.2); ctx.fill();
-    ctx.fillStyle = 'rgba(255,255,255,0.45)'; circulo(fx - 2.2, fy - 2.2, 2.2); ctx.fill();
+  const x0 = COUNTER.x - ext, wTotal = COUNTER.w + ext * 2;
+  const frutasPuesto = state.desbloqueadas;
+  const nF = frutasPuesto.length;
+  if (nF > 0) {
+    const wCol = wTotal / nF;
+    for (let c = 0; c < nF; c++) {
+      const id = frutasPuesto[c];
+      const f = FRUIT_BY_ID[id];
+      if (!f) continue;
+      const cap = trayCap(id), cnt = trayCount(id);
+      const cx0 = x0 + c * wCol;
+      if (c > 0) {
+        ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(cx0, COUNTER.y + 6); ctx.lineTo(cx0, COUNTER.y + COUNTER.h - 4); ctx.stroke();
+      }
+      if (cnt === 0 && clientesActivos()) {          // bandeja vacía: aviso propio
+        ctx.save();
+        ctx.globalAlpha = 0.35 + 0.25 * pulso;
+        ctx.fillStyle = 'rgba(200,50,50,0.5)';
+        rr(cx0 + 2, COUNTER.y + 4, wCol - 4, COUNTER.h - 10, 5); ctx.fill();
+        ctx.restore();
+      }
+      const porFila = Math.max(1, Math.floor((wCol - 6) / 15));
+      const visibles = Math.min(cnt, porFila * 3);
+      for (let i = 0; i < visibles; i++) {
+        const fila = (i / porFila) | 0, col = i % porFila;
+        const filas = Math.min(3, Math.ceil(cap / porFila)) || 1;
+        const fx = cx0 + wCol / 2 - (Math.min(porFila, cap) - 1) * 7.5 + col * 15;
+        const fy = COUNTER.y + 16 + fila * 16 - (filas - 1) * 6;
+        ctx.fillStyle = 'rgba(0,0,0,0.18)'; elipse(fx, fy + 8, 7, 3); ctx.fill();
+        ctx.fillStyle = f.colores.frutaSombra; circulo(fx, fy + 1.5, 7); ctx.fill();
+        ctx.fillStyle = f.colores.fruta; circulo(fx, fy, 6.3); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.45)'; circulo(fx - 2, fy - 2, 1.9); ctx.fill();
+      }
+      // conteo pequeño bajo la bandeja, solo si el puesto ya tiene banderines (nivel 3+)
+      if (nivelPuesto() >= 1) {
+        texto(cnt + '/' + cap, cx0 + wCol / 2, COUNTER.y + COUNTER.h + 9, 9,
+              cnt === 0 ? '#ff8a8a' : 'rgba(255,255,255,0.75)', 'center', true, 2.5, 'rgba(0,0,0,0.5)');
+      }
+    }
   }
-  // Aviso de puesto vacío: es la señal de que vas a perder clientes
+  // Aviso de puesto vacío del todo: es la señal de que vas a perder cualquier cliente
+  const n = estanteTotal();
   if (n === 0 && clientesActivos()) {
     const txt = t('puestoVacio');
     const w = anchoTexto(txt, 15, true) + 30;
@@ -3309,10 +3434,13 @@ function dibujarPersonaje(e, opts) {
   const paso = Math.sin(e.phase) * (e.moving ? 1 : 0);
   ctx.save();
   ctx.translate(e.x, e.y);
-  ctx.fillStyle = 'rgba(0,0,0,0.20)';
-  elipse(0, 3, 17, 7); ctx.fill();
-  const bob = e.moving ? Math.abs(Math.sin(e.phase)) * 2 : 0;
+  const bob = e.moving ? Math.abs(Math.sin(e.phase)) * 3 : 0;
+  // La sombra se encoge cuando el cuerpo sube: da peso y quita la sensación de flotar
+  const enc = 1 - bob * 0.055;
+  ctx.fillStyle = 'rgba(0,0,0,' + (0.22 - bob * 0.02).toFixed(3) + ')';
+  elipse(0, 3, 17 * enc, 7 * enc); ctx.fill();
   ctx.translate(0, -bob);
+  if (e.inclina) ctx.rotate(e.inclina);
   ctx.fillStyle = '#3a5fa8';
   rr(-9, -16, 8, 17 + paso * 3, 4); ctx.fill();
   rr(1, -16, 8, 17 - paso * 3, 4); ctx.fill();
@@ -4592,6 +4720,8 @@ const game = {
   get mapaches() { return mapaches; },
   get suelo() { return sueloFrutas; },
   get baches() { return baches; },
+  get estanteTrays() { return state.estanteTrays; },
+  frutaMasNecesitada() { return frutaMasNecesitada(); },
   get oleadaCola() { return oleadaCola; },
   rebarajarBaches() { rebarajarBaches(false); return baches.length; },
   spawnMapache() { mapaches.push(new Mapache()); return true; },
@@ -4609,9 +4739,15 @@ const game = {
   },
   surtir(n) {
     let k = 0;
-    while (k < (n || 1) && !estanteLleno()) { depositar(FRUITS[0].id); k++; }
-    return state.estante.length;
+    while (k < (n || 1) && !estanteLleno()) {
+      const id = frutaMasNecesitada() || FRUITS[0].id;
+      if (!depositar(id)) break;
+      k++;
+    }
+    return estanteTotal();
   },
+  trayCap(id) { return trayCap(id); },
+  trayCount(id) { return trayCount(id); },
   terminar() { abrirFinal(); return true; },
   get combo() { return { n: combo.n, t: combo.t, mult: comboMult() }; },
   get oleada() { return oleada; },
