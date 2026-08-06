@@ -220,6 +220,12 @@ const I18N = {
     sClientes: 'Clientes servidos', sPlagas: 'Plagas espantadas', sRep: 'Reputación final',
     introSub: 'Cosecha, surte tu puesto y haz crecer el imperio',
     btnJugar: 'JUGAR', introTip: 'Arrastra el dedo para mover a Kiosa',
+    comoJugar: 'Cómo jugar', btnAJugar: '¡A JUGAR!', volver: 'Volver',
+    r1t: 'Cosecha', r1d: 'Acércate a los árboles y se llena tu mochila sola',
+    r2t: 'Surte el puesto', r2d: 'Párate en VENDER para pasar la fruta al estante',
+    r3t: 'Atiende a los clientes', r3d: 'Compran del estante; si lo hallan vacío se van enojados',
+    r4t: 'Espanta las plagas', r4d: 'Corre hacia los pájaros antes de que sequen la planta',
+    r5t: 'Mejora tu huerta', r5d: 'Párate en los círculos de abajo para comprar mejoras',
     rango0: 'Puesto', rango1: 'Tienda', rango2: 'Mercado', rango3: 'Emporio',
     reputacion: 'Reputación', enojado: '¡Se fue enojado!', gracias: '¡Gracias!',
     puestoVacio: 'Surte el puesto', hSurtir: 'Surte el puesto con tu pila',
@@ -274,6 +280,12 @@ const I18N = {
     sClientes: 'Customers served', sPlagas: 'Pests scared off', sRep: 'Final reputation',
     introSub: 'Harvest, restock your stall and grow the empire',
     btnJugar: 'PLAY', introTip: 'Drag your finger to move Kiosa',
+    comoJugar: 'How to play', btnAJugar: 'LET’S GO!', volver: 'Back',
+    r1t: 'Harvest', r1d: 'Walk up to the trees and your backpack fills by itself',
+    r2t: 'Restock the stall', r2d: 'Stand on SELL to move fruit onto the shelf',
+    r3t: 'Serve the customers', r3d: 'They buy from the shelf; find it empty and they leave angry',
+    r4t: 'Scare the pests', r4d: 'Run at the birds before they dry out the plant',
+    r5t: 'Upgrade the orchard', r5d: 'Stand on the circles below to buy upgrades',
     rango0: 'Stand', rango1: 'Shop', rango2: 'Market', rango3: 'Emporium',
     reputacion: 'Reputation', enojado: 'Left angry!', gracias: 'Thanks!',
     puestoVacio: 'Restock the stall', hSurtir: 'Restock the stall with your stack',
@@ -328,6 +340,12 @@ const I18N = {
     sClientes: 'Clientes atendidos', sPlagas: 'Pragas espantadas', sRep: 'Reputação final',
     introSub: 'Colha, abasteça seu posto e faça o império crescer',
     btnJugar: 'JOGAR', introTip: 'Arraste o dedo para mover o Kiosa',
+    comoJugar: 'Como jogar', btnAJugar: 'BORA!', volver: 'Voltar',
+    r1t: 'Colha', r1d: 'Chegue perto das árvores e a mochila enche sozinha',
+    r2t: 'Abasteça o posto', r2d: 'Fique em VENDER para passar a fruta à prateleira',
+    r3t: 'Atenda os clientes', r3d: 'Compram da prateleira; se estiver vazia vão embora bravos',
+    r4t: 'Espante as pragas', r4d: 'Corra até os pássaros antes que sequem a planta',
+    r5t: 'Melhore a horta', r5d: 'Fique nos círculos de baixo para comprar melhorias',
     rango0: 'Barraca', rango1: 'Loja', rango2: 'Mercado', rango3: 'Empório',
     reputacion: 'Reputação', enojado: 'Foi embora bravo!', gracias: 'Obrigado!',
     puestoVacio: 'Abastece o posto', hSurtir: 'Abastece o posto com sua pilha',
@@ -1925,7 +1943,14 @@ const modal = {
   peligro: false, festejo: false, stats: null, onSi: null, lineas: [], hover: null,
   x: 0, y: 0, w: 0, h: 0, btnSi: null, btnNo: null
 };
-const intro = { activo: true, t: 0, btn: null };
+const intro = { activo: true, t: 0, pagina: 0, tp: 0, btn: null, btn2: null, volver: null };
+const REGLAS = [
+  { ico: '🌳', k: 'r1', col: '#5ee06a' },
+  { ico: '🧺', k: 'r2', col: '#ffd166' },
+  { ico: '🙋', k: 'r3', col: '#7ec8ff' },
+  { ico: '🐦', k: 'r4', col: '#ff8a8a' },
+  { ico: '⭐', k: 'r5', col: '#c9a0ff' }
+];
 let festejoFinal = 0;
 
 function envolver(txt, max, size, bold) {
@@ -2000,8 +2025,11 @@ function abrirFinal() {
 }
 
 function layoutIntro() {
-  const w = Math.min(cw - 72, 250), h = 62;
-  intro.btn = { x: (cw - w) / 2, y: ch * 0.70, w: w, h: h };
+  const w = Math.min(cw - 64, 260);
+  intro.btn = { x: (cw - w) / 2, y: ch * 0.745, w: w, h: 60 };
+  const w2 = Math.min(cw - 110, 200);
+  intro.btn2 = { x: (cw - w2) / 2, y: ch * 0.855, w: w2, h: 44 };
+  intro.volver = { x: 14, y: 14, w: 84, h: 36 };
 }
 
 function comenzarJuego() {
@@ -2110,7 +2138,15 @@ canvas.addEventListener('pointerdown', e => {
   const p = posCanvas(e);
 
   if (intro.activo) {
-    if (intro.t > 0.3 && puntoEnRect(intro.btn, p.x, p.y)) comenzarJuego();
+    if (intro.t > 0.3) {
+      if (intro.pagina === 0) {
+        if (puntoEnRect(intro.btn, p.x, p.y)) { SFX.pop(); comenzarJuego(); }
+        else if (puntoEnRect(intro.btn2, p.x, p.y)) { SFX.pop(); intro.pagina = 1; intro.tp = 0; }
+      } else {
+        if (puntoEnRect(intro.btn, p.x, p.y)) { SFX.pop(); comenzarJuego(); }
+        else if (puntoEnRect(intro.volver, p.x, p.y)) { SFX.pop(); intro.pagina = 0; intro.tp = 0; }
+      }
+    }
     e.preventDefault();
     return;
   }
@@ -2204,6 +2240,7 @@ window.addEventListener('keydown', e => {
   SFX.resume();
   if (intro.activo) {
     if ((k === 'enter' || k === ' ') && intro.t > 0.3) comenzarJuego();
+    if (k === 'escape') { intro.pagina = 0; intro.tp = 0; }
     e.preventDefault();
     return;
   }
@@ -2278,9 +2315,12 @@ function textoCorto(txt, max, size, bold) {
   while (s.length > 2 && anchoTexto(s + '…', size, bold) > max) s = s.slice(0, -1);
   return s + '…';
 }
-function emoji(e, x, y, size, align) {
+// El color importa: si el sistema no tiene emoji a color, el glifo se pinta
+// con fillStyle, y antes heredaba el último color usado (casi siempre oscuro).
+function emoji(e, x, y, size, align, color) {
   ctx.font = size + 'px system-ui, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
   ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = color || '#ffffff';
   ctx.fillText(e, x, y);
 }
 function mezclaGris(hex, t) {
@@ -3252,68 +3292,191 @@ function dibujarModal() {
 // Sin pila: a este tamaño la torre de fruta le tapaba la cara
 const maniqui = { x: 0, y: 0, carga: [], facing: 1, phase: 0, moving: true, swayT: 0 };
 
-function dibujarIntro() {
-  const a = clamp(intro.t / 0.45, 0, 1);
-  const bob = Math.sin(intro.t * 1.9) * 6;
+function botonGrande(b, etiqueta, tam, c1, c2, colTxt, pulso) {
+  const e = pulso ? 1 + Math.sin(intro.t * 3.4) * 0.028 : 1;
   ctx.save();
-  ctx.globalAlpha = a;
+  ctx.translate(b.x + b.w / 2, b.y + b.h / 2);
+  ctx.scale(e, e);
+  ctx.translate(-(b.x + b.w / 2), -(b.y + b.h / 2));
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  rr(b.x, b.y + 6, b.w, b.h, b.h * 0.36); ctx.fill();
+  const g = ctx.createLinearGradient(0, b.y, 0, b.y + b.h);
+  g.addColorStop(0, c1); g.addColorStop(1, c2);
+  ctx.fillStyle = g;
+  rr(b.x, b.y, b.w, b.h, b.h * 0.36); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2.5;
+  rr(b.x, b.y, b.w, b.h, b.h * 0.36); ctx.stroke();
+  // brillo superior
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = '#ffffff';
+  rr(b.x + 8, b.y + 5, b.w - 16, b.h * 0.36, b.h * 0.18); ctx.fill();
+  ctx.restore();
+  texto(textoCorto(etiqueta, b.w - 24, tam, true), b.x + b.w / 2, b.y + b.h / 2, tam, colTxt, 'center', true);
+  ctx.restore();
+}
 
+// Fondo propio de la portada: no se ve el mundo detrás, es una portada de verdad
+function fondoIntro() {
   const g = ctx.createLinearGradient(0, 0, 0, ch);
-  g.addColorStop(0, 'rgba(6,18,10,0.95)');
-  g.addColorStop(0.5, 'rgba(14,34,18,0.88)');
-  g.addColorStop(1, 'rgba(6,18,10,0.97)');
+  g.addColorStop(0, '#0a2413');
+  g.addColorStop(0.42, '#17431f');
+  g.addColorStop(1, '#08180d');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, cw, ch);
 
-  // Frutas flotando de fondo
-  for (let i = 0; i < 9; i++) {
+  // Rayos de luz suaves
+  ctx.save();
+  ctx.globalAlpha = 0.05;
+  ctx.translate(cw / 2, -ch * 0.12);
+  ctx.rotate(Math.sin(intro.t * 0.25) * 0.06);
+  for (let i = 0; i < 7; i++) {
+    ctx.rotate(0.23);
+    ctx.fillStyle = '#ffe27a';
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(-34, ch * 1.5); ctx.lineTo(34, ch * 1.5);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+
+  // Frutas flotando
+  for (let i = 0; i < 11; i++) {
     const f = FRUITS[i % FRUITS.length];
     const px = ((i * 137) % 100) / 100 * cw;
-    const py = (((i * 61) % 100) / 100 * ch + intro.t * (12 + i * 3)) % (ch + 60) - 30;
+    const py = (((i * 61) % 100) / 100 * ch + intro.t * (11 + i * 2.5)) % (ch + 80) - 40;
     ctx.save();
-    ctx.globalAlpha = a * 0.16;
+    ctx.globalAlpha = 0.13;
     ctx.fillStyle = f.colores.fruta;
-    circulo(px, py, 12 + (i % 3) * 5); ctx.fill();
+    circulo(px, py, 11 + (i % 3) * 6); ctx.fill();
     ctx.restore();
   }
 
-  const tam = Math.min(66, cw * 0.18);
-  texto('KIOSA', cw / 2, ch * 0.16 + bob * 0.4, tam, '#ffd166', 'center', true, 9, 'rgba(0,0,0,0.6)');
-  texto(textoCorto('el imperio de las huertas', cw - 30, 19, true), cw / 2, ch * 0.16 + tam * 0.62 + bob * 0.4,
-        19, '#a8e6a0', 'center', true, 5, 'rgba(0,0,0,0.5)');
+  // Loma de pasto con arbolitos
+  const gy = ch * 0.58;
+  ctx.fillStyle = '#2c6f36';
+  ctx.beginPath();
+  ctx.ellipse(cw / 2, gy + ch * 0.30, cw * 0.95, ch * 0.30, 0, 0, 6.2832);
+  ctx.fill();
+  ctx.fillStyle = '#358040';
+  ctx.beginPath();
+  ctx.ellipse(cw / 2, gy + ch * 0.32, cw * 0.88, ch * 0.29, 0, 0, 6.2832);
+  ctx.fill();
+  const arb = [[0.13, 0.66, 0.9], [0.87, 0.68, 0.8], [0.28, 0.62, 0.55], [0.73, 0.63, 0.5]];
+  for (const a of arb) {
+    const x = cw * a[0], y = ch * a[1], s = a[2] * Math.min(1, cw / 390);
+    ctx.save();
+    ctx.translate(x, y); ctx.scale(s, s);
+    ctx.fillStyle = '#7a5326'; rr(-5, -28, 10, 30, 4); ctx.fill();
+    ctx.fillStyle = '#26662f'; circulo(-12, -38, 20); ctx.fill(); circulo(13, -36, 18); ctx.fill();
+    ctx.fillStyle = '#2f7d3a'; circulo(0, -50, 21); ctx.fill();
+    ctx.fillStyle = '#ffc233'; circulo(-8, -44, 5); ctx.fill(); circulo(9, -40, 5); ctx.fill();
+    ctx.restore();
+  }
+
+  // Viñeta
+  const v = ctx.createRadialGradient(cw / 2, ch * 0.44, ch * 0.18, cw / 2, ch * 0.44, ch * 0.78);
+  v.addColorStop(0, 'rgba(0,0,0,0)');
+  v.addColorStop(1, 'rgba(0,0,0,0.6)');
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, cw, ch);
+}
+
+function dibujarIntroPortada(e) {
+  const bob = Math.sin(intro.t * 1.9) * 5;
+  const tam = Math.min(70, cw * 0.185);
+  const ty = ch * 0.155 - (1 - e) * 50 + bob * 0.35;
 
   ctx.save();
-  ctx.translate(cw / 2, ch * 0.50 + bob);
-  const esc = Math.min(2.8, cw / 145);
+  ctx.font = fuente(tam, true);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 11; ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+  ctx.strokeText('KIOSA', cw / 2, ty);
+  const gt = ctx.createLinearGradient(0, ty - tam * 0.5, 0, ty + tam * 0.45);
+  gt.addColorStop(0, '#fff6c9'); gt.addColorStop(0.5, '#ffd166'); gt.addColorStop(1, '#eda222');
+  ctx.fillStyle = gt;
+  ctx.fillText('KIOSA', cw / 2, ty);
+  ctx.restore();
+
+  const sub = 'el imperio de las huertas';
+  const ws = Math.min(cw - 30, anchoTexto(sub, 16, true) + 36);
+  const sy = ty + tam * 0.52;
+  ctx.save();
+  ctx.fillStyle = 'rgba(198,52,52,0.95)';
+  rr(cw / 2 - ws / 2, sy - 15, ws, 30, 8); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.22)';
+  rr(cw / 2 - ws / 2, sy + 5, ws, 10, 5); ctx.fill();
+  texto(textoCorto(sub, ws - 18, 16, true), cw / 2, sy, 16, '#ffffff', 'center', true);
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(cw / 2, ch * 0.66 + bob);
+  const esc = Math.min(2.4, cw / 165) * (0.85 + 0.15 * e);
   ctx.scale(esc, esc);
   maniqui.phase = intro.t * 6;
   maniqui.swayT = intro.t * 6;
   dibujarPersonaje(maniqui, { camisa: '#3fb0e8', gorra: '#e63946', logo: true, playera: true });
   ctx.restore();
 
-  texto(textoCorto(t('introSub'), cw - 40, 14, false), cw / 2, ch * 0.60, 14,
-        'rgba(255,255,255,0.75)', 'center', false);
-
-  const b = intro.btn;
-  const pul = 1 + Math.sin(intro.t * 3.4) * 0.028;
   ctx.save();
-  ctx.translate(b.x + b.w / 2, b.y + b.h / 2);
-  ctx.scale(pul, pul);
-  ctx.translate(-(b.x + b.w / 2), -(b.y + b.h / 2));
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
-  rr(b.x, b.y + 6, b.w, b.h, 22); ctx.fill();
-  const gb = ctx.createLinearGradient(0, b.y, 0, b.y + b.h);
-  gb.addColorStop(0, '#6bea78'); gb.addColorStop(1, '#2f9d42');
-  ctx.fillStyle = gb;
-  rr(b.x, b.y, b.w, b.h, 22); ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2.5;
-  rr(b.x, b.y, b.w, b.h, 22); ctx.stroke();
-  texto('▶  ' + t('btnJugar'), b.x + b.w / 2, b.y + b.h / 2, 25, '#0c2a11', 'center', true);
+  ctx.globalAlpha = e;
+  botonGrande(intro.btn, '▶  ' + t('btnJugar'), 25, '#6bea78', '#2f9d42', '#0c2a11', true);
+  botonGrande(intro.btn2, t('comoJugar'), 17, 'rgba(255,255,255,0.22)', 'rgba(255,255,255,0.10)', '#ffffff', false);
+  texto(textoCorto(t('introTip'), cw - 40, 12.5, false), cw / 2, intro.btn2.y + intro.btn2.h + 24, 12.5,
+        'rgba(255,255,255,0.55)', 'center', false);
   ctx.restore();
+}
 
-  texto(textoCorto(t('introTip'), cw - 40, 13, false), cw / 2, b.y + b.h + 30, 13,
-        'rgba(255,255,255,0.5)', 'center', false);
+function dibujarIntroReglas(e) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.45)';
+  ctx.fillRect(0, 0, cw, ch);
+
+  const v = intro.volver;
+  ctx.fillStyle = 'rgba(255,255,255,0.14)';
+  rr(v.x, v.y, v.w, v.h, 12); ctx.fill();
+  texto('‹ ' + t('volver'), v.x + v.w / 2, v.y + v.h / 2, 13, '#ffffff', 'center', true);
+
+  texto(t('comoJugar'), cw / 2, ch * 0.105, 24, '#ffd166', 'center', true, 6, 'rgba(0,0,0,0.5)');
+
+  const y0 = ch * 0.175, alto = (ch * 0.71 - y0) / REGLAS.length;
+  for (let i = 0; i < REGLAS.length; i++) {
+    const r = REGLAS[i];
+    const ap = clamp((intro.tp - i * 0.07) / 0.3, 0, 1);
+    const ease = 1 - Math.pow(1 - ap, 3);
+    const y = y0 + i * alto + alto / 2;
+    ctx.save();
+    ctx.globalAlpha = ease;
+    ctx.translate((1 - ease) * 26, 0);
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    rr(16, y - alto / 2 + 4, cw - 32, alto - 8, 14); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    circulo(48, y, 22); ctx.fill();
+    ctx.strokeStyle = r.col; ctx.lineWidth = 2;
+    circulo(48, y, 22); ctx.stroke();
+    emoji(r.ico, 48, y + 1, 22, 'center', r.col);
+    const tx = 80, anchoTx = cw - 32 - 80 + 16 - 14;
+    texto(textoCorto(t(r.k + 't'), anchoTx, 15, true), tx, y - 12, 15, r.col, 'left', true);
+    const lineas = envolver(t(r.k + 'd'), anchoTx, 12, false);
+    for (let j = 0; j < Math.min(2, lineas.length); j++) {
+      texto(lineas[j], tx, y + 6 + j * 15, 12, 'rgba(255,255,255,0.78)', 'left', false);
+    }
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.globalAlpha = e;
+  botonGrande(intro.btn, t('btnAJugar'), 23, '#6bea78', '#2f9d42', '#0c2a11', true);
   ctx.restore();
+  ctx.restore();
+}
+
+function dibujarIntro() {
+  const a = clamp(intro.t / 0.5, 0, 1);
+  const e = 1 - Math.pow(1 - a, 3);
+  fondoIntro();
+  if (intro.pagina === 0) dibujarIntroPortada(e);
+  else dibujarIntroReglas(clamp(intro.tp / 0.35, 0, 1));
 }
 
 /* ---------------------------- Render completo ---------------------------- */
@@ -3384,6 +3547,7 @@ function paso(ts) {
   // En la intro el mundo se congela: nada de plagas comiendo antes de empezar
   if (intro.activo) {
     intro.t += dt;
+    intro.tp += dt;
     actualizarParticulas(dt);
     actualizarCamara(dt);
     render();
