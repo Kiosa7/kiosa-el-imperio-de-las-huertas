@@ -79,6 +79,14 @@ function kiosa(g,x,y,s){
   g.fillStyle='#3a5fa8'; rr(g,-9,-16,8,17,4); g.fill(); rr(g,1,-16,8,17,4); g.fill();
   g.fillStyle='#5a3d1e'; rr(g,-10,-1,10,5,2.5); g.fill(); rr(g,0,-1,10,5,2.5); g.fill();
   g.fillStyle='#3fb0e8'; rr(g,-13,-40,26,26,9); g.fill();
+  g.save();
+  g.font='700 7.5px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  g.textAlign='center'; g.textBaseline='middle';
+  g.lineWidth=1.8; g.lineJoin='round'; g.strokeStyle='rgba(10,60,90,0.65)';
+  g.strokeText('Kiosa',-1,-28);
+  g.fillStyle='#ffffff'; g.fillText('Kiosa',-1,-28);
+  g.restore();
+  g.fillStyle='#3fb0e8';
   rr(g,-19,-38,7,18,3.5); g.fill(); rr(g,12,-38,7,18,3.5); g.fill();
   g.fillStyle='#f2c08a'; circ(g,-15.5,-21,4); g.fill(); circ(g,15.5,-21,4); g.fill();
   circ(g,0,-50,12.5); g.fill();

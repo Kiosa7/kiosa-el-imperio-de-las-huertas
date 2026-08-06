@@ -37,10 +37,23 @@
     touch-action: none; cursor: default;
     box-shadow: 0 0 40px rgba(0,0,0,.55);
   }
+  /* Crédito: elemento HTML por encima del canvas, así es un enlace de verdad.
+     Al pegado al borde inferior, el toque lo recibe él y no arranca el
+     joystick, de modo que no se abre por accidente al jugar. */
+  #cred {
+    position: fixed; left: 50%; bottom: 4px; transform: translateX(-50%);
+    z-index: 5; padding: 4px 11px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; line-height: 1; white-space: nowrap;
+    color: rgba(255,255,255,.7); text-decoration: none;
+    background: rgba(16,26,18,.66); border: 1px solid rgba(255,255,255,.14);
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  #cred:hover, #cred:focus { color: #fff; background: rgba(16,26,18,.88); }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
+<a id="cred" href="https://www.facebook.com/PcElectronics" target="_blank" rel="noopener">Hecho por PC Electronics</a>
 <script>
 "use strict";
 /* =========================================================================
@@ -145,6 +158,7 @@ const I18N = {
     capitulo: 'Cap. {n}', retoDeN: 'Reto {a}/{b}', completado: 'Completado',
     retos: 'Retos', campana: 'Campaña', opcionales: 'Opcionales', diarios: 'Diarios',
     sinDiarios: 'Vuelve mañana por retos nuevos.',
+    hechoPor: 'Hecho por PC Electronics',
     zMango: 'HUERTA DE MANGOS', zNaranja: 'HUERTA DE NARANJAS', zSandia: 'PARCHE DE SANDÍAS',
     zPapaya: 'HUERTA DE PAPAYAS', zPina: 'PARCHE DE PIÑAS',
     cArbol: '+1 PLANTA', cMochila: 'MOCHILA +5', cAyudante: 'AYUDANTE',
@@ -184,6 +198,7 @@ const I18N = {
     capitulo: 'Ch. {n}', retoDeN: 'Goal {a}/{b}', completado: 'Complete',
     retos: 'Goals', campana: 'Campaign', opcionales: 'Optional', diarios: 'Daily',
     sinDiarios: 'Come back tomorrow for new goals.',
+    hechoPor: 'Made by PC Electronics',
     zMango: 'MANGO GROVE', zNaranja: 'ORANGE GROVE', zSandia: 'WATERMELON PATCH',
     zPapaya: 'PAPAYA GROVE', zPina: 'PINEAPPLE PATCH',
     cArbol: '+1 PLANT', cMochila: 'BACKPACK +5', cAyudante: 'HELPER',
@@ -223,6 +238,7 @@ const I18N = {
     capitulo: 'Cap. {n}', retoDeN: 'Desafio {a}/{b}', completado: 'Completo',
     retos: 'Desafios', campana: 'Campanha', opcionales: 'Opcionais', diarios: 'Diários',
     sinDiarios: 'Volte amanhã para novos desafios.',
+    hechoPor: 'Feito por PC Electronics',
     zMango: 'POMAR DE MANGAS', zNaranja: 'POMAR DE LARANJAS', zSandia: 'ROÇA DE MELANCIAS',
     zPapaya: 'POMAR DE MAMÕES', zPina: 'ROÇA DE ABACAXIS',
     cArbol: '+1 PLANTA', cMochila: 'MOCHILA +5', cAyudante: 'AJUDANTE',
@@ -1521,11 +1537,17 @@ function posCanvas(e) {
   return { x: e.clientX - r.left, y: e.clientY - r.top };
 }
 
+function pintarCredito() {
+  const a = document.getElementById('cred');
+  if (a) a.textContent = t('hechoPor');
+}
+
 function ciclarIdioma() {
   LANG = IDIOMAS[(IDIOMAS.indexOf(LANG) + 1) % IDIOMAS.length];
   state.idioma = LANG;
   anchosCache = Object.create(null);
   Object.keys(mitadAvisada).forEach(k => delete mitadAvisada[k]);
+  pintarCredito();
   Save.guardar();
 }
 
@@ -2045,6 +2067,8 @@ function dibujarPersonaje(e, opts) {
   rr(-13, -40, 26, 26, 9); ctx.fill();
   ctx.fillStyle = 'rgba(0,0,0,0.10)';
   rr(3, -40, 10, 26, 8); ctx.fill();
+  // Nombre en la playera (solo el protagonista)
+  if (opts.playera) texto('Kiosa', -1, -28, 7.5, '#ffffff', 'center', true, 1.8, 'rgba(10,60,90,0.65)');
   ctx.fillStyle = camisa;
   rr(-19, -38 + paso * 2.5, 7, 18, 3.5); ctx.fill();
   rr(12, -38 - paso * 2.5, 7, 18, 3.5); ctx.fill();
@@ -2108,7 +2132,7 @@ function dibujarPersonaje(e, opts) {
 }
 
 function dibujarJugador() {
-  dibujarPersonaje(player, { camisa: '#3fb0e8', gorra: '#e63946', logo: true });
+  dibujarPersonaje(player, { camisa: '#3fb0e8', gorra: '#e63946', logo: true, playera: true });
   if (player.carga.length >= state.capacidad) {
     const yy = player.y - 66 - Math.min(player.carga.length, 12) * 9.5;
     const bob = Math.sin(tiempo * 6) * 2;
@@ -2580,6 +2604,7 @@ function registrarSW() {
 function iniciar() {
   Save.cargar();
   LANG = state.idioma;
+  pintarCredito();
   construirFondo();
   reconstruirMundo();
   actualizarRetos(false);          // reconcilia saves viejos sin fiesta
@@ -2627,7 +2652,7 @@ const game = {
     Save.guardar();
     return true;
   },
-  idioma(l) { if (IDIOMAS.indexOf(l) >= 0) { LANG = l; state.idioma = l; anchosCache = Object.create(null); Save.guardar(); } return LANG; },
+  idioma(l) { if (IDIOMAS.indexOf(l) >= 0) { LANG = l; state.idioma = l; anchosCache = Object.create(null); pintarCredito(); Save.guardar(); } return LANG; },
   calidad(c) { if (['auto', 'bajo', 'alto'].indexOf(c) >= 0) { state.calidad = c; resize(); Save.guardar(); } return state.calidad; },
   fps() { return Math.round(1000 / Math.max(1, perf.ms)); },
   guardar() { Save.guardar(); },
