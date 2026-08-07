@@ -323,7 +323,7 @@ const I18N = {
     r1t: 'Cosecha', r1d: 'Acércate a los árboles y se llena tu mochila sola',
     r2t: 'Surte el puesto', r2d: 'Párate en VENDER: cada fruta va a su propia bandeja',
     r3t: 'Atiende a los clientes', r3d: 'Vacío se enojan; con buena reputación piden más',
-    r4t: 'Espanta las plagas', r4d: 'Corre hacia los pájaros antes de que sequen la planta',
+    r4t: 'Espanta las plagas', r4d: 'Corre hacia los pájaros antes de que sequen y maten el árbol',
     r5t: 'Mejora tu huerta', r5d: 'Párate en los círculos de abajo para comprar mejoras',
     rango0: 'Carretilla', rango1: 'Tienda', rango2: 'Mercado', rango3: 'Emporio',
     reputacion: 'Reputación', enojado: '¡Se fue enojado!', gracias: '¡Gracias!',
@@ -331,7 +331,7 @@ const I18N = {
     oleada: '¡OLEADA!', oleadaSuperada: '¡Oleada superada!', oleadaFallida: 'Oleada fallida',
     oleadaFin: 'La huerta aguantó', oleadaHUD: '¡OLEADA! {s}s', perdidas: 'Perdidas {a}/{b}',
     intento: 'Intento {a}/{b}', sueldoAlto: 'No alcanza para los sueldos',
-    contagio: 'La plaga se extiende', curado: '¡Planta salvada!',
+    contagio: 'La plaga se extiende', curado: '¡Planta salvada!', arbolMuerto: '¡Árbol perdido! Cómpralo de nuevo',
     zMango: 'HUERTA DE MANGOS', zNaranja: 'HUERTA DE NARANJAS', zSandia: 'PLANTÍO DE SANDÍAS',
     zPapaya: 'HUERTA DE PAPAYAS', zPina: 'PLANTÍO DE PIÑAS',
     cArbol: '+1 PLANTA', cMochila: 'MOCHILA +5', cAyudante: 'AYUDANTE',
@@ -387,7 +387,7 @@ const I18N = {
     r1t: 'Harvest', r1d: 'Walk up to the trees and your backpack fills by itself',
     r2t: 'Restock the stall', r2d: 'Stand on SELL: each fruit goes into its own tray',
     r3t: 'Serve the customers', r3d: 'Empty makes them angry; good reputation makes them order more',
-    r4t: 'Scare the pests', r4d: 'Run at the birds before they dry out the plant',
+    r4t: 'Scare the pests', r4d: 'Run at the birds before they wither and kill the tree',
     r5t: 'Upgrade the orchard', r5d: 'Stand on the circles below to buy upgrades',
     rango0: 'Cart', rango1: 'Shop', rango2: 'Market', rango3: 'Emporium',
     reputacion: 'Reputation', enojado: 'Left angry!', gracias: 'Thanks!',
@@ -395,7 +395,7 @@ const I18N = {
     oleada: 'SWARM!', oleadaSuperada: 'Swarm survived!', oleadaFallida: 'Swarm failed',
     oleadaFin: 'The orchard held on', oleadaHUD: 'SWARM! {s}s', perdidas: 'Lost {a}/{b}',
     intento: 'Try {a}/{b}', sueldoAlto: 'Not enough for wages',
-    contagio: 'The blight is spreading', curado: 'Plant saved!',
+    contagio: 'The blight is spreading', curado: 'Plant saved!', arbolMuerto: 'Tree lost! Buy it again',
     zMango: 'MANGO GROVE', zNaranja: 'ORANGE GROVE', zSandia: 'WATERMELON PATCH',
     zPapaya: 'PAPAYA GROVE', zPina: 'PINEAPPLE PATCH',
     cArbol: '+1 PLANT', cMochila: 'BACKPACK +5', cAyudante: 'HELPER',
@@ -451,7 +451,7 @@ const I18N = {
     r1t: 'Colha', r1d: 'Chegue perto das árvores e a mochila enche sozinha',
     r2t: 'Abasteça o posto', r2d: 'Fique em VENDER: cada fruta vai para sua própria bandeja',
     r3t: 'Atenda os clientes', r3d: 'Vazia eles se irritam; com boa reputação pedem mais',
-    r4t: 'Espante as pragas', r4d: 'Corra até os pássaros antes que sequem a planta',
+    r4t: 'Espante as pragas', r4d: 'Corra até os pássaros antes que sequem e matem a árvore',
     r5t: 'Melhore a horta', r5d: 'Fique nos círculos de baixo para comprar melhorias',
     rango0: 'Carrinho', rango1: 'Loja', rango2: 'Mercado', rango3: 'Empório',
     reputacion: 'Reputação', enojado: 'Foi embora bravo!', gracias: 'Obrigado!',
@@ -459,7 +459,7 @@ const I18N = {
     oleada: 'INVASÃO!', oleadaSuperada: 'Invasão contida!', oleadaFallida: 'A invasão venceu',
     oleadaFin: 'A horta aguentou', oleadaHUD: 'INVASÃO! {s}s', perdidas: 'Perdidas {a}/{b}',
     intento: 'Tentativa {a}/{b}', sueldoAlto: 'Não dá para os salários',
-    contagio: 'A praga se espalha', curado: 'Planta salva!',
+    contagio: 'A praga se espalha', curado: 'Planta salva!', arbolMuerto: 'Árvore perdida! Compre de novo',
     zMango: 'POMAR DE MANGAS', zNaranja: 'POMAR DE LARANJAS', zSandia: 'PLANTAÇÃO DE MELANCIAS',
     zPapaya: 'POMAR DE MAMÕES', zPina: 'PLANTAÇÃO DE ABACAXIS',
     cArbol: '+1 PLANTA', cMochila: 'MOCHILA +5', cAyudante: 'AJUDANTE',
@@ -550,7 +550,7 @@ const FRUITS = [
   }
 ];
 const FRUIT_BY_ID = {};
-FRUITS.forEach(f => { FRUIT_BY_ID[f.id] = f; f._fade = 1; });
+FRUITS.forEach(f => { FRUIT_BY_ID[f.id] = f; f._fade = 1; f.todasPos = f.posiciones.concat(f.posicionesExtra); });
 
 /* =============================== 4. RETOS ===============================
    Tres carriles: campaña (20 en 5 capítulos), opcionales (8) y diarios
@@ -659,7 +659,7 @@ function estadoNuevo() {
     recogidas: 0,
     capacidad: CONFIG.CAP_START,
     compras: { arbol: 0, mochila: 0, riego: 0, espanta: 0, puesto: 0 },
-    extras: {},
+    arboles: {},
     espantaZonas: [],
     ayudantes: 0,
     retoIdx: 0,
@@ -802,7 +802,7 @@ const Save = {
         dinero: state.dinero, dineroTotal: state.dineroTotal,
         ventasTotales: state.ventasTotales, ventasPorFruta: state.ventasPorFruta,
         recolectadas: state.recolectadas, plagasEspantadas: state.plagasEspantadas,
-        capacidad: state.capacidad, compras: state.compras, extras: state.extras,
+        capacidad: state.capacidad, compras: state.compras, arboles: state.arboles,
         espantaZonas: state.espantaZonas, ayudantes: state.ayudantes,
         retoIdx: state.retoIdx, cumplidos: state.cumplidos,
         oleadasHechas: state.oleadasHechas, curadas: state.curadas,
@@ -852,8 +852,20 @@ const Save = {
         s.compras.espanta = clamp(num(d.compras.espanta, 0) | 0, 0, CONFIG.ESPANTA_MAX);
         s.compras.puesto = clamp(num(d.compras.puesto, 0) | 0, 0, CONFIG.PUESTO_MAX);
       }
-      if (d.extras && typeof d.extras === 'object') {
-        for (const f of FRUITS) s.extras[f.id] = clamp(num(d.extras[f.id], 0) | 0, 0, f.posicionesExtra.length);
+      if (d.arboles && typeof d.arboles === 'object') {
+        // Formato nuevo: un booleano por cupo (base + extra), ya con posibles muertes
+        for (const f of FRUITS) {
+          const arr = d.arboles[f.id];
+          if (Array.isArray(arr)) s.arboles[f.id] = f.todasPos.map((_, i) => !!arr[i]);
+        }
+      } else if (d.extras && typeof d.extras === 'object') {
+        // Save viejo (antes de que los árboles costaran dinero): todos los cupos
+        // base ya estaban plantados gratis; se conservan tal cual para no
+        // quitarle árboles a nadie que ya los tenía.
+        for (const f of FRUITS) {
+          const nExtra = clamp(num(d.extras[f.id], 0) | 0, 0, f.posicionesExtra.length);
+          s.arboles[f.id] = f.todasPos.map((_, i) => i < f.posiciones.length + nExtra);
+        }
       }
       if (Array.isArray(d.espantaZonas)) {
         s.espantaZonas = d.espantaZonas.filter(id => !!FRUIT_BY_ID[id]).slice(0, CONFIG.ESPANTA_MAX);
@@ -951,7 +963,10 @@ const Save = {
         s.compras.mochila = Math.max(0, num(d.compras.mochila, 0) | 0);
       }
       if (d.extras && typeof d.extras === 'object') {
-        for (const f of FRUITS) s.extras[f.id] = clamp(num(d.extras[f.id], 0) | 0, 0, f.posicionesExtra.length);
+        for (const f of FRUITS) {
+          const nExtra = clamp(num(d.extras[f.id], 0) | 0, 0, f.posicionesExtra.length);
+          s.arboles[f.id] = f.todasPos.map((_, i) => i < f.posiciones.length + nExtra);
+        }
       }
       if (Array.isArray(d.desbloqueadas)) {
         const val = d.desbloqueadas.filter(id => !!FRUIT_BY_ID[id]);
@@ -1013,20 +1028,26 @@ const SFX = {
     this.tono(392, 0.10, 'sawtooth', 0.07);
     this.tono(294, 0.16, 'sawtooth', 0.07, 0.09);
   },
-  aleteo() { this.tono(180 + Math.random() * 60, 0.13, 'sawtooth', 0.06); }
+  aleteo() { this.tono(180 + Math.random() * 60, 0.13, 'sawtooth', 0.06); },
+  perdida() {                    // se muere un árbol: dos notas graves y tristes
+    this.tono(220, 0.20, 'sawtooth', 0.09);
+    this.tono(165, 0.30, 'sawtooth', 0.09, 0.12);
+  }
 };
 
 /* ============================ 8. ENTIDADES ============================== */
 class Plant {
-  constructor(fruit, x, y, popInicial) {
+  constructor(fruit, x, y, popInicial, slotIdx) {
     this.fruit = fruit;
     this.x = x; this.y = y;
+    this.slotIdx = slotIdx;
     this.frutas = CONFIG.PLANT_MAX_FRUIT;
     this.regen = 0;
     this.marchita = 0;
     this.contagio = 0;
     this.pop = popInicial ? 1 : 0;
     this.seed = Math.random() * Math.PI * 2;
+    this.muerta = false;
   }
   get regenTiempo() {
     return CONFIG.REGEN_NIVELES[clamp(state.compras.riego, 0, CONFIG.REGEN_NIVELES.length - 1)];
@@ -1035,6 +1056,8 @@ class Plant {
     if (this.marchita > 0) {
       this.marchita = Math.max(0, this.marchita - dt);
       this.regen = 0;
+      // Si la plaga se queda hasta agotar el tiempo sin que la cures, el árbol muere
+      if (this.marchita <= 0) { this.morir(); return; }
       // La marchitez se contagia a la vecina más cercana si no la curas
       if (contagioActivo()) {
         this.contagio += dt;
@@ -1045,6 +1068,11 @@ class Plant {
       if (this.regen >= this.regenTiempo) { this.regen = 0; this.frutas++; this.pop = 0.6; }
     } else this.regen = 0;
     if (this.pop > 0) this.pop = Math.max(0, this.pop - dt * 3.2);
+  }
+  morir() {
+    this.muerta = true;
+    const vivos = state.arboles[this.fruit.id];
+    if (vivos) vivos[this.slotIdx] = false;
   }
   tomar() {
     if (this.frutas <= 0) return null;
@@ -1568,10 +1596,16 @@ const player = new Player();
 function desbloqueada(id) { return state.desbloqueadas.indexOf(id) >= 0; }
 function zonaProtegida(fruitId) { return state.espantaZonas.indexOf(fruitId) >= 0; }
 
+// Solo el primer cupo de cada huerta nace gratis; el resto hay que comprarlo
+// (y si una plaga mata un árbol, su cupo vuelve a quedar vacío para replantar).
+function arbolesDeZona(f) {
+  if (!state.arboles[f.id]) state.arboles[f.id] = f.todasPos.map((_, i) => i === 0);
+  return state.arboles[f.id];
+}
+
 function agregarPlantasZona(f, conPop) {
-  const extras = clamp(state.extras[f.id] || 0, 0, f.posicionesExtra.length);
-  const pos = f.posiciones.concat(f.posicionesExtra.slice(0, extras));
-  for (const p of pos) plants.push(new Plant(f, p[0], p[1], conPop));
+  const vivos = arbolesDeZona(f);
+  f.todasPos.forEach((p, i) => { if (vivos[i]) plants.push(new Plant(f, p[0], p[1], conPop, i)); });
 }
 
 function reconstruirMundo() {
@@ -1882,9 +1916,9 @@ function zonaParaNuevaPlanta() {
   for (const id of state.desbloqueadas) {
     const f = FRUIT_BY_ID[id];
     if (!f) continue;
-    const usados = clamp(state.extras[f.id] || 0, 0, f.posicionesExtra.length);
-    if (usados >= f.posicionesExtra.length) continue;
-    const n = f.posiciones.length + usados;
+    const vivos = arbolesDeZona(f);
+    if (vivos.indexOf(false) < 0) continue;
+    const n = vivos.reduce((a, v) => a + (v ? 1 : 0), 0);
     if (n < bn) { bn = n; best = f; }
   }
   return best;
@@ -1908,11 +1942,13 @@ const circles = [
     comprar() {
       const f = zonaParaNuevaPlanta();
       if (!f) return;
-      const n = clamp(state.extras[f.id] || 0, 0, f.posicionesExtra.length);
-      state.extras[f.id] = n + 1;
+      const vivos = arbolesDeZona(f);
+      const i = vivos.indexOf(false);
+      if (i < 0) return;
+      vivos[i] = true;
       state.compras.arbol++;
-      const p = f.posicionesExtra[n];
-      plants.push(new Plant(f, p[0], p[1], true));
+      const p = f.todasPos[i];
+      plants.push(new Plant(f, p[0], p[1], true, i));
       lanzarConfeti(p[0], p[1] - 30, 26);
     }
   },
@@ -3028,6 +3064,21 @@ function dibujarPlanta(p) {
     emoji('🥀', p.x + 26, p.y - (p.fruit.tipoPlanta === 'rastrera' ? 26 : 60), 20);
     ctx.restore();
   }
+}
+
+// Cupo vacío (árbol muerto o nunca comprado): un tocón que invita a replantar
+function dibujarTocon(o) {
+  ctx.save();
+  ctx.globalAlpha = 0.85;
+  ctx.fillStyle = 'rgba(0,0,0,0.14)';
+  elipse(o.x, o.y + 4, 22, 9); ctx.fill();
+  ctx.fillStyle = '#7a5a35';
+  elipse(o.x, o.y - 2, 13, 8); ctx.fill();
+  ctx.fillStyle = '#5c4226';
+  circulo(o.x, o.y - 4, 6); ctx.fill();
+  ctx.globalAlpha = 0.45 + 0.25 * Math.sin(tiempo * 2 + o.x);
+  emoji('➕', o.x, o.y - 26, 16);
+  ctx.restore();
 }
 
 // Anillo de progreso mientras curas una planta marchita
@@ -4706,6 +4757,14 @@ function render() {
 
   const drawables = [];
   for (const p of plants) drawables.push({ y: p.y, d: 0, o: p });
+  for (const id of state.desbloqueadas) {
+    const f = FRUIT_BY_ID[id];
+    const vivos = state.arboles[id];
+    if (!f || !vivos) continue;
+    for (let i = 0; i < f.todasPos.length; i++) {
+      if (!vivos[i]) drawables.push({ y: f.todasPos[i][1], d: 5, o: { x: f.todasPos[i][0], y: f.todasPos[i][1] } });
+    }
+  }
   for (const h of helpers) drawables.push({ y: h.y, d: 1, o: h });
   for (const c of clientes) drawables.push({ y: c.y, d: 3, o: c });
   drawables.push({ y: player.y, d: 2, o: player });
@@ -4726,6 +4785,7 @@ function render() {
       }
     } else if (it.d === 3) dibujarCliente(it.o);
     else if (it.d === 4) dibujarMapache(it.o);
+    else if (it.d === 5) dibujarTocon(it.o);
     else dibujarJugador();
   }
   for (const p of plagas) dibujarPlaga(p);
@@ -4769,7 +4829,16 @@ function paso(ts) {
   if (!state.terminado) state.tiempoJuego += dt;   // el reloj para al terminar, no sigue en modo libre
   const inp = inputVector();
   player.update(dt, inp.x, inp.y);
-  for (const p of plants) p.update(dt);
+  for (let i = plants.length - 1; i >= 0; i--) {
+    const p = plants[i];
+    p.update(dt);
+    if (p.muerta) {
+      plants.splice(i, 1);
+      floats.push({ x: p.x, y: p.y - 44, t: 0, txt: t('arbolMuerto'), color: '#ff8a6a' });
+      plumas(p.x, p.y - 10);
+      SFX.perdida();
+    }
+  }
   for (const h of helpers) h.update(dt);
   actualizarBaches(dt);
   actualizarSuelo(dt);
@@ -4899,6 +4968,8 @@ const game = {
   sueldo() { return sueldoPorMinuto(); },
   lanzarOleada(cap) { iniciarOleada(cap === undefined ? capituloActual() : cap, 1); return oleada; },
   marchitar(i) { const p = plants[i || 0]; if (p) marchitar(p, true); return !!p; },
+  reconstruirMundo() { reconstruirMundo(); return true; },
+  cargarGuardado() { return Save.cargar(); },
   CONFIG, FRUITS, CAMPANA, OPCIONALES, DIARIOS, circles, I18N, t,
   dinero(n) {
     const v = Number(n) || 0;
