@@ -302,7 +302,7 @@ const COUNTER = { x: 258, y: 1090, w: 204, h: 66 };
    ======================================================================== */
 const I18N = {
   es: {
-    vender: 'VENDER', lleno: '¡LLENO!', max: 'MÁX', cumpleReto: 'Cumple el reto',
+    vender: 'VENDER', lleno: '¡LLENO!', max: 'MÁX',
     modoLibre: '🏆 Modo libre', frutasVendidas: 'Frutas vendidas: {n}',
     retoCompletado: '¡Reto completado!', imperioCompleto: '¡Imperio completo!',
     fuera: '¡Fuera!', mitad: 'Vas a la mitad',
@@ -366,7 +366,7 @@ const I18N = {
     r_d9: 'Vende {n} papayas hoy', r_d10: 'Llena la mochila {n} veces hoy'
   },
   en: {
-    vender: 'SELL', lleno: 'FULL!', max: 'MAX', cumpleReto: 'Complete the goal',
+    vender: 'SELL', lleno: 'FULL!', max: 'MAX',
     modoLibre: '🏆 Free play', frutasVendidas: 'Fruit sold: {n}',
     retoCompletado: 'Goal complete!', imperioCompleto: 'Empire complete!',
     fuera: 'Shoo!', mitad: 'Halfway there',
@@ -430,7 +430,7 @@ const I18N = {
     r_d9: 'Sell {n} papayas today', r_d10: 'Fill the backpack {n} times today'
   },
   pt: {
-    vender: 'VENDER', lleno: 'CHEIO!', max: 'MÁX', cumpleReto: 'Cumpra o desafio',
+    vender: 'VENDER', lleno: 'CHEIO!', max: 'MÁX',
     modoLibre: '🏆 Modo livre', frutasVendidas: 'Frutas vendidas: {n}',
     retoCompletado: 'Desafio completo!', imperioCompleto: 'Império completo!',
     fuera: 'Xô!', mitad: 'Na metade!',
@@ -3043,16 +3043,6 @@ function dibujarCerca(x, y, w, h, color) {
   ctx.restore();
 }
 
-// Solo la zona que abre el reto en curso lleva candado y letrero; las demás
-// se quedan en gris para no convertir la pantalla en un muro de candados.
-function zonaProximaDesbloquear() {
-  for (let i = state.retoIdx; i < CAMPANA.length; i++) {
-    const d = CAMPANA[i].desbloquea;
-    if (d && !desbloqueada(d)) return d;
-  }
-  return null;
-}
-
 function dibujarZona(f) {
   const z = f.zona;
   const bloqueada = f._fade > 0.001;
@@ -3070,18 +3060,6 @@ function dibujarZona(f) {
   ctx.globalAlpha = 0.55;
   texto(t(z.key), z.x + z.w / 2, z.y + 16, 15, '#2f5b28', 'center', true);
   ctx.restore();
-  if (bloqueada && f.id === zonaProximaDesbloquear()) {
-    ctx.save();
-    ctx.globalAlpha = f._fade;
-    const cx2 = z.x + z.w / 2, cy2 = z.y + z.h / 2;
-    emoji('🔒', cx2, cy2 - 16, 58);
-    const txt = t('cumpleReto');
-    const w = anchoTexto(txt, 16, true) + 34;
-    ctx.fillStyle = 'rgba(20,24,20,0.72)';
-    rr(cx2 - w / 2, cy2 + 26, w, 34, 17); ctx.fill();
-    texto(txt, cx2, cy2 + 43, 16, '#ffffff', 'center', true);
-    ctx.restore();
-  }
 }
 
 /* ------------------------------- Plantas -------------------------------- */
