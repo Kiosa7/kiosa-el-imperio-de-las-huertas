@@ -1608,6 +1608,10 @@ class Espantapajaros {
 
 const player = new Player();
 
+// Ícono de la app, para la insignia de marca en la portada
+const logoImg = new Image();
+logoImg.src = 'icon-192.png';
+
 /* ====================== 9. ZONAS, PLANTAS Y MEJORAS ===================== */
 function desbloqueada(id) { return state.desbloqueadas.indexOf(id) >= 0; }
 function zonaProtegida(fruitId) { return state.espantaZonas.indexOf(fruitId) >= 0; }
@@ -4648,6 +4652,22 @@ function dibujarIntroPortada(e) {
     ctx.fillStyle = 'rgba(255,255,255,0.5)'; circulo(pt.x - 2.6 * u, pt.y + cae + 5.6 * u, 2.6 * u); ctx.fill();
   }
   ctx.restore();
+
+  // Insignia con el ícono de la app, arriba a la derecha del título
+  if (logoImg.complete && logoImg.naturalWidth > 0) {
+    const lx = cw * 0.83, ly = ch * 0.145, lr = Math.min(30, cw * 0.085) * (0.9 + 0.1 * e);
+    ctx.save();
+    ctx.globalAlpha = e;
+    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(lx, ly, lr, 0, 6.2832); ctx.clip();
+    ctx.drawImage(logoImg, lx - lr, ly - lr, lr * 2, lr * 2);
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = e;
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(lx, ly, lr, 0, 6.2832); ctx.stroke();
+    ctx.restore();
+  }
 
   ctx.save();
   ctx.font = fuente(tam, true);
