@@ -186,6 +186,11 @@ const CONFIG = {
   // Mejoras
   PAY_TIME: 1.5,
   ARBOL_COSTO: 50,   ARBOL_MULT: 1.35,
+  // Replantar un árbol que YA tenías (y una plaga mató) es más barato que
+  // comprar cupo nuevo, y no sube con cada compra: si no, tarde en la
+  // partida perder un árbol por descuido podía salir carísimo por culpa de
+  // compras viejas sin relación, en vez de por el árbol perdido en sí.
+  ARBOL_REPLANTAR_BASE: 80, ARBOL_REPLANTAR_POR_CAP: 0.6,
   MOCHILA_COSTO: 80, MOCHILA_MULT: 1.60, MOCHILA_PASO: 5,
   AYUDANTE_COSTOS: [250, 500, 900], AYUDANTE_MAX: 3,
   RIEGO_COSTO: 400,  RIEGO_MULT: 2.0,  RIEGO_MAX: 4,
@@ -660,6 +665,7 @@ function estadoNuevo() {
     capacidad: CONFIG.CAP_START,
     compras: { arbol: 0, mochila: 0, riego: 0, espanta: 0, puesto: 0 },
     arboles: {},
+    arbolesUsados: {},
     espantaZonas: [],
     ayudantes: 0,
     retoIdx: 0,
@@ -803,6 +809,7 @@ const Save = {
         ventasTotales: state.ventasTotales, ventasPorFruta: state.ventasPorFruta,
         recolectadas: state.recolectadas, plagasEspantadas: state.plagasEspantadas,
         capacidad: state.capacidad, compras: state.compras, arboles: state.arboles,
+        arbolesUsados: state.arbolesUsados,
         espantaZonas: state.espantaZonas, ayudantes: state.ayudantes,
         retoIdx: state.retoIdx, cumplidos: state.cumplidos,
         oleadasHechas: state.oleadasHechas, curadas: state.curadas,
@@ -858,13 +865,21 @@ const Save = {
           const arr = d.arboles[f.id];
           if (Array.isArray(arr)) s.arboles[f.id] = f.todasPos.map((_, i) => !!arr[i]);
         }
+        if (d.arbolesUsados && typeof d.arbolesUsados === 'object') {
+          for (const f of FRUITS) {
+            const arr = d.arbolesUsados[f.id];
+            if (Array.isArray(arr)) s.arbolesUsados[f.id] = f.todasPos.map((_, i) => !!arr[i]);
+          }
+        }
       } else if (d.extras && typeof d.extras === 'object') {
         // Save viejo (antes de que los árboles costaran dinero): todos los cupos
         // base ya estaban plantados gratis; se conservan tal cual para no
-        // quitarle árboles a nadie que ya los tenía.
+        // quitarle árboles a nadie que ya los tenía. Al ser árboles que ya
+        // existían, si más adelante mueren cuentan como "replantar" (barato).
         for (const f of FRUITS) {
           const nExtra = clamp(num(d.extras[f.id], 0) | 0, 0, f.posicionesExtra.length);
           s.arboles[f.id] = f.todasPos.map((_, i) => i < f.posiciones.length + nExtra);
+          s.arbolesUsados[f.id] = s.arboles[f.id].slice();
         }
       }
       if (Array.isArray(d.espantaZonas)) {
@@ -966,6 +981,7 @@ const Save = {
         for (const f of FRUITS) {
           const nExtra = clamp(num(d.extras[f.id], 0) | 0, 0, f.posicionesExtra.length);
           s.arboles[f.id] = f.todasPos.map((_, i) => i < f.posiciones.length + nExtra);
+          s.arbolesUsados[f.id] = s.arboles[f.id].slice();
         }
       }
       if (Array.isArray(d.desbloqueadas)) {
@@ -1603,6 +1619,13 @@ function arbolesDeZona(f) {
   return state.arboles[f.id];
 }
 
+// Cupos que alguna vez tuvieron árbol (para cobrar "replantar" en vez de
+// "cupo nuevo" si una plaga se lo llevó)
+function arbolesUsadosDeZona(f) {
+  if (!state.arbolesUsados[f.id]) state.arbolesUsados[f.id] = f.todasPos.map((_, i) => i === 0);
+  return state.arbolesUsados[f.id];
+}
+
 function agregarPlantasZona(f, conPop) {
   const vivos = arbolesDeZona(f);
   f.todasPos.forEach((p, i) => { if (vivos[i]) plants.push(new Plant(f, p[0], p[1], conPop, i)); });
@@ -1937,16 +1960,26 @@ const CIRCLE_R = 52;
 const circles = [
   {
     id: 'arbol', icono: '🌳', k: 'cArbol', x: 195, y: 1380, r: CIRCLE_R,
-    precio() { return Math.round(CONFIG.ARBOL_COSTO * Math.pow(CONFIG.ARBOL_MULT, state.compras.arbol)); },
+    precio() {
+      const f = zonaParaNuevaPlanta();
+      if (f) {
+        const i = arbolesDeZona(f).indexOf(false);
+        if (i >= 0 && arbolesUsadosDeZona(f)[i]) {
+          return Math.round(CONFIG.ARBOL_REPLANTAR_BASE * (1 + capituloActual() * CONFIG.ARBOL_REPLANTAR_POR_CAP));
+        }
+      }
+      return Math.round(CONFIG.ARBOL_COSTO * Math.pow(CONFIG.ARBOL_MULT, state.compras.arbol));
+    },
     max() { return !zonaParaNuevaPlanta(); },
     comprar() {
       const f = zonaParaNuevaPlanta();
       if (!f) return;
       const vivos = arbolesDeZona(f);
+      const usados = arbolesUsadosDeZona(f);
       const i = vivos.indexOf(false);
       if (i < 0) return;
       vivos[i] = true;
-      state.compras.arbol++;
+      if (!usados[i]) { usados[i] = true; state.compras.arbol++; }
       const p = f.todasPos[i];
       plants.push(new Plant(f, p[0], p[1], true, i));
       lanzarConfeti(p[0], p[1] - 30, 26);
