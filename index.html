@@ -568,7 +568,7 @@ const FRUITS = [
   }
 ];
 const FRUIT_BY_ID = {};
-FRUITS.forEach(f => { FRUIT_BY_ID[f.id] = f; f._fade = 1; f.todasPos = f.posiciones.concat(f.posicionesExtra); });
+FRUITS.forEach(f => { FRUIT_BY_ID[f.id] = f; f.todasPos = f.posiciones.concat(f.posicionesExtra); });
 
 /* =============================== 4. RETOS ===============================
    Tres carriles: campaña (20 en 5 capítulos), opcionales (8) y diarios
@@ -1687,7 +1687,6 @@ function agregarPlantasZona(f, conPop) {
 function reconstruirMundo() {
   plants.length = 0;
   for (const f of FRUITS) {
-    f._fade = desbloqueada(f.id) ? 0 : 1;
     if (desbloqueada(f.id)) agregarPlantasZona(f, false);
   }
   helpers.length = 0;
@@ -2242,7 +2241,7 @@ function desbloquearZona(fruitId, conFiesta) {
   if (conFiesta) {
     const z = f.zona;
     for (let i = 0; i < 46; i++) lanzarConfeti(z.x + rand(30, z.w - 30), z.y + rand(30, z.h - 30), 1);
-  } else f._fade = 0;
+  }
 }
 
 function festejarReto(r, premio) {
@@ -3099,17 +3098,7 @@ function dibujarCerca(x, y, w, h, color) {
 
 function dibujarZona(f) {
   const z = f.zona;
-  const bloqueada = f._fade > 0.001;
-  if (bloqueada) {
-    ctx.save();
-    ctx.globalAlpha = f._fade * 0.86;
-    ctx.fillStyle = '#9aa89a';
-    rr(z.x, z.y, z.w, z.h, 18); ctx.fill();
-    ctx.fillStyle = 'rgba(0,0,0,0.10)';
-    for (let y = z.y + 10; y < z.y + z.h; y += 40) ctx.fillRect(z.x + 8, y, z.w - 16, 14);
-    ctx.restore();
-  }
-  dibujarCerca(z.x, z.y, z.w, z.h, bloqueada ? mezclaGris('#8a5a2b', f._fade) : '#8a5a2b');
+  dibujarCerca(z.x, z.y, z.w, z.h, '#8a5a2b');
   ctx.save();
   ctx.globalAlpha = 0.55;
   texto(t(z.key), z.x + z.w / 2, z.y + 16, 15, '#2f5b28', 'center', true);
@@ -4975,10 +4964,6 @@ function paso(ts) {
     }
   }
 
-  for (const f of FRUITS) {
-    if (desbloqueada(f.id) && f._fade > 0) f._fade = Math.max(0, f._fade - dt * 1.4);
-  }
-
   saveTimer += dt;
   if (saveTimer >= CONFIG.SAVE_INTERVAL) { saveTimer = 0; Save.guardar(); }
 
@@ -5013,7 +4998,6 @@ function iniciar() {
   reconstruirMundo();
   rebarajarBaches(true);
   actualizarRetos(false);          // reconcilia saves viejos sin fiesta
-  for (const f of FRUITS) f._fade = desbloqueada(f.id) ? 0 : 1;
   resize();
   const o = objetivoCamara();
   cam.x = o.x; cam.y = o.y;
