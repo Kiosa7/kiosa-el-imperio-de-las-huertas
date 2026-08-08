@@ -4699,9 +4699,9 @@ function dibujarIntroPortada(e) {
   }
   ctx.restore();
 
-  // Insignia con el ícono de la app, arriba a la derecha del título
+  // Insignia con el ícono de la app, centrada arriba de la guirnalda
   if (logoImg.complete && logoImg.naturalWidth > 0) {
-    const lx = cw * 0.83, ly = ch * 0.145, lr = Math.min(30, cw * 0.085) * (0.9 + 0.1 * e);
+    const lx = cw / 2, ly = gyy - tam * 0.95, lr = Math.min(32, cw * 0.09) * (0.9 + 0.1 * e);
     ctx.save();
     ctx.globalAlpha = e;
     ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10;
