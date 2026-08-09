@@ -2583,7 +2583,7 @@ const modal = {
   peligro: false, festejo: false, stats: null, onSi: null, lineas: [], hover: null,
   x: 0, y: 0, w: 0, h: 0, btnSi: null, btnNo: null
 };
-const intro = { activo: true, t: 0, pagina: 0, tp: 0, btn: null, btn2: null, volver: null };
+const intro = { activo: true, t: 0, pagina: 0, tp: 0, btn: null, btn2: null, volver: null, voff: 0 };
 const REGLAS = [
   { ico: '🌳', k: 'r1', col: '#5ee06a' },
   { ico: '🧺', k: 'r2', col: '#ffd166' },
@@ -2682,10 +2682,22 @@ function abrirFinal() {
 }
 
 function layoutIntro() {
+  // Centrar todo el conjunto de la portada (insignia, título, Kiosa y
+  // botones) en la pantalla: se mide dónde cae con las proporciones de
+  // siempre y se calcula cuánto hay que correrlo para que quede parejo
+  // arriba y abajo, en vez de pegado hacia la parte de arriba.
+  const tam = Math.min(70, cw * 0.185);
+  const tyBase = ch * 0.265;
+  const gyyBase = tyBase - tam * 0.46;
+  const lr0 = Math.min(32, cw * 0.09);
+  const topY = gyyBase - tam * 0.95 - lr0;                 // borde de arriba de la insignia
+  const bottomY = ch * 0.862 + 42 + 18 + 10;                // debajo del tip, sin correr aún
+  intro.voff = ch / 2 - (topY + bottomY) / 2;
+
   const w = Math.min(cw - 64, 260);
-  intro.btn = { x: (cw - w) / 2, y: ch * 0.768, w: w, h: 58 };
+  intro.btn = { x: (cw - w) / 2, y: ch * 0.768 + intro.voff, w: w, h: 58 };
   const w2 = Math.min(cw - 110, 200);
-  intro.btn2 = { x: (cw - w2) / 2, y: ch * 0.862, w: w2, h: 42 };
+  intro.btn2 = { x: (cw - w2) / 2, y: ch * 0.862 + intro.voff, w: w2, h: 42 };
   intro.volver = { x: 14, y: 14, w: 84, h: 36 };
 }
 
@@ -4662,7 +4674,7 @@ function dibujarIntroPortada(e) {
 
   const bob = Math.sin(intro.t * 1.9) * 5;
   const tam = Math.min(70, cw * 0.185);
-  const ty = ch * 0.265 - (1 - e) * 50 + bob * 0.35;
+  const ty = ch * 0.265 + intro.voff - (1 - e) * 50 + bob * 0.35;
 
   // Guirnalda de rama, hojas y frutas colgando sobre el título
   const u = Math.min(1.9, cw / 330);
@@ -4742,7 +4754,7 @@ function dibujarIntroPortada(e) {
         'rgba(255,255,255,0.72)', 'center', false);
 
   ctx.save();
-  ctx.translate(cw / 2, ch * 0.672 + bob);
+  ctx.translate(cw / 2, ch * 0.672 + intro.voff + bob);
   const esc = Math.min(2.2, cw / 180) * (0.85 + 0.15 * e);
   ctx.scale(esc, esc);
   maniqui.phase = intro.t * 6;
