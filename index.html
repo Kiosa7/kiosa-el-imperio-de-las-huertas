@@ -281,6 +281,22 @@ const CONFIG = {
   MAPACHE_RADIO_ESPANTO: 70,
   ZONA_SEGURA_R: 200,          // alrededor del puesto no entran
 
+  // Torbellino: un obstáculo que se mueve errático (no en línea recta como
+  // las plagas ni directo a vos como los ladrones). Si te agarra, no te roba
+  // como el mapache: te dispersa parte de la fruta cerca tuyo para que la
+  // vuelvas a juntar corriendo. La gracia es esquivarlo, no lo que pierdas.
+  TORBELLINO_DESDE_CAP: 1,               // aparece desde el capítulo 2
+  TORBELLINO_INTERVALO_BASE: 34,
+  TORBELLINO_INTERVALO_MIN: 16,
+  TORBELLINO_INTERVALO_POR_CAP: 3,
+  TORBELLINO_MAX: 1,
+  TORBELLINO_VEL: 150,
+  TORBELLINO_RADIO: 34,
+  TORBELLINO_VIDA: 14,
+  TORBELLINO_CAMBIO_DIR: 1.6,
+  TORBELLINO_DISPERSA_MIN: 3,
+  TORBELLINO_DISPERSA_MAX: 7,
+
   // Rendimiento
   CONFETI_MAX: 240,
   CONFETI_MAX_BAJO: 60,
@@ -334,6 +350,7 @@ const I18N = {
     btnJugar: 'JUGAR', introTip: 'Arrastra el dedo para mover a Kiosa',
     comoJugar: 'Cómo jugar', btnAJugar: '¡A JUGAR!', volver: 'Volver',
     tropiezo: '¡Se te cayó!', robo: '¡Te robaron todo!', caminoCambio: 'El camino cambió',
+    torbellino: '¡Un torbellino te dispersó la fruta!',
     r6t: 'Cuidado en el camino', r6d: 'Los baches te tiran la fruta y los animales se la llevan; corre al puesto, ahí no entran',
     r1t: 'Cosecha', r1d: 'Acércate a los árboles y se llena tu mochila sola',
     r2t: 'Surte el puesto', r2d: 'Párate en VENDER: cada fruta va a su propia bandeja',
@@ -399,6 +416,7 @@ const I18N = {
     btnJugar: 'PLAY', introTip: 'Drag your finger to move Kiosa',
     comoJugar: 'How to play', btnAJugar: 'LET’S GO!', volver: 'Back',
     tropiezo: 'You dropped it!', robo: 'It took everything!', caminoCambio: 'The road shifted',
+    torbellino: 'A dust devil scattered your fruit!',
     r6t: 'Watch the road', r6d: 'Potholes drop your fruit and animals take it; run to the stall, they will not enter',
     r1t: 'Harvest', r1d: 'Walk up to the trees and your backpack fills by itself',
     r2t: 'Restock the stall', r2d: 'Stand on SELL: each fruit goes into its own tray',
@@ -464,6 +482,7 @@ const I18N = {
     btnJugar: 'JOGAR', introTip: 'Arraste o dedo para mover o Kiosa',
     comoJugar: 'Como jogar', btnAJugar: 'BORA!', volver: 'Voltar',
     tropiezo: 'Você derrubou!', robo: 'Levou tudo!', caminoCambio: 'O caminho mudou',
+    torbellino: 'Um redemoinho espalhou sua fruta!',
     r6t: 'Cuidado no caminho', r6d: 'Os buracos derrubam a fruta e os animais levam; corra ao posto, ali eles não entram',
     r1t: 'Colha', r1d: 'Chegue perto das árvores e a mochila enche sozinha',
     r2t: 'Abasteça o posto', r2d: 'Fique em VENDER: cada fruta vai para sua própria bandeja',
@@ -676,6 +695,7 @@ function estadoNuevo() {
     robadas: 0,
     recogidas: 0,
     pasadas: 0,
+    dispersadas: 0,
     capacidad: CONFIG.CAP_START,
     compras: { arbol: 0, mochila: 0, riego: 0, espanta: 0, puesto: 0 },
     arboles: {},
@@ -708,6 +728,7 @@ const helpers = [];
 const plagas = [];
 const clientes = [];
 const mapaches = [];
+const torbellinos = [];
 const sueloFrutas = [];
 const espantas = [];
 const confetti = [];
@@ -726,6 +747,7 @@ let helpersImpagos = false;
 let avisoSueldo = 0;
 let clienteTimer = 0;
 let mapacheTimer = 0;
+let torbellinoTimer = 0;
 let bacheTimer = 0;
 let oleadaCola = [];          // capítulos cerrados mientras había otra oleada
 let bachePend = null;
@@ -831,7 +853,7 @@ const Save = {
         servidos: state.servidos, enojados: state.enojados, terminado: state.terminado,
         tiempoJuego: state.tiempoJuego,
         tropiezos: state.tropiezos, robadas: state.robadas, recogidas: state.recogidas,
-        pasadas: state.pasadas,
+        pasadas: state.pasadas, dispersadas: state.dispersadas,
         diarios: state.diarios, hoy: state.hoy, sinMarchita: state.sinMarchita,
         op: state.op, pagos: state.pagos, hints: state.hints,
         mute: state.mute, hudExp: state.hudExp, idioma: state.idioma, calidad: state.calidad,
@@ -913,6 +935,7 @@ const Save = {
       s.robadas = Math.max(0, num(d.robadas, 0) | 0);
       s.recogidas = Math.max(0, num(d.recogidas, 0) | 0);
       s.pasadas = Math.max(0, num(d.pasadas, 0) | 0);
+      s.dispersadas = Math.max(0, num(d.dispersadas, 0) | 0);
       s.terminado = !!d.terminado;
       s.tiempoJuego = Math.max(0, num(d.tiempoJuego, 0));
       s.reputacion = clamp(num(d.reputacion, CONFIG.REP_INICIAL), 0, CONFIG.REP_MAX);
@@ -1064,6 +1087,11 @@ const SFX = {
   perdida() {                    // se muere un árbol: dos notas graves y tristes
     this.tono(220, 0.20, 'sawtooth', 0.09);
     this.tono(165, 0.30, 'sawtooth', 0.09, 0.12);
+  },
+  torbellino() {                 // remolino que te dispersa la fruta: un "puf" descendente
+    this.tono(520, 0.10, 'triangle', 0.08);
+    this.tono(340, 0.14, 'triangle', 0.08, 0.06);
+    this.tono(220, 0.18, 'triangle', 0.07, 0.12);
   }
 };
 
@@ -1645,6 +1673,48 @@ class Mapache {
   }
 }
 
+// Vaga por el mapa en zigzag (no en línea recta como una plaga, no directo a
+// vos como un ladrón). Si te agarra, dispersa parte de tu carga cerca tuyo
+// en vez de robártela: la gracia es esquivarlo, no lo que perdés si no.
+class Torbellino {
+  constructor() {
+    const lado = (Math.random() * 4) | 0;
+    if (lado === 0)      { this.x = rand(60, WORLD_W - 60); this.y = -50; }
+    else if (lado === 1) { this.x = WORLD_W + 50; this.y = rand(60, WORLD_H - 60); }
+    else if (lado === 2) { this.x = rand(60, WORLD_W - 60); this.y = WORLD_H + 50; }
+    else                 { this.x = -50; this.y = rand(60, WORLD_H - 60); }
+    this.target = { x: rand(60, WORLD_W - 60), y: rand(60, WORLD_H - 60) };
+    this.vida = CONFIG.TORBELLINO_VIDA;
+    this.cambioT = 0;
+    this.giro = Math.random() * 6.28;
+    this.golpeoReciente = false;
+    this.fuera = false;
+  }
+  update(dt) {
+    this.giro += dt * 7;
+    this.vida -= dt;
+    if (this.vida <= 0) { this.fuera = true; return; }
+    this.cambioT += dt;
+    const dx = this.target.x - this.x, dy = this.target.y - this.y;
+    const d = Math.hypot(dx, dy) || 1;
+    if (this.cambioT >= CONFIG.TORBELLINO_CAMBIO_DIR || d < 24) {
+      this.cambioT = 0;
+      this.target = { x: rand(60, WORLD_W - 60), y: rand(60, WORLD_H - 60) };
+    }
+    const paso = Math.min(CONFIG.TORBELLINO_VEL * dt, d);
+    this.x += dx / d * paso;
+    this.y += dy / d * paso;
+
+    // Igual que los ladrones, no te alcanza si ya estás en la zona segura
+    const dp = Math.hypot(player.x - this.x, player.y - this.y);
+    if (dp <= CONFIG.TORBELLINO_RADIO && !enZonaSegura(player.x, player.y)) {
+      if (!this.golpeoReciente) { this.golpeoReciente = true; dispersar(player); }
+    } else if (dp > CONFIG.TORBELLINO_RADIO * 1.6) {
+      this.golpeoReciente = false;
+    }
+  }
+}
+
 class Espantapajaros {
   constructor(fruitId) {
     const z = FRUIT_BY_ID[fruitId].zona;
@@ -1696,6 +1766,7 @@ function reconstruirMundo() {
   for (const id of state.espantaZonas) if (FRUIT_BY_ID[id]) espantas.push(new Espantapajaros(id));
   plagas.length = 0;
   mapaches.length = 0;
+  torbellinos.length = 0;
   sueloFrutas.length = 0;
   oleadaCola.length = 0;
 }
@@ -1938,6 +2009,26 @@ function tropezar(p) {
   SFX.alerta();
 }
 
+// El torbellino no roba: dispersa parte de la carga en un estallido alrededor
+// tuyo (sin aturdirte, a diferencia del bache) para que la juntes corriendo.
+function dispersar(p) {
+  const r = CONFIG.TORBELLINO_DISPERSA_MAX - CONFIG.TORBELLINO_DISPERSA_MIN + 1;
+  const n = Math.min(p.carga.length, CONFIG.TORBELLINO_DISPERSA_MIN + ((Math.random() * r) | 0));
+  if (n <= 0) return;
+  for (let i = 0; i < n; i++) {
+    const id = p.carga.pop();
+    if (p.cargaT) p.cargaT.pop();
+    if (!id) break;
+    const ang = Math.random() * 6.2832, dist = rand(40, 110);
+    soltarAlSuelo(id, p.x + Math.cos(ang) * dist, p.y + Math.sin(ang) * dist);
+  }
+  cam.shake = Math.max(cam.shake, 0.4);
+  floats.push({ x: p.x, y: p.y - 42, t: 0, txt: t('torbellino'), color: '#e0c98a' });
+  state.dispersadas += n;
+  plumas(p.x, p.y);
+  SFX.torbellino();
+}
+
 function actualizarSuelo(dt) {
   for (let i = sueloFrutas.length - 1; i >= 0; i--) {
     const f = sueloFrutas[i];
@@ -1959,6 +2050,25 @@ function actualizarMapaches(dt) {
   if (mapacheTimer >= CONFIG.MAPACHE_INTERVALO) {
     mapacheTimer = 0;
     if (mapaches.length < CONFIG.MAPACHE_MAX) mapaches.push(new Mapache());
+  }
+}
+
+function torbellinosActivos() { return capituloActual() >= CONFIG.TORBELLINO_DESDE_CAP; }
+function intervaloTorbellino() {
+  return Math.max(CONFIG.TORBELLINO_INTERVALO_MIN,
+    CONFIG.TORBELLINO_INTERVALO_BASE - CONFIG.TORBELLINO_INTERVALO_POR_CAP * capituloActual());
+}
+
+function actualizarTorbellinos(dt) {
+  for (let i = torbellinos.length - 1; i >= 0; i--) {
+    torbellinos[i].update(dt);
+    if (torbellinos[i].fuera) torbellinos.splice(i, 1);
+  }
+  if (!torbellinosActivos()) { torbellinoTimer = 0; return; }
+  torbellinoTimer += dt;
+  if (torbellinoTimer >= intervaloTorbellino()) {
+    torbellinoTimer = 0;
+    if (torbellinos.length < CONFIG.TORBELLINO_MAX) torbellinos.push(new Torbellino());
   }
 }
 
@@ -3549,6 +3659,22 @@ function dibujarSuelo() {
   }
 }
 
+function dibujarTorbellino(to) {
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.16)';
+  elipse(to.x, to.y + 6, 24, 8); ctx.fill();
+  ctx.translate(to.x, to.y);
+  for (let i = 0; i < 6; i++) {
+    const ang = to.giro * 1.5 + i * (6.2832 / 6);
+    const r = 8 + i * 3.6;
+    const ex = Math.cos(ang) * r, ey = Math.sin(ang) * r * 0.4 - i * 6.5;
+    ctx.globalAlpha = 0.35 + i * 0.09;
+    ctx.fillStyle = i % 2 ? '#c9a56a' : '#a9855a';
+    circulo(ex, ey, 9 - i * 0.7); ctx.fill();
+  }
+  ctx.restore();
+}
+
 function dibujarMapache(m) {
   const T = m.tipo || LADRONES[0];
   const paso = Math.sin(m.phase) * (m.estado === 'huyendo' ? 1 : 0.8);
@@ -4861,6 +4987,7 @@ function render() {
   dibujarCura();
   dibujarSuelo();
   for (const m of mapaches) drawables.push({ y: m.y, d: 4, o: m });
+  for (const to of torbellinos) drawables.push({ y: to.y, d: 6, o: to });
   drawables.sort((a, b) => a.y - b.y);
   for (const it of drawables) {
     if (it.d === 0) dibujarPlanta(it.o);
@@ -4881,6 +5008,7 @@ function render() {
     } else if (it.d === 3) dibujarCliente(it.o);
     else if (it.d === 4) dibujarMapache(it.o);
     else if (it.d === 5) dibujarTocon(it.o);
+    else if (it.d === 6) dibujarTorbellino(it.o);
     else dibujarJugador();
   }
   for (const p of plagas) dibujarPlaga(p);
@@ -4949,6 +5077,7 @@ function paso(ts) {
   actualizarBaches(dt);
   actualizarSuelo(dt);
   actualizarMapaches(dt);
+  actualizarTorbellinos(dt);
   actualizarClientes(dt);
   actualizarOleada(dt);
   actualizarPlagas(dt);
@@ -5032,6 +5161,7 @@ const game = {
   get plagas() { return plagas; },
   get clientes() { return clientes; },
   get mapaches() { return mapaches; },
+  get torbellinos() { return torbellinos; },
   get suelo() { return sueloFrutas; },
   get baches() { return baches; },
   get estanteTrays() { return state.estanteTrays; },
@@ -5039,6 +5169,7 @@ const game = {
   get oleadaCola() { return oleadaCola; },
   rebarajarBaches() { rebarajarBaches(false); return baches.length; },
   spawnMapache() { mapaches.push(new Mapache()); return true; },
+  spawnTorbellino() { torbellinos.push(new Torbellino()); return true; },
   tropezar() { tropezar(player); return sueloFrutas.length; },
   get intro() { return intro.activo; },
   get introBtn() { return intro.btn; },
