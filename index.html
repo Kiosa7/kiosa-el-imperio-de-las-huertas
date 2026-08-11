@@ -5241,7 +5241,7 @@ function dibujarIntroPortada(e) {
 
   // Guirnalda de rama, hojas y frutas colgando sobre el título
   const u = Math.min(1.9, cw / 330);
-  const gx0 = cw * 0.10, gx1 = cw * 0.90, gyy = topTy - tam * 0.46;
+  const gx0 = cw * 0.10, gx1 = cw * 0.90, gyy = ty - tam * 0.46;
   const bez = tt => {
     const m = 1 - tt;
     return { x: m * m * gx0 + 2 * m * tt * (cw / 2) + tt * tt * gx1,
