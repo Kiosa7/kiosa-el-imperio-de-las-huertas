@@ -1,7 +1,9 @@
 /* Service worker de Kiosa: el imperio de las huertas.
-   Cache-first sobre los archivos propios; la red solo se usa como respaldo.
-   Al cambiar CACHE se invalidan todos los cachés anteriores. */
-const CACHE = 'kiosa-v2';
+   El HTML va primero por red (para que un cambio se vea en la misma visita,
+   no una visita después) con la caché como respaldo sin conexión; el resto
+   de los archivos propios sigue siendo cache-first. Al cambiar CACHE se
+   invalidan todos los cachés anteriores. */
+const CACHE = 'kiosa-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -32,6 +34,23 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   if (new URL(req.url).origin !== self.location.origin) return;
+
+  const esHTML = req.mode === 'navigate' || req.destination === 'document';
+  if (esHTML) {
+    // Red primero: así un despliegue nuevo se ve en la misma visita. Si no
+    // hay conexión, cae a lo que haya en caché.
+    e.respondWith(
+      fetch(req).then(res => {
+        if (res && res.ok) {
+          const copia = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copia));
+        }
+        return res;
+      }).catch(() => caches.match(req).then(hit => hit || caches.match('./index.html')))
+    );
+    return;
+  }
+
   e.respondWith(
     caches.match(req).then(hit => {
       if (hit) {
