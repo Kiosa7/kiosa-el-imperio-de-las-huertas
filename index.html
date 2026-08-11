@@ -5268,22 +5268,6 @@ function dibujarIntroPortada(e) {
   }
   ctx.restore();
 
-  // Insignia con el ícono de la app, centrada arriba de la guirnalda
-  if (logoImg.complete && logoImg.naturalWidth > 0) {
-    const lx = cw / 2, ly = gyy - tam * 0.95, lr = Math.min(32, cw * 0.09) * (0.9 + 0.1 * e);
-    ctx.save();
-    ctx.globalAlpha = e;
-    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10;
-    ctx.beginPath(); ctx.arc(lx, ly, lr, 0, 6.2832); ctx.clip();
-    ctx.drawImage(logoImg, lx - lr, ly - lr, lr * 2, lr * 2);
-    ctx.restore();
-    ctx.save();
-    ctx.globalAlpha = e;
-    ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 2.5;
-    ctx.beginPath(); ctx.arc(lx, ly, lr, 0, 6.2832); ctx.stroke();
-    ctx.restore();
-  }
-
   ctx.save();
   ctx.font = fuente(tam, true);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -5318,6 +5302,25 @@ function dibujarIntroPortada(e) {
   maniqui.swayT = intro.t * 6;
   dibujarPersonaje(maniqui, { camisa: '#3fb0e8', gorra: '#e63946', atras: true });
   ctx.restore();
+
+  // Insignia con el ícono de la app, al lado del muñeco de Kiosa (no arriba
+  // de todo el conjunto, como antes). Va a la izquierda: a la derecha
+  // choca con la escena de fondo (el puesto y los clientes) en pantallas anchas.
+  if (logoImg.complete && logoImg.naturalWidth > 0) {
+    const lx = cw / 2 - 58 * esc, ly = ch * 0.672 + intro.voff + bob - 28 * esc;
+    const lr = Math.min(26, cw * 0.075) * (0.9 + 0.1 * e);
+    ctx.save();
+    ctx.globalAlpha = e;
+    ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(lx, ly, lr, 0, 6.2832); ctx.clip();
+    ctx.drawImage(logoImg, lx - lr, ly - lr, lr * 2, lr * 2);
+    ctx.restore();
+    ctx.save();
+    ctx.globalAlpha = e;
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.arc(lx, ly, lr, 0, 6.2832); ctx.stroke();
+    ctx.restore();
+  }
 
   ctx.save();
   ctx.globalAlpha = e;
