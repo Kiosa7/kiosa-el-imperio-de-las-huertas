@@ -5231,11 +5231,17 @@ function dibujarIntroPortada(e) {
 
   const bob = Math.sin(intro.t * 1.9) * 5;
   const tam = Math.min(70, cw * 0.185);
-  const ty = ch * 0.265 + intro.voff - (1 - e) * 50 + bob * 0.35;
+  const esc = Math.min(2.2, cw / 180) * (0.85 + 0.15 * e);
+  const charY = ch * 0.672 + intro.voff + bob;
+  // Dos anclas separadas: la guirnalda y la insignia se quedan arriba de
+  // todo, como siempre; el título KIOSA baja a quedar justo arriba del
+  // muñeco en vez de coronar todo el conjunto.
+  const topTy = ch * 0.265 + intro.voff - (1 - e) * 50 + bob * 0.35;
+  const ty = charY - 71 * esc - 104 + (1 - e) * 30;
 
   // Guirnalda de rama, hojas y frutas colgando sobre el título
   const u = Math.min(1.9, cw / 330);
-  const gx0 = cw * 0.10, gx1 = cw * 0.90, gyy = ty - tam * 0.46;
+  const gx0 = cw * 0.10, gx1 = cw * 0.90, gyy = topTy - tam * 0.46;
   const bez = tt => {
     const m = 1 - tt;
     return { x: m * m * gx0 + 2 * m * tt * (cw / 2) + tt * tt * gx1,
@@ -5272,7 +5278,7 @@ function dibujarIntroPortada(e) {
   // guirnalda y la palabra KIOSA), no arriba de todo el conjunto ni junto
   // al muñeco.
   if (logoImg.complete && logoImg.naturalWidth > 0) {
-    const lx = cw / 2, ly = ty - tam * 0.98;
+    const lx = cw / 2, ly = topTy - tam * 0.98;
     const lr = Math.min(22, cw * 0.06) * (0.9 + 0.1 * e);
     ctx.save();
     ctx.globalAlpha = e;
@@ -5314,8 +5320,7 @@ function dibujarIntroPortada(e) {
         'rgba(255,255,255,0.72)', 'center', false);
 
   ctx.save();
-  ctx.translate(cw / 2, ch * 0.672 + intro.voff + bob);
-  const esc = Math.min(2.2, cw / 180) * (0.85 + 0.15 * e);
+  ctx.translate(cw / 2, charY);
   ctx.scale(esc, esc);
   maniqui.phase = intro.t * 6;
   maniqui.swayT = intro.t * 6;
