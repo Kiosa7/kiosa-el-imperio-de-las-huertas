@@ -383,7 +383,7 @@ const I18N = {
   es: {
     vender: 'VENDER', lleno: '¡LLENO!', max: 'MÁX',
     modoLibre: '🏆 Modo libre', frutasVendidas: 'Frutas vendidas: {n}',
-    retoCompletado: '¡Reto completado!', imperioCompleto: '¡Imperio completo!',
+    imperioCompleto: '¡Imperio completo!',
     fuera: '¡Fuera!', mitad: 'Vas a la mitad',
     reiniciarTit: '¿Reiniciar el juego?',
     reiniciar: 'Perderás todo: dinero, plantas, ayudantes y retos. No se puede deshacer.',
@@ -459,7 +459,7 @@ const I18N = {
   en: {
     vender: 'SELL', lleno: 'FULL!', max: 'MAX',
     modoLibre: '🏆 Free play', frutasVendidas: 'Fruit sold: {n}',
-    retoCompletado: 'Goal complete!', imperioCompleto: 'Empire complete!',
+    imperioCompleto: 'Empire complete!',
     fuera: 'Shoo!', mitad: 'Halfway there',
     reiniciarTit: 'Restart the game?',
     reiniciar: 'You will lose everything: money, plants, helpers and goals. This cannot be undone.',
@@ -535,7 +535,7 @@ const I18N = {
   pt: {
     vender: 'VENDER', lleno: 'CHEIO!', max: 'MÁX',
     modoLibre: '🏆 Modo livre', frutasVendidas: 'Frutas vendidas: {n}',
-    retoCompletado: 'Desafio completo!', imperioCompleto: 'Império completo!',
+    imperioCompleto: 'Império completo!',
     fuera: 'Xô!', mitad: 'Na metade!',
     reiniciarTit: 'Reiniciar o jogo?',
     reiniciar: 'Você perderá tudo: dinheiro, plantas, ajudantes e desafios. Não dá para desfazer.',
@@ -855,6 +855,13 @@ const confetti = [];
 const floats = [];
 const toasts = [];
 let bigMsg = null;
+const bigMsgQueue = [];
+function mostrarBigMsg(txt) {
+  const ultimo = bigMsgQueue.length ? bigMsgQueue[bigMsgQueue.length - 1].txt : (bigMsg ? bigMsg.txt : null);
+  if (ultimo === txt) return;
+  if (!bigMsg) bigMsg = { txt: txt, t: 0 };
+  else bigMsgQueue.push({ txt: txt });
+}
 let saveTimer = 0;
 let plagaTimer = 0;
 // Una vez pulsado ↺ no se vuelve a guardar: si no, el `pagehide` del reload
@@ -2576,7 +2583,7 @@ function oleadaHecha(cap) { return state.oleadasHechas.indexOf(cap) >= 0; }
 function iniciarOleada(cap, intento) {
   oleada = { cap: cap, t: intento > 1 ? -CONFIG.OLEADA_RESPIRO : 0,
              spawnT: CONFIG.OLEADA_SPAWN, spawned: 0, perdidas: 0, intento: intento || 1 };
-  bigMsg = { txt: t('oleada'), t: 0 };
+  mostrarBigMsg(t('oleada'));
   cam.shake = 0.6;
   SFX.fanfarria();
 }
@@ -2589,7 +2596,7 @@ function terminarOleada() {
     if (oleada.perdidas === 0) state.oleadasPerfectas++;
     const premio = CONFIG.OLEADA_PREMIO * (cap + 1);
     pagarPremio(premio);
-    bigMsg = { txt: t('oleadaSuperada'), t: 0 };
+    mostrarBigMsg(t('oleadaSuperada'));
     toast(t('oleadaSuperada'), '+$' + premio);
     for (let i = 0; i < 120; i++) lanzarConfeti(rand(40, WORLD_W - 40), rand(cam.y + 60, cam.y + view.h - 120), 1);
     state.oleadasHechas.push(cap);
@@ -2597,12 +2604,12 @@ function terminarOleada() {
     siguienteOleadaEnCola();
   } else if (intento >= CONFIG.OLEADA_INTENTOS) {
     // No se bloquea el avance para siempre: al tercer intento pasa sin premio
-    bigMsg = { txt: t('oleadaFin'), t: 0 };
+    mostrarBigMsg(t('oleadaFin'));
     state.oleadasHechas.push(cap);
     oleada = null;
     siguienteOleadaEnCola();
   } else {
-    bigMsg = { txt: t('oleadaFallida'), t: 0 };
+    mostrarBigMsg(t('oleadaFallida'));
     iniciarOleada(cap, intento + 1);
   }
   Save.guardar();
@@ -2703,7 +2710,6 @@ function festejarReto(r, premio) {
     abrirFinal();
     for (let i = 0; i < 160; i++) lanzarConfeti(rand(40, WORLD_W - 40), rand(cam.y + 60, cam.y + view.h - 120), 1);
   } else {
-    bigMsg = { txt: t('retoCompletado'), t: 0 };
     for (let i = 0; i < 50; i++) lanzarConfeti(player.x + rand(-90, 90), player.y + rand(-90, 30), 1);
   }
 }
@@ -2845,6 +2851,7 @@ function actualizarParticulas(dt) {
     if (toasts[i].t >= 2.4) toasts.splice(i, 1);
   }
   if (bigMsg) { bigMsg.t += dt; if (bigMsg.t > 2.6) bigMsg = null; }
+  if (!bigMsg && bigMsgQueue.length) bigMsg = bigMsgQueue.shift();
 }
 
 /* ============================== 12. HINTS =============================== */
@@ -5754,6 +5761,9 @@ const game = {
   get combo() { return { n: combo.n, t: combo.t, mult: comboMult() }; },
   get oleada() { return oleada; },
   get impagos() { return helpersImpagos; },
+  get bigMsg() { return bigMsg ? { txt: bigMsg.txt, t: bigMsg.t } : null; },
+  get bigMsgQueue() { return bigMsgQueue.map(m => m.txt); },
+  get toasts() { return toasts.map(x => ({ txt: x.txt, sub: x.sub })); },
   sueldo() { return sueldoPorMinuto(); },
   lanzarOleada(cap) { iniciarOleada(cap === undefined ? capituloActual() : cap, 1); return oleada; },
   marchitar(i) { const p = plants[i || 0]; if (p) marchitar(p, true); return !!p; },
