@@ -323,6 +323,23 @@ const CONFIG = {
   // laterales, más anchas.
   BACHE_PUENTE_FRACCION: 0.65,
 
+  // Fruta dorada: de vez en cuando un árbol la tiene, vale mucho más si la
+  // cosechás antes de que se acabe el tiempo. Puramente positiva, así que
+  // (a diferencia de las trampas) aparece desde el principio del juego.
+  DORADA_INTERVALO_BASE: 50,
+  DORADA_INTERVALO_MIN: 28,
+  DORADA_INTERVALO_POR_CAP: 4,
+  DORADA_VIDA: 12,
+  DORADA_MULT: 14,
+
+  // Logros: permanentes, sobreviven a "reiniciar partida".
+  LOGRO_CONFETI: 34,
+
+  // Prestigio ("nueva vuelta"): al completar el imperio, se puede empezar
+  // de nuevo con un bonus permanente que crece con cada vuelta completada.
+  PRESTIGIO_DINERO_POR_NIVEL: 60,
+  PRESTIGIO_REP_POR_NIVEL: 5,
+
   // Rendimiento
   CONFETI_MAX: 240,
   CONFETI_MAX_BAJO: 60,
@@ -372,11 +389,20 @@ const I18N = {
     sClientes: 'Clientes servidos', sPlagas: 'Plagas espantadas', sRep: 'Reputación final',
     sTiempo: 'Tu tiempo', guardarRecord: 'Guardar', placeholderNombre: 'Tu nombre',
     nuevoRecord: '¡Nuevo récord! #{n}', recordGuardado: 'Récord guardado', mejoresTiempos: 'Mejores tiempos',
+    btnOk: 'Cerrar', logrosTit: 'Logros', logrosTxt: 'Quedan guardados aunque reinicies la partida.',
+    logroDesbloqueado: '¡Logro desbloqueado!',
+    l01: 'Primera venta', l02: 'Imperio completo', l03: 'Fruta dorada', l04: 'Cosechador de oro',
+    l05: 'Domador de plagas', l06: 'Oleada perfecta', l07: 'Reputación máxima', l08: 'Millonario',
+    sPrestigio: 'Vueltas con bono',
+    btnNuevaVuelta: 'Nueva vuelta', btnSiNuevaVuelta: 'Sí, empezar de nuevo',
+    nuevaVueltaTit: '¿Empezar una nueva vuelta?',
+    nuevaVueltaTxt: 'Arranca todo de nuevo, pero con un bono permanente por haber completado el imperio: más plata y reputación desde el principio. Se suma cada vez que lo volvés a completar.',
     introSub: 'Cosecha, surte tu puesto y haz crecer el imperio',
     btnJugar: 'JUGAR', introTip: 'Arrastra el dedo para mover a Kiosa',
     comoJugar: 'Cómo jugar', btnAJugar: '¡A JUGAR!', volver: 'Volver',
     tropiezo: '¡Se te cayó!', robo: '¡Te robaron todo!', caminoCambio: 'El camino cambió',
     torbellino: '¡Un torbellino te dispersó la fruta!', carronero: '¡Un pájaro te picoteó una fruta!',
+    dorada: '¡Fruta dorada!',
     r6t: 'Cuidado en el camino', r6d: 'Los baches te tiran la fruta y los animales se la llevan; corre al puesto, ahí no entran',
     r1t: 'Cosecha', r1d: 'Acércate a los árboles y se llena tu mochila sola',
     r2t: 'Surte el puesto', r2d: 'Párate en VENDER: cada fruta va a su propia bandeja',
@@ -438,11 +464,20 @@ const I18N = {
     sClientes: 'Customers served', sPlagas: 'Pests scared off', sRep: 'Final reputation',
     sTiempo: 'Your time', guardarRecord: 'Save', placeholderNombre: 'Your name',
     nuevoRecord: 'New record! #{n}', recordGuardado: 'Record saved', mejoresTiempos: 'Best times',
+    btnOk: 'Close', logrosTit: 'Achievements', logrosTxt: 'These stay saved even if you restart the game.',
+    logroDesbloqueado: 'Achievement unlocked!',
+    l01: 'First sale', l02: 'Empire complete', l03: 'Golden fruit', l04: 'Gold harvester',
+    l05: 'Pest tamer', l06: 'Perfect wave', l07: 'Max reputation', l08: 'Millionaire',
+    sPrestigio: 'Bonus rounds',
+    btnNuevaVuelta: 'New round', btnSiNuevaVuelta: 'Yes, start over',
+    nuevaVueltaTit: 'Start a new round?',
+    nuevaVueltaTxt: 'Everything starts over, but with a permanent bonus for completing the empire: more money and reputation from the start. It stacks each time you complete it again.',
     introSub: 'Harvest, restock your stall and grow the empire',
     btnJugar: 'PLAY', introTip: 'Drag your finger to move Kiosa',
     comoJugar: 'How to play', btnAJugar: 'LET’S GO!', volver: 'Back',
     tropiezo: 'You dropped it!', robo: 'It took everything!', caminoCambio: 'The road shifted',
     torbellino: 'A dust devil scattered your fruit!', carronero: 'A bird pecked away a fruit!',
+    dorada: 'Golden fruit!',
     r6t: 'Watch the road', r6d: 'Potholes drop your fruit and animals take it; run to the stall, they will not enter',
     r1t: 'Harvest', r1d: 'Walk up to the trees and your backpack fills by itself',
     r2t: 'Restock the stall', r2d: 'Stand on SELL: each fruit goes into its own tray',
@@ -504,11 +539,20 @@ const I18N = {
     sClientes: 'Clientes atendidos', sPlagas: 'Pragas espantadas', sRep: 'Reputação final',
     sTiempo: 'Seu tempo', guardarRecord: 'Salvar', placeholderNombre: 'Seu nome',
     nuevoRecord: 'Novo recorde! #{n}', recordGuardado: 'Recorde salvo', mejoresTiempos: 'Melhores tempos',
+    btnOk: 'Fechar', logrosTit: 'Conquistas', logrosTxt: 'Ficam salvas mesmo se você reiniciar o jogo.',
+    logroDesbloqueado: 'Conquista desbloqueada!',
+    l01: 'Primeira venda', l02: 'Império completo', l03: 'Fruta dourada', l04: 'Colhedor de ouro',
+    l05: 'Domador de pragas', l06: 'Onda perfeita', l07: 'Reputação máxima', l08: 'Milionário',
+    sPrestigio: 'Voltas com bônus',
+    btnNuevaVuelta: 'Nova volta', btnSiNuevaVuelta: 'Sim, começar de novo',
+    nuevaVueltaTit: 'Começar uma nova volta?',
+    nuevaVueltaTxt: 'Tudo recomeça, mas com um bônus permanente por ter completado o império: mais dinheiro e reputação desde o início. Soma a cada vez que você completa de novo.',
     introSub: 'Colha, abasteça seu posto e faça o império crescer',
     btnJugar: 'JOGAR', introTip: 'Arraste o dedo para mover o Kiosa',
     comoJugar: 'Como jogar', btnAJugar: 'BORA!', volver: 'Voltar',
     tropiezo: 'Você derrubou!', robo: 'Levou tudo!', caminoCambio: 'O caminho mudou',
     torbellino: 'Um redemoinho espalhou sua fruta!', carronero: 'Um pássaro bicou uma fruta!',
+    dorada: 'Fruta dourada!',
     r6t: 'Cuidado no caminho', r6d: 'Os buracos derrubam a fruta e os animais levam; corra ao posto, ali eles não entram',
     r1t: 'Colha', r1d: 'Chegue perto das árvores e a mochila enche sozinha',
     r2t: 'Abasteça o posto', r2d: 'Fique em VENDER: cada fruta vai para sua própria bandeja',
@@ -669,6 +713,20 @@ const DIARIOS = [
 ];
 const PREMIO_DIARIO = [200, 350, 500];
 
+// Logros: a diferencia de la campaña/opcionales/diarios, NO se guardan en el
+// save principal ni se pierden al reiniciar. Viven en su propia clave y una
+// vez desbloqueados quedan así para siempre.
+const LOGROS = [
+  { id: 'l01', k: 'l01', icono: '🥭', condicion: s => s.ventasTotales >= 1 },
+  { id: 'l02', k: 'l02', icono: '👑', condicion: s => s.terminado },
+  { id: 'l03', k: 'l03', icono: '✨', condicion: s => s.doradas >= 1 },
+  { id: 'l04', k: 'l04', icono: '🌟', condicion: s => s.doradas >= 10 },
+  { id: 'l05', k: 'l05', icono: '🛡️', condicion: s => s.plagasEspantadas >= 50 },
+  { id: 'l06', k: 'l06', icono: '🌊', condicion: s => s.oleadasPerfectas >= 1 },
+  { id: 'l07', k: 'l07', icono: '💯', condicion: s => s.reputacion >= 100 },
+  { id: 'l08', k: 'l08', icono: '💰', condicion: s => s.dineroTotal >= 10000 }
+];
+
 const RETO_BY_ID = {};
 CAMPANA.concat(OPCIONALES, DIARIOS).forEach(r => { RETO_BY_ID[r.id] = r; });
 
@@ -704,17 +762,35 @@ function estadoHoyNuevo() {
            porFruta: {}, compras: 0, llenadas: 0, sinMarchita: 0 };
 }
 
+// Prestigio ("nueva vuelta"): clave propia, independiente del save; se lee
+// ANTES del primer estadoNuevo() para que el bono ya esté al arrancar.
+const PRESTIGIO_KEY = 'kiosaImperio.prestigio';
+let prestigio = 0;
+(function cargarPrestigioInicial() {
+  try {
+    const raw = window.localStorage.getItem(PRESTIGIO_KEY);
+    prestigio = raw ? Math.max(0, parseInt(raw, 10) | 0) : 0;
+  } catch (e) { prestigio = 0; }
+})();
+function guardarPrestigio() {
+  try { window.localStorage.setItem(PRESTIGIO_KEY, JSON.stringify(prestigio)); } catch (e) {}
+}
+
 function estadoNuevo() {
+  // Bono de prestigio: se aplica solo al arrancar de cero (una partida
+  // cargada pisa esto enseguida con sus propios valores guardados).
+  const bonoDinero = Math.round(CONFIG.PRESTIGIO_DINERO_POR_NIVEL * prestigio);
+  const bonoRep = Math.min(CONFIG.REP_MAX, CONFIG.REP_INICIAL + CONFIG.PRESTIGIO_REP_POR_NIVEL * prestigio);
   return {
-    dinero: 0,
-    dineroTotal: 0,
+    dinero: bonoDinero,
+    dineroTotal: bonoDinero,
     ventasTotales: 0,
     ventasPorFruta: {},
     recolectadas: 0,
     plagasEspantadas: 0,
     curadas: 0,
     estanteTrays: FRUITS.reduce((o, f) => { o[f.id] = 0; return o; }, {}),
-    reputacion: CONFIG.REP_INICIAL,
+    reputacion: bonoRep,
     servidos: 0,
     enojados: 0,
     tropiezos: 0,
@@ -723,6 +799,8 @@ function estadoNuevo() {
     pasadas: 0,
     dispersadas: 0,
     picoteadas: 0,
+    doradas: 0,
+    oleadasPerfectas: 0,
     capacidad: CONFIG.CAP_START,
     compras: { arbol: 0, mochila: 0, riego: 0, espanta: 0, puesto: 0 },
     arboles: {},
@@ -778,6 +856,7 @@ let clienteTimer = 0;
 let mapacheTimer = 0;
 let torbellinoTimer = 0;
 let carroneroTimer = 0;
+let doradaTimer = 0;
 let bacheTimer = 0;
 let oleadaCola = [];          // capítulos cerrados mientras había otra oleada
 let bachePend = null;
@@ -845,6 +924,53 @@ function nombreGuardado() {
   if (!Save.disponible) return '';
   try { return window.localStorage.getItem(NOMBRE_KEY) || ''; } catch (e) { return ''; }
 }
+
+/* -------------------------------- Logros ---------------------------------
+   Misma idea que los récords: clave propia, sobreviven a "reiniciar". */
+const LOGROS_KEY = 'kiosaImperio.logros';
+let logrosDesbloqueados = [];
+let logrosNuevos = [];   // desde la última vez que se abrió el panel, para el avisito rojo
+
+function cargarLogros() {
+  if (!Save.disponible) { logrosDesbloqueados = []; return; }
+  try {
+    const raw = window.localStorage.getItem(LOGROS_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    logrosDesbloqueados = Array.isArray(arr) ? arr.filter(id => LOGROS.some(l => l.id === id)) : [];
+  } catch (e) { logrosDesbloqueados = []; }
+}
+function guardarLogros() {
+  if (!Save.disponible) return;
+  try { window.localStorage.setItem(LOGROS_KEY, JSON.stringify(logrosDesbloqueados)); } catch (e) {}
+}
+function logroDesbloqueado(id) { return logrosDesbloqueados.indexOf(id) >= 0; }
+function hayLogroNuevo() { return logrosNuevos.length > 0; }
+
+function actualizarLogros() {
+  let hayNuevo = false;
+  for (const l of LOGROS) {
+    if (!logroDesbloqueado(l.id) && l.condicion(state)) {
+      logrosDesbloqueados.push(l.id);
+      logrosNuevos.push(l.id);
+      hayNuevo = true;
+      toast(t('logroDesbloqueado'), l.icono + ' ' + t(l.k));
+      lanzarConfeti(player.x, player.y - 40, CONFIG.LOGRO_CONFETI);
+      SFX.fanfarria();
+    }
+  }
+  if (hayNuevo) guardarLogros();
+}
+
+function abrirLogros() {
+  logrosNuevos = [];
+  abrirModal({
+    tit: t('logrosTit'),
+    txt: t('logrosTxt'),
+    si: t('btnOk'),
+    stats: LOGROS.map(l => [l.icono + ' ' + t(l.k), logroDesbloqueado(l.id) ? '✓' : '🔒'])
+  });
+}
+
 function hacia(v, obj, paso) { return v < obj ? Math.min(obj, v + paso) : Math.max(obj, v - paso); }
 
 // El ciclo de piernas avanza con la DISTANCIA recorrida, no con el reloj:
@@ -884,6 +1010,7 @@ const Save = {
         tiempoJuego: state.tiempoJuego,
         tropiezos: state.tropiezos, robadas: state.robadas, recogidas: state.recogidas,
         pasadas: state.pasadas, dispersadas: state.dispersadas, picoteadas: state.picoteadas,
+        doradas: state.doradas, oleadasPerfectas: state.oleadasPerfectas,
         diarios: state.diarios, hoy: state.hoy, sinMarchita: state.sinMarchita,
         op: state.op, pagos: state.pagos, hints: state.hints,
         mute: state.mute, hudExp: state.hudExp, idioma: state.idioma, calidad: state.calidad,
@@ -967,6 +1094,8 @@ const Save = {
       s.pasadas = Math.max(0, num(d.pasadas, 0) | 0);
       s.dispersadas = Math.max(0, num(d.dispersadas, 0) | 0);
       s.picoteadas = Math.max(0, num(d.picoteadas, 0) | 0);
+      s.doradas = Math.max(0, num(d.doradas, 0) | 0);
+      s.oleadasPerfectas = Math.max(0, num(d.oleadasPerfectas, 0) | 0);
       s.terminado = !!d.terminado;
       s.tiempoJuego = Math.max(0, num(d.tiempoJuego, 0));
       s.reputacion = clamp(num(d.reputacion, CONFIG.REP_INICIAL), 0, CONFIG.REP_MAX);
@@ -1139,11 +1268,13 @@ class Plant {
     this.pop = popInicial ? 1 : 0;
     this.seed = Math.random() * Math.PI * 2;
     this.muerta = false;
+    this.dorada = 0;
   }
   get regenTiempo() {
     return CONFIG.REGEN_NIVELES[clamp(state.compras.riego, 0, CONFIG.REGEN_NIVELES.length - 1)];
   }
   update(dt) {
+    if (this.dorada > 0) this.dorada = Math.max(0, this.dorada - dt);
     if (this.marchita > 0) {
       this.marchita = Math.max(0, this.marchita - dt);
       this.regen = 0;
@@ -1169,6 +1300,7 @@ class Plant {
     if (this.frutas <= 0) return null;
     this.frutas--;
     this.pop = 1;
+    if (this.dorada > 0) { this.dorada = 0; premiarDorada(this); }
     return this.fruit.id;
   }
 }
@@ -2168,6 +2300,20 @@ function picotear(p) {
   SFX.aleteo();
 }
 
+// Recompensa pura: cosechar una fruta dorada a tiempo paga un plus directo,
+// además de la fruta normal que igual va a la mochila.
+function premiarDorada(pl) {
+  const bono = Math.round(pl.fruit.precio * CONFIG.DORADA_MULT * repFactorPrecio());
+  state.dinero += bono;
+  state.dineroTotal += bono;
+  state.doradas++;
+  floats.push({ x: pl.x, y: pl.y - 60, t: 0, txt: '+$' + bono + ' ' + t('dorada'), color: '#ffe27a' });
+  lanzarConfeti(pl.x, pl.y - 20, 26);
+  cam.shake = Math.max(cam.shake, 0.3);
+  SFX.chaching();
+  Save.guardar();
+}
+
 function actualizarSuelo(dt) {
   for (let i = sueloFrutas.length - 1; i >= 0; i--) {
     const f = sueloFrutas[i];
@@ -2228,6 +2374,23 @@ function actualizarCarroneros(dt) {
     carroneroTimer = 0;
     if (carroneros.length < CONFIG.CARRONERO_MAX) carroneros.push(new Carronero());
   }
+}
+
+function intervaloDorada() {
+  return Math.max(CONFIG.DORADA_INTERVALO_MIN,
+    CONFIG.DORADA_INTERVALO_BASE - CONFIG.DORADA_INTERVALO_POR_CAP * capituloActual());
+}
+
+function actualizarDorada(dt) {
+  doradaTimer += dt;
+  if (doradaTimer < intervaloDorada()) return;
+  const candidatos = plants.filter(pl => pl.dorada <= 0 && pl.marchita <= 0);
+  if (!candidatos.length) return;   // reintenta el próximo cuadro sin resetear el timer
+  doradaTimer = 0;
+  const pl = candidatos[(Math.random() * candidatos.length) | 0];
+  pl.dorada = CONFIG.DORADA_VIDA;
+  pl.frutas = Math.max(pl.frutas, 1);
+  pl.pop = 1;
 }
 
 // Los clientes solo empiezan a llegar cuando ya surtiste una vez: así el
@@ -2404,6 +2567,7 @@ function terminarOleada() {
   const gano = oleada.perdidas <= CONFIG.OLEADA_MAX_PERDIDAS;
   for (const p of plagas) p.huir();
   if (gano) {
+    if (oleada.perdidas === 0) state.oleadasPerfectas++;
     const premio = CONFIG.OLEADA_PREMIO * (cap + 1);
     pagarPremio(premio);
     bigMsg = { txt: t('oleadaSuperada'), t: 0 };
@@ -2849,7 +3013,8 @@ let anchosCache = Object.create(null);
 const modal = {
   abierto: false, t: 0, tit: '', txt: '', si: '', no: '',
   peligro: false, festejo: false, stats: null, onSi: null, lineas: [], hover: null,
-  x: 0, y: 0, w: 0, h: 0, btnSi: null, btnNo: null
+  x: 0, y: 0, w: 0, h: 0, btnSi: null, btnNo: null,
+  tercero: '', onTercero: null, btnTercero: null    // botón extra opcional, arriba del todo
 };
 const intro = { activo: true, t: 0, pagina: 0, tp: 0, btn: null, btn2: null, volver: null, voff: 0 };
 const REGLAS = [
@@ -2902,7 +3067,8 @@ function layoutModal() {
   modal.lineas = envolver(modal.txt, w - 44, 14, false);
   const filas = modal.stats ? modal.stats.length : 0;
   const cajaH = (modal.festejo && mostrarCajaRecord) ? 54 : 0;
-  const h = 66 + modal.lineas.length * 21 + 16 + filas * 26 + (filas ? 28 : 6) + cajaH + 48 + 18;
+  const terceroH = modal.tercero ? 58 : 0;
+  const h = 66 + modal.lineas.length * 21 + 16 + filas * 26 + (filas ? 28 : 6) + cajaH + terceroH + 48 + 18;
   modal.h = h;
   modal.x = (cw - w) / 2;
   modal.y = Math.max(16, (ch - h) / 2);
@@ -2915,6 +3081,7 @@ function layoutModal() {
     modal.btnNo = { x: 0, y: 0, w: 0, h: 0 };
     modal.btnSi = { x: modal.x + 16, y: by, w: w - 32, h: bh };
   }
+  modal.btnTercero = modal.tercero ? { x: modal.x + 16, y: by - terceroH, w: w - 32, h: 40 } : null;
 }
 
 function abrirModal(cfg) {
@@ -2929,6 +3096,8 @@ function abrirModal(cfg) {
   modal.stats = cfg.stats || null;
   modal.onSi = cfg.onSi || null;
   modal.onNo = cfg.onNo || null;   // si viene, el botón "no" actúa sin cerrar (p.ej. compartir)
+  modal.tercero = cfg.tercero || '';
+  modal.onTercero = cfg.onTercero || null;
   modal.hover = null;
   layoutModal();
   SFX.resume();
@@ -2945,6 +3114,8 @@ function abrirFinal() {
     txt: t('finalTxt'),
     si: t('btnSeguir'),
     no: t('compartir'),
+    tercero: t('btnNuevaVuelta'),
+    onTercero: confirmarNuevaVuelta,
     onNo: function () { compartir(); },   // no cierra: puede compartir y luego seguir
     onSi: function () { guardarRecordDesdeInput(); },   // guarda con lo que haya, o "Jugador"
     festejo: true,
@@ -2954,11 +3125,30 @@ function abrirFinal() {
       [t('sFrutas'), String(state.ventasTotales)],
       [t('sClientes'), String(state.servidos)],
       [t('sPlagas'), String(state.plagasEspantadas)],
-      [t('sRep'), Math.floor(state.reputacion) + ' · ' + t('rango' + rangoRep())]
+      [t('sRep'), Math.floor(state.reputacion) + ' · ' + t('rango' + rangoRep())],
+      [t('sPrestigio'), String(prestigio)]
     ]
   });
   mostrarRecordBox();
   Save.guardar();
+}
+
+// Prestigio: empezar de nuevo con un bono permanente que crece con cada
+// vuelta completada. Se confirma aparte porque, como reiniciar, borra la
+// partida en curso (aunque records y logros quedan intactos).
+function confirmarNuevaVuelta() {
+  abrirModal({
+    tit: t('nuevaVueltaTit'), txt: t('nuevaVueltaTxt'),
+    si: t('btnSiNuevaVuelta'), no: t('btnNo'),
+    onSi: function () { nuevaVuelta(); }
+  });
+}
+function nuevaVuelta() {
+  prestigio++;
+  guardarPrestigio();
+  reiniciando = true;
+  Save.borrar();
+  window.location.reload();
 }
 
 function layoutIntro() {
@@ -2990,6 +3180,7 @@ function comenzarJuego() {
 
 function cerrarModal() {
   modal.abierto = false; modal.onSi = null; modal.onNo = null; modal.hover = null;
+  modal.tercero = ''; modal.onTercero = null;
   if (mostrarCajaRecord) ocultarRecordBox();
 }
 
@@ -3011,6 +3202,7 @@ function layoutHUD() {
   HUD.btn.mute   = { x: bx, y: by, s: bs }; by += paso;
   HUD.btn.idioma = { x: bx, y: by, s: bs }; by += paso;
   HUD.btn.share  = { x: bx, y: by, s: bs }; by += paso;
+  HUD.btn.logros = { x: bx, y: by, s: bs }; by += paso;
   HUD.btn.reset  = { x: bx, y: by, s: bs };
   // Ancho con tope: estirada a toda la pantalla tapaba la huerta
   const lw = Math.min(cw - 24 - bs - 10, Math.round(330 * k));
@@ -3182,6 +3374,10 @@ canvas.addEventListener('pointerdown', e => {
       SFX.pop();
       if (modal.onNo) modal.onNo(); else cerrarModal();
     }
+    else if (modal.tercero && puntoEnRect(modal.btnTercero, p.x, p.y)) {
+      SFX.pop();
+      if (modal.onTercero) modal.onTercero();
+    }
     else if (p.x < modal.x || p.x > modal.x + modal.w || p.y < modal.y || p.y > modal.y + modal.h) cerrarModal();
     e.preventDefault();
     return;
@@ -3198,6 +3394,7 @@ canvas.addEventListener('pointerdown', e => {
   }
   if (puntoEnRect(HUD.btn.idioma, p.x, p.y)) { ciclarIdioma(); e.preventDefault(); return; }
   if (puntoEnRect(HUD.btn.share, p.x, p.y)) { compartir(); e.preventDefault(); return; }
+  if (puntoEnRect(HUD.btn.logros, p.x, p.y)) { SFX.pop(); abrirLogros(); e.preventDefault(); return; }
   if (puntoEnRect(HUD.btn.reset, p.x, p.y)) {
     abrirModal({
       tit: t('reiniciarTit'), txt: t('reiniciar'),
@@ -3232,7 +3429,8 @@ canvas.addEventListener('pointermove', e => {
   const p = posCanvas(e);
   if (modal.abierto) {
     modal.hover = puntoEnRect(modal.btnSi, p.x, p.y) ? 'si'
-                : (modal.no && puntoEnRect(modal.btnNo, p.x, p.y) ? 'no' : null);
+                : (modal.no && puntoEnRect(modal.btnNo, p.x, p.y) ? 'no'
+                : (modal.tercero && puntoEnRect(modal.btnTercero, p.x, p.y) ? 'tercero' : null));
     e.preventDefault();
     return;
   }
@@ -3402,12 +3600,27 @@ const FRUIT_OFFSETS = [[-16, -8], [14, -14], [0, 10]];
 const VINE_OFFSETS = [[-20, 4], [18, -2], [-2, 16]];
 
 function dibujarPlanta(p) {
+  const alturaCopa = p.fruit.tipoPlanta === 'rastrera' ? 26 : 60;
+  if (p.dorada > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.30 + 0.18 * Math.sin(tiempo * 5);
+    ctx.fillStyle = '#ffe27a';
+    circulo(p.x, p.y - alturaCopa * 0.6, 34); ctx.fill();
+    ctx.restore();
+  }
   if (p.fruit.tipoPlanta === 'rastrera') dibujarRastrera(p);
   else dibujarArbol(p);
+  if (p.dorada > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.85 + 0.15 * Math.sin(tiempo * 6);
+    emoji('✨', p.x - 24, p.y - alturaCopa - 8, 18);
+    emoji('⭐', p.x + 22, p.y - alturaCopa + 4, 16);
+    ctx.restore();
+  }
   if (p.marchita > 0) {
     ctx.save();
     ctx.globalAlpha = 0.62;
-    emoji('🥀', p.x + 26, p.y - (p.fruit.tipoPlanta === 'rastrera' ? 26 : 60), 20);
+    emoji('🥀', p.x + 26, p.y - alturaCopa, 20);
     ctx.restore();
   }
 }
@@ -4395,7 +4608,16 @@ function dibujarHUD() {
   botonHUD(HUD.btn.mute, state.mute ? '🔇' : '🔊');
   botonHUD(HUD.btn.idioma, '🌐');
   botonHUD(HUD.btn.share, '📤');
+  botonHUD(HUD.btn.logros, '🏆');
   botonHUD(HUD.btn.reset, '↺');
+  if (hayLogroNuevo()) {
+    ctx.save();
+    ctx.globalAlpha = 0.7 + 0.3 * Math.sin(tiempo * 5);
+    ctx.fillStyle = '#ff5a5a';
+    circulo(HUD.btn.logros.x + HUD.btn.logros.s - 4, HUD.btn.logros.y + 4, 6);
+    ctx.fill();
+    ctx.restore();
+  }
   texto(LANG.toUpperCase(), HUD.btn.idioma.x + HUD.btn.idioma.s / 2, HUD.btn.idioma.y + HUD.btn.idioma.s - 4,
         9 * k, 'rgba(255,255,255,0.85)', 'center', true);
 
@@ -4674,6 +4896,7 @@ function dibujarModal() {
   // se posiciona con estas mismas coordenadas justo después de dibujar.
   if (modal.festejo && mostrarCajaRecord) { modal.recordY = yy + 22; yy += 54; }
   else modal.recordY = null;
+  if (modal.tercero) botonModal(modal.btnTercero, modal.tercero, false, modal.hover === 'tercero');
   if (modal.no) botonModal(modal.btnNo, modal.no, false, modal.hover === 'no');
   botonModal(modal.btnSi, modal.si, true, modal.hover === 'si');
   ctx.restore();
@@ -5291,6 +5514,7 @@ function paso(ts) {
   actualizarMapaches(dt);
   actualizarTorbellinos(dt);
   actualizarCarroneros(dt);
+  actualizarDorada(dt);
   actualizarClientes(dt);
   actualizarOleada(dt);
   actualizarPlagas(dt);
@@ -5307,6 +5531,7 @@ function paso(ts) {
   if (state.dinero > state.op.saldoMax) state.op.saldoMax = state.dinero;
 
   actualizarRetos(true);
+  actualizarLogros();
   revisarMitad();
   actualizarParticulas(dt);
   actualizarCamara(dt);
@@ -5336,6 +5561,7 @@ function registrarSW() {
 
 function iniciar() {
   Save.cargar();
+  cargarLogros();
   LANG = state.idioma;
   pintarCredito();
   pintarUI();
@@ -5448,7 +5674,8 @@ const game = {
   get modal() {
     return modal.abierto
       ? { tit: modal.tit, txt: modal.txt, si: modal.si, no: modal.no, btnSi: modal.btnSi, btnNo: modal.btnNo,
-          stats: modal.stats, recordY: modal.recordY }
+          stats: modal.stats, recordY: modal.recordY,
+          tercero: modal.tercero, btnTercero: modal.btnTercero }
       : null;
   },
   dialogo(cfg) { abrirModal(cfg || { tit: 'Kiosa', txt: '...', si: 'OK' }); return true; },
@@ -5459,6 +5686,15 @@ const game = {
   agregarRecord(nombre, segundos) { return agregarRecord(nombre, segundos); },
   guardarRecordActual() { guardarRecordDesdeInput(); return true; },
   terminarConTiempo(seg) { state.tiempoJuego = seg; abrirFinal(); return true; },
+  get LOGROS() { return LOGROS; },
+  get logrosDesbloqueados() { return logrosDesbloqueados.slice(); },
+  logroDesbloqueado(id) { return logroDesbloqueado(id); },
+  actualizarLogros() { actualizarLogros(); return true; },
+  abrirLogros() { abrirLogros(); return true; },
+  borrarLogros() { logrosDesbloqueados = []; logrosNuevos = []; try { window.localStorage.removeItem(LOGROS_KEY); } catch (e) {} return true; },
+  get hayLogroNuevo() { return hayLogroNuevo(); },
+  get prestigio() { return prestigio; },
+  nuevaVuelta() { nuevaVuelta(); return true; },
   calidad(c) { if (['auto', 'bajo', 'alto'].indexOf(c) >= 0) { state.calidad = c; resize(); Save.guardar(); } return state.calidad; },
   fps() { return Math.round(1000 / Math.max(1, perf.ms)); },
   guardar() { Save.guardar(); },
